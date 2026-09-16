@@ -1,5 +1,3 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
 # Case Study I — CRM → Billing Configuration Prediction
 
 Team project for the case study competition (Moodle course, section id 8608).

@@ -99,9 +99,3 @@ The brief is explicit that `train.csv` contains provisioning errors baked into t
 deemed correct**. That means blindly minimizing training loss can teach the model to reproduce
 noise. Worth treating "which training rows look erroneous" as a first-class Sprint 1
 deliverable, not just an EDA footnote — it directly affects Sprint 2's ceiling.
-=======
-# ECQ
->>>>>>> c0a513d5d0d417d05000b44b11174bbced71e639
-=======
-# ECQ
->>>>>>> c0a513d5d0d417d05000b44b11174bbced71e639

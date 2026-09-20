@@ -1,0 +1,7 @@
+dist_bucket,group_was_relabeled,n_rows
+matches_majority(0),False,395
+matches_majority(0),True,56692
+likely_typo(1-2),False,330
+likely_typo(1-2),True,861
+likely_distinct(3+),False,21
+likely_distinct(3+),True,103

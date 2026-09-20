@@ -15,16 +15,28 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from preprocessing import (
-    correlation_clusters,
-    cluster_columns_to_drop,
-    compute_majority_labels,
-    sparse_binary_corr_matrix,
-    flag_count_outliers,
-    hamming_distance_report,
-    referential_integrity_checks,
-    label_imbalance_report,
-)
+try:
+    from .preprocessing import (
+        correlation_clusters,
+        cluster_columns_to_drop,
+        compute_majority_labels,
+        sparse_binary_corr_matrix,
+        flag_count_outliers,
+        hamming_distance_report,
+        referential_integrity_checks,
+        label_imbalance_report,
+    )
+except ImportError:  # running as a standalone script (python src/export_summaries.py)
+    from preprocessing import (
+        correlation_clusters,
+        cluster_columns_to_drop,
+        compute_majority_labels,
+        sparse_binary_corr_matrix,
+        flag_count_outliers,
+        hamming_distance_report,
+        referential_integrity_checks,
+        label_imbalance_report,
+    )
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 OUT_DIR = DATA_DIR / "derived"
@@ -64,24 +76,18 @@ def top_pairs(corr, row_names, col_names, top_n, symmetric):
     return df.reindex(df["corr"].abs().sort_values(ascending=False).index).head(top_n)
 
 
-def main():
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-
-    header = pd.read_csv(DATA_DIR / "train.csv", nrows=0).columns.tolist()
-    crm_cols = [c for c in header if c.startswith("CRM")]
-    bil_cols = [c for c in header if c.startswith("BIL")]
-
-    dtype_map = {c: "int8" for c in crm_cols + bil_cols}
-    dtype_map["MSISDN"] = str
-    train = pd.read_csv(DATA_DIR / "train.csv", dtype=dtype_map)
-
-    test_dtype_map = {c: "int8" for c in crm_cols}
-    test_dtype_map["MSISDN"] = str
-    test = pd.read_csv(DATA_DIR / "test.csv", dtype=test_dtype_map)
+def compute_and_export_summaries(train, test, crm_cols, bil_cols, out_dir=OUT_DIR):
+    """Recompute every EDA/cleaning number from already-loaded train/test DataFrames and
+    write them to `out_dir`. This is the function the notebook calls directly (it already
+    has train/test in memory, no need to re-read the CSVs) — `main()` below is just a
+    thin CLI wrapper around it for regenerating data/derived/ without opening Jupyter.
+    """
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
 
     # --- referential_integrity.csv: hard asserts (raised immediately) + soft counts ---
     integrity = referential_integrity_checks(train, test, crm_cols, bil_cols)
-    pd.DataFrame([integrity]).to_csv(OUT_DIR / "referential_integrity.csv", index=False)
+    pd.DataFrame([integrity]).to_csv(out_dir / "referential_integrity.csv", index=False)
 
     crm_var = train[crm_cols].nunique()
     bil_var = train[bil_cols].nunique()
@@ -127,7 +133,7 @@ def main():
                     "dropped_as_duplicate": c in drop,
                 }
             )
-    pd.DataFrame(rows).to_csv(OUT_DIR / "column_stats.csv", index=False)
+    pd.DataFrame(rows).to_csv(out_dir / "column_stats.csv", index=False)
 
     # --- correlation_clusters.csv ---
     cluster_rows = []
@@ -143,7 +149,7 @@ def main():
                     "size": len(group),
                 }
             )
-    pd.DataFrame(cluster_rows).to_csv(OUT_DIR / "correlation_clusters.csv", index=False)
+    pd.DataFrame(cluster_rows).to_csv(out_dir / "correlation_clusters.csv", index=False)
 
     # --- onehot_groups.csv ---
     group_rows = []
@@ -159,7 +165,7 @@ def main():
                     "pct_rows_sum_to_0": round(float((row_sums == 0).mean()), 6),
                 }
             )
-    pd.DataFrame(group_rows).to_csv(OUT_DIR / "onehot_groups.csv", index=False)
+    pd.DataFrame(group_rows).to_csv(out_dir / "onehot_groups.csv", index=False)
 
     # --- top_correlated_pairs.csv ---
     pair_rows = [
@@ -167,12 +173,12 @@ def main():
         top_pairs(bil_corr, bil_packs, bil_packs, 30, symmetric=True).assign(pair_type="bil-bil"),
         top_pairs(cross_corr, crm_packs, bil_packs, 30, symmetric=False).assign(pair_type="crm-bil"),
     ]
-    pd.concat(pair_rows, ignore_index=True).to_csv(OUT_DIR / "top_correlated_pairs.csv", index=False)
+    pd.concat(pair_rows, ignore_index=True).to_csv(out_dir / "top_correlated_pairs.csv", index=False)
 
     # --- bil_predictability.csv: per BIL pack, best single-CRM-pack |corr| ---
     max_abs_corr = np.nanmax(np.abs(cross_corr), axis=0)
     pd.DataFrame({"bil_pack": bil_packs, "max_abs_corr_with_any_crm_pack": max_abs_corr}).to_csv(
-        OUT_DIR / "bil_predictability.csv", index=False
+        out_dir / "bil_predictability.csv", index=False
     )
 
     # --- CRM<->BIL config-level ambiguity + majority-vote relabeling ---
@@ -211,7 +217,7 @@ def main():
             "crm_outlier": crm_is_outlier[outlier_mask],
             "bil_outlier": bil_is_outlier[outlier_mask],
         }
-    ).to_csv(OUT_DIR / "pack_count_outliers.csv", index=False)
+    ).to_csv(out_dir / "pack_count_outliers.csv", index=False)
 
     # --- typo_audit.csv: Hamming distance from each ambiguous row to its group's
     # majority BIL config, bucketed, cross-tabbed against whether the 0.65-share
@@ -233,7 +239,7 @@ def main():
         )
     else:
         typo_summary = pd.DataFrame(columns=["dist_bucket", "group_was_relabeled", "n_rows"])
-    typo_summary.to_csv(OUT_DIR / "typo_audit.csv", index=False)
+    typo_summary.to_csv(out_dir / "typo_audit.csv", index=False)
 
     # --- label_imbalance.csv: activation-rate tiers for CRM and BIL columns ---
     imbalance_rows = []
@@ -241,7 +247,7 @@ def main():
         tier_counts = label_imbalance_report(train[cols].mean())
         tier_counts.insert(0, "system", system)
         imbalance_rows.append(tier_counts)
-    pd.concat(imbalance_rows, ignore_index=True).to_csv(OUT_DIR / "label_imbalance.csv", index=False)
+    pd.concat(imbalance_rows, ignore_index=True).to_csv(out_dir / "label_imbalance.csv", index=False)
 
     # --- bil_value_counts.csv: top 30 most common BIL configs ---
     bil_counts = pairs["bil"].value_counts()
@@ -251,7 +257,7 @@ def main():
     bil_top.insert(0, "rank", range(1, len(bil_top) + 1))
     bil_top["n_active_packs"] = bil_top["bil_config"].str.count("1")
     bil_top["config_hash"] = bil_top["bil_config"].apply(lambda s: hash(s) & 0xFFFFFFFF)
-    bil_top.drop(columns="bil_config").to_csv(OUT_DIR / "bil_value_counts.csv", index=False)
+    bil_top.drop(columns="bil_config").to_csv(out_dir / "bil_value_counts.csv", index=False)
 
     n_for_80 = int(
         (bil_counts.sort_values(ascending=False).cumsum() / bil_counts.sum() <= 0.8).sum() + 1
@@ -305,10 +311,30 @@ def main():
         "pct_pack_count_outlier_rows": round(float(outlier_mask.mean()), 6),
         **{f"referential_{k}": v for k, v in integrity.items()},
     }
-    pd.DataFrame([summary]).to_csv(OUT_DIR / "dataset_summary.csv", index=False)
+    pd.DataFrame([summary]).to_csv(out_dir / "dataset_summary.csv", index=False)
 
-    n_files = len(list(OUT_DIR.glob("*.csv")))
-    print(f"Wrote {n_files} derived summary files to {OUT_DIR}")
+    n_files = len(list(out_dir.glob("*.csv")))
+    print(f"Wrote {n_files} derived summary files to {out_dir}")
+
+
+def main():
+    """CLI entry point: load train/test from data/ and export summaries. The notebook
+    doesn't call this — it already has train/test loaded and calls
+    compute_and_export_summaries() directly instead of re-reading the CSVs.
+    """
+    header = pd.read_csv(DATA_DIR / "train.csv", nrows=0).columns.tolist()
+    crm_cols = [c for c in header if c.startswith("CRM")]
+    bil_cols = [c for c in header if c.startswith("BIL")]
+
+    dtype_map = {c: "int8" for c in crm_cols + bil_cols}
+    dtype_map["MSISDN"] = str
+    train = pd.read_csv(DATA_DIR / "train.csv", dtype=dtype_map)
+
+    test_dtype_map = {c: "int8" for c in crm_cols}
+    test_dtype_map["MSISDN"] = str
+    test = pd.read_csv(DATA_DIR / "test.csv", dtype=test_dtype_map)
+
+    compute_and_export_summaries(train, test, crm_cols, bil_cols)
 
 
 if __name__ == "__main__":

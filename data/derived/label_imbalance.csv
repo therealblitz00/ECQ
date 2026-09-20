@@ -1,0 +1,11 @@
+system,imbalance_tier,n_columns
+CRM,ultra_rare(<0.1%),16
+CRM,rare(0.1-1%),613
+CRM,uncommon(1-10%),82
+CRM,common(10-50%),25
+CRM,dense(>=50%),9
+BIL,ultra_rare(<0.1%),10
+BIL,rare(0.1-1%),607
+BIL,uncommon(1-10%),82
+BIL,common(10-50%),23
+BIL,dense(>=50%),9

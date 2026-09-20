@@ -1,0 +1,2 @@
+missing_values_train,missing_values_test,duplicate_msisdn_train,duplicate_msisdn_test,mean_crm_activation_rate,mean_bil_activation_rate
+0,0,0,0,0.0205,0.0201

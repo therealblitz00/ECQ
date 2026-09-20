@@ -1,0 +1,4 @@
+tier,threshold,n_bil_columns,pct_rows_with_at_least_one_positive,emr_ceiling_if_predicted_all_zero
+ultra-rare (<0.1%),0.001,10,0.009182,0.990818
+rare (<1%),0.01,617,0.383511,0.616489
+uncommon (<10%),0.1,699,0.939944,0.060056

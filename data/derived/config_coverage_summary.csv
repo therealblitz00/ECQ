@@ -1,2 +1,5 @@
-n_distinct_bil_configs_total,n_distinct_crm_configs_total,n_distinct_bil_configs_for_80pct_coverage
-67201,67434,29713
+coverage,n_bil_configs_needed,n_distinct_bil_configs,n_distinct_crm_configs
+0.5,990,67201,67434
+0.8,29713,67201,67434
+0.9,48457,67201,67434
+0.95,57829,67201,67434

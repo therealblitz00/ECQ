@@ -1,2 +1,2 @@
-missing_values_train,missing_values_test,duplicate_msisdn_train,duplicate_msisdn_test,mean_crm_activation_rate,mean_bil_activation_rate
-0,0,0,0,0.0205,0.0201
+n_train_rows,n_test_rows,missing_values_train,missing_values_test,duplicate_msisdn_train,duplicate_msisdn_test,mean_crm_activation_rate,mean_bil_activation_rate,mean_active_crm_columns_per_customer,mean_active_bil_columns_per_customer
+187442,97100,0,0,0,0,0.020528,0.02009,15.2936,14.6858

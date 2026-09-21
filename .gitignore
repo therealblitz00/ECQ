@@ -2,3 +2,7 @@ data/*.csv
 !data/.gitkeep
 __pycache__/
 *.pyc
+
+# Local audit & notes
+agent_audit_notebook.yaml
+resumo_crm_faturacao.md

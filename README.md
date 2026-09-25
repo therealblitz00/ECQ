@@ -55,8 +55,12 @@ project/
 ├── README.md
 ├── requirements.txt
 ├── data/                       # put train.csv / test.csv / solution.csv / sampleSubmission.csv here
+│   └── derived/                # intermediate artifacts written by the notebooks (CSV/JSON)
+├── docs/                       # write-ups and planning notes (not notebook content)
 ├── notebooks/
-│   └── sprint1_preprocessing.ipynb   # starter notebook, submit-ready structure for Sprint 1
+│   ├── sprint1_preprocessing_v3.ipynb   # current Sprint 1 notebook
+│   ├── archive/                # superseded notebook versions (v1, v2), kept for history
+│   └── exports/                # rendered HTML exports, regenerable, gitignored
 └── src/                        # shared helper code as the project grows (feature building, metrics, etc.)
 ```
 
@@ -65,12 +69,12 @@ project/
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-jupyter notebook notebooks/sprint1_preprocessing.ipynb
+jupyter notebook notebooks/sprint1_preprocessing_v3.ipynb
 ```
 
 ## Sprint roadmap (suggested)
 
-**Sprint 1 — Pre-processing** (`notebooks/sprint1_preprocessing.ipynb`)
+**Sprint 1 — Pre-processing** (`notebooks/sprint1_preprocessing_v3.ipynb`)
 - Load data with proper dtypes, sanity-check for missing/duplicate rows
 - Quantify sparsity, drop zero-variance columns
 - Quantify CRM→BIL ambiguity (provisioning errors) and decide how to handle it

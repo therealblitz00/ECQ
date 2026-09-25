@@ -25,7 +25,7 @@ human/automatic errors let these drift out of sync, so the model's job is to pre
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-jupyter notebook notebooks/sprint1_preprocessing.ipynb
+jupyter notebook notebooks/sprint1_preprocessing_v3.ipynb
 ```
 
 No test suite, lint config, or build step exists in this repo — it's a data-science notebook
@@ -45,7 +45,7 @@ Get the files from the competition and place them in `data/`:
 | `sampleSubmission.csv` | — | — | Expected submission format |
 
 All CRM/BIL columns are strictly binary — always load with an explicit `int8`/`uint8` dtype
-map (see `notebooks/sprint1_preprocessing.ipynb` cell 4), never let pandas default to `int64`,
+map (see `notebooks/sprint1_preprocessing_v3.ipynb` cell 4), never let pandas default to `int64`,
 or memory use balloons ~8x on files already in the hundreds of MB.
 
 Two column families exist and behave differently, split via `split_taxonomy()` in the sprint-1
@@ -61,7 +61,7 @@ the team leader, this repo is where the code gets built.
 
 | Sprint | Focus | Weight | Due |
 |---|---|---|---|
-| 1 | Pre-processing (`notebooks/sprint1_preprocessing.ipynb`) | 40% | 22/09/2026 |
+| 1 | Pre-processing (`notebooks/sprint1_preprocessing_v3.ipynb`) | 40% | 22/09/2026 |
 | 2 | Modeling | 30% | 29/09/2026 |
 | 3 | Optimization & Explainability | 30% | 06/10/2026 |
 

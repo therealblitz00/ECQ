@@ -3,6 +3,9 @@ data/*.csv
 __pycache__/
 *.pyc
 
+# Rendered notebook exports (regenerable via Jupyter's "Export as HTML")
+notebooks/exports/
+
 # Local audit & notes
 agent_audit_notebook.yaml
 resumo_crm_faturacao.md

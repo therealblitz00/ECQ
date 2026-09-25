@@ -3,6 +3,10 @@ data/*.csv
 __pycache__/
 *.pyc
 
+# Local array cache and experiment outputs built from the (gitignored) raw data
+data/cache/
+data/derived/submission_*.csv
+
 # Rendered notebook exports (regenerable via Jupyter's "Export as HTML")
 notebooks/exports/
 

@@ -1,0 +1,2 @@
+crm_marginal_corr_train_test,max_abs_marginal_diff,mean_abs_marginal_diff,n_cols_marginal_diff_gt_0.01,n_cols_active_test_only,n_cols_active_train_only,n_test_rows,n_test_rows_with_exact_crm_config_in_train,pct_test_rows_covered_by_lookup
+0.950678,0.243881,0.00811746,85,2,33,97100,6,6.179e-05

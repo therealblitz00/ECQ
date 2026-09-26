@@ -1,0 +1,4 @@
+jaccard_threshold,n_nodes,n_edges,n_communities,modularity
+0.2,158,331,43,0.798135
+0.3,116,200,31,0.825868
+0.5,61,104,18,0.805667

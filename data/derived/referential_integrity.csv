@@ -1,0 +1,2 @@
+columns_match,train_binary_only,test_binary_only,train_nulls,test_nulls,n_duplicate_msisdn_train,n_duplicate_msisdn_test,n_msisdn_overlap_train_test
+True,True,True,0,0,0,0,0

@@ -1,0 +1,6 @@
+top_k_columns,share_of_total_variance,n_columns_for_90pct_variance,explained_variance_5pc
+5,0.14395,166,0.510221
+10,0.28351,166,0.510221
+20,0.507217,166,0.510221
+50,0.736931,166,0.510221
+100,0.849408,166,0.510221

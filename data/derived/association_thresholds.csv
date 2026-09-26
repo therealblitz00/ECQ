@@ -1,0 +1,6 @@
+threshold,n_bil_with_jaccard_ge_t,n_bil_with_trigger_ge_t,n_bil_with_necessary_cond_ge_t
+0.99,16,32,33
+0.95,41,69,103
+0.9,63,106,154
+0.5,195,238,717
+0.3,249,314,717

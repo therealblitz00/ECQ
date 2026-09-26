@@ -1,0 +1,5 @@
+modal_share_threshold,n_columns,n_columns_total,pairs_covered,pairs_total,n_columns_with_distance1_pair,n_distance1_pairs,median_modal_share,n_columns_modal_delta_removes_nothing,median_n_bil_added
+1.0,268,538,1220,20997,538,20997,0.996919,511,1.0
+0.99,279,538,4230,20997,538,20997,0.996919,511,1.0
+0.95,352,538,18805,20997,538,20997,0.996919,511,1.0
+0.9,382,538,20235,20997,538,20997,0.996919,511,1.0

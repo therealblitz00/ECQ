@@ -1,0 +1,2 @@
+n_rows,effective_sample_size_configs,mean_config_multiplicity,share_val_rows_memorisable_under_row_split,emr_a_row_split_would_report,generalisation_placeholder_used,standard_error_inflation_factor,required_split
+187442,67434,2.7796,0.682254,0.9507,0.86,1.6672,GroupKFold / GroupShuffleSplit on crm_code

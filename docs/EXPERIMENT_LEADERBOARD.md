@@ -11,7 +11,7 @@ matching the real test set (6 of 97,100 test rows, 0.006%, have a config seen in
 `s11` = Sprint 1 Section 10 / Section 11 feature sets; `+consensus` = trained on unique
 configurations with consensus labels.
 
-**Current Champion:** andre-blend-wd-nnd-champ — blend (raw) — **88.26% val EMR**, Hamming loss 0.001364.
+**Current Champion:** andre-blend-rules42 — avg(wd512, nndelta, BR mcs20) + rules (raw+consensus) — **88.29% val EMR**, Hamming loss 0.001406.
 
 | Exp ID | Data Pipeline (Sec 10 vs 11) | Model Family | Key Hyperparameters / Features | Val EMR (%) | Val Hamming Loss | Train Time (s) | Status / Notes |
 |---|---|---|---|---|---|---|---|
@@ -61,13 +61,15 @@ configurations with consensus labels.
 | E5-reg-mcs20-s7-t0.6 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=20, reg_lambda=1.0, n_models=1, thr=0.6, split_seed=7 | 86.00 | 0.001474 | 203.7 |  |
 | EXT-solution | raw+consensus | FINAL champion on test (solution.csv diagnostic) | min_child_samples=20, reg_lambda=1.0, thr=0.5, rules=True, trained_on=all train | 95.04 | 0.000090 | 212.4 | external diagnostic only, not used for any selection |
 | E-Baseline-LR | Raw 745 CRM + L1 Regularization (OvR) | LogisticRegression | penalty=l1, solver=liblinear, C=1.0 | 86.44 | 0.001588 | 203.24358645803292 | Proves that 98% of the performance is captured linearly. LGBM EMR gain vs LR is only ~1.4%. |
-| andre-champion-ref | raw | lgbm-br | min_child_samples=20, reg_lambda=1.0, model_seed=None, split_seed=42 | 87.65 | 0.001327 | 274.9 | BR LightGBM, mcs=20, reg_lambda=1, threshold 0.5, no rules |
-| andre-champion-rules42 | raw | lgbm-br | min_child_samples=20, reg_lambda=1.0, model_seed=None, split_seed=42 | 87.84 | 0.001375 | 274.9 | champion + 42 Section 11 additive rules (LEAK: mined on all of train.csv) |
-| andre-wd512 | raw | widedeep | hidden=[512], dropout=0.2, wide=True, lr=0.002, batch_size=256, max_epochs=80, patience=8, model_seed=42, split_seed=42 | 87.93 | 0.002328 | 158.3 | wide additive path + shared 512-unit hidden layer |
-| andre-nndelta | raw | nndelta | min_pairs=2, min_rate=0.5, max_nb=5, model_seed=None, split_seed=42 | 81.50 | 0.002059 | 61.7 | nearest CRM config, then apply the per-pack BIL delta |
-| andre-blend-wd-nnd-champ | raw | blend | members=['andre-wd512', 'andre-nndelta', 'andre-champion-ref'], weights=equal, thr=0.5, split_seed=42 | 88.26 | 0.001364 | 0.0 | equal average of the wd / nndelta / champion probabilities **(champion)** |
-| andre-champion-ref | raw | lgbm-br | min_child_samples=20, reg_lambda=1.0, model_seed=None, split_seed=7 | 86.30 | 0.001420 | 494.8 | BR LightGBM, mcs=20, reg_lambda=1, threshold 0.5, no rules |
-| andre-champion-rules42 | raw | lgbm-br | min_child_samples=20, reg_lambda=1.0, model_seed=None, split_seed=7 | 86.49 | 0.001474 | 494.8 | champion + 42 Section 11 additive rules (LEAK: mined on all of train.csv) |
-| andre-wd512 | raw | widedeep | hidden=[512], dropout=0.2, wide=True, lr=0.002, batch_size=256, max_epochs=80, patience=8, model_seed=7, split_seed=7 | 86.98 | 0.002571 | 169.5 | wide additive path + shared 512-unit hidden layer |
-| andre-nndelta | raw | nndelta | min_pairs=2, min_rate=0.5, max_nb=5, model_seed=None, split_seed=7 | 85.40 | 0.002225 | 32.8 | nearest CRM config, then apply the per-pack BIL delta |
-| andre-blend-wd-nnd-champ | raw | blend | members=['andre-wd512', 'andre-nndelta', 'andre-champion-ref'], weights=equal, thr=0.5, split_seed=7 | 87.29 | 0.001454 | 0.0 | equal average of the wd / nndelta / champion probabilities |
+| andre-champion-ref | raw+consensus | BR LightGBM (variance reduction) | min_child_samples=20, reg_lambda=1.0, thr=0.5, split_seed=42 | 87.65 | 0.001327 | 418.5 | unique configs, consensus labels, unweighted |
+| andre-champion-rules42 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=20, reg_lambda=1.0, thr=0.5, rules=True, split_seed=42 | 87.84 | 0.001375 | 418.5 | unique configs, consensus labels, unweighted; 42 Section 11 rule columns overwritten |
+| andre-wd512 | raw+consensus | Wide & Deep multi-label NN | hidden=[512], dropout=0.2, wide=True, lr=0.002, batch_size=256, max_epochs=80, patience=8, thr=0.5, split_seed=42 | 87.93 | 0.002328 | 92.1 | unique configs, consensus labels, unweighted; wide additive path + shared 512-unit hidden layer, early stop on EMR |
+| andre-nndelta | raw+consensus | Neighbour + pack-delta | min_pairs=2, min_rate=0.5, max_nb=5, thr=0.5, split_seed=42 | 81.50 | 0.002060 | 30.6 | unique configs, consensus labels, unweighted; nearest CRM config then per-pack BIL delta |
+| andre-blend-wd-nnd-champ | raw+consensus | avg(wd512, nndelta, BR mcs20) | members=wd512, nndelta, BR mcs20, weights=equal, thr=0.5, split_seed=42 | 88.26 | 0.001364 | 0.0 | unique configs, consensus labels, unweighted; equal-weight probability average |
+| andre-blend-rules42 | raw+consensus | avg(wd512, nndelta, BR mcs20) + rules | members=wd512, nndelta, BR mcs20, weights=equal, thr=0.5, rules=True, split_seed=42 | 88.29 | 0.001406 | 0.0 | unique configs, consensus labels, unweighted; equal-weight average then 42 rule columns overwritten **(champion)** |
+| andre-champion-ref | raw+consensus | BR LightGBM (variance reduction) | min_child_samples=20, reg_lambda=1.0, thr=0.5, split_seed=7 | 86.30 | 0.001420 | 193.2 | unique configs, consensus labels, unweighted |
+| andre-champion-rules42 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=20, reg_lambda=1.0, thr=0.5, rules=True, split_seed=7 | 86.49 | 0.001474 | 193.2 | unique configs, consensus labels, unweighted; 42 Section 11 rule columns overwritten |
+| andre-wd512 | raw+consensus | Wide & Deep multi-label NN | hidden=[512], dropout=0.2, wide=True, lr=0.002, batch_size=256, max_epochs=80, patience=8, thr=0.5, split_seed=7 | 86.98 | 0.002571 | 86.4 | unique configs, consensus labels, unweighted; wide additive path + shared 512-unit hidden layer, early stop on EMR |
+| andre-nndelta | raw+consensus | Neighbour + pack-delta | min_pairs=2, min_rate=0.5, max_nb=5, thr=0.5, split_seed=7 | 85.42 | 0.002225 | 27.7 | unique configs, consensus labels, unweighted; nearest CRM config then per-pack BIL delta |
+| andre-blend-wd-nnd-champ | raw+consensus | avg(wd512, nndelta, BR mcs20) | members=wd512, nndelta, BR mcs20, weights=equal, thr=0.5, split_seed=7 | 87.29 | 0.001454 | 0.0 | unique configs, consensus labels, unweighted; equal-weight probability average |
+| andre-blend-rules42 | raw+consensus | avg(wd512, nndelta, BR mcs20) + rules | members=wd512, nndelta, BR mcs20, weights=equal, thr=0.5, rules=True, split_seed=7 | 87.32 | 0.001501 | 0.0 | unique configs, consensus labels, unweighted; equal-weight average then 42 rule columns overwritten |

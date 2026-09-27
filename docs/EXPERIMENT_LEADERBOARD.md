@@ -11,7 +11,7 @@ matching the real test set (6 of 97,100 test rows, 0.006%, have a config seen in
 `s11` = Sprint 1 Section 10 / Section 11 feature sets; `+consensus` = trained on unique
 configurations with consensus labels.
 
-**Current Champion:** E5-reg-mcs20-t0.5 — BR LightGBM (variance reduction) + rules (raw+consensus) — **87.84% val EMR**, Hamming loss 0.001375.
+**Current Champion:** andre-blend-wd-nnd-champ — blend (raw) — **88.26% val EMR**, Hamming loss 0.001364.
 
 | Exp ID | Data Pipeline (Sec 10 vs 11) | Model Family | Key Hyperparameters / Features | Val EMR (%) | Val Hamming Loss | Train Time (s) | Status / Notes |
 |---|---|---|---|---|---|---|---|
@@ -39,24 +39,35 @@ configurations with consensus labels.
 | E2-hyb2.0 | raw+consensus | BR + LP snap when within delta log-lik | probs_from=E3a2, delta=2.0 | 80.05 | 0.002450 | 20.5 | snapped 23.9% of rows |
 | E2-hyb4.0 | raw+consensus | BR + LP snap when within delta log-lik | probs_from=E3a2, delta=4.0 | 74.26 | 0.002528 | 20.5 | snapped 30.0% of rows |
 | E4-cc30 | raw+consensus | Co-occurrence Classifier Chain LightGBM | n_parents=30, order=prevalence desc | 80.57 | 0.002509 | 186.5 | teacher-forced training, sequential prediction |
-| E5-br-t0.5 | raw+consensus | br probs + rules + threshold | thr=0.5 | 80.38 | 0.002457 | 0 |  |
-| E5-br-t0.6 | raw+consensus | br probs + rules + threshold | thr=0.6 | 80.54 | 0.002373 | 0 |  |
-| E5-cc-t0.5 | raw+consensus | cc probs + rules + threshold | thr=0.5 | 80.99 | 0.002510 | 0 |  |
-| E5-cc-t0.6 | raw+consensus | cc probs + rules + threshold | thr=0.6 | 81.24 | 0.002419 | 0 |  |
-| E5-avg-t0.5 | raw+consensus | avg probs + rules + threshold | thr=0.5 | 78.11 | 0.002436 | 0 |  |
-| E5-avg-t0.6 | raw+consensus | avg probs + rules + threshold | thr=0.6 | 87.21 | 0.001467 | 0 |  |
-| E5-knnroute100 | raw+consensus | avg+rules+t0.6, k-NN on rare-pack rows | R=100 | 87.21 | 0.001467 | 0 | 0.0% rows routed to k-NN |
-| E5-knnroute200 | raw+consensus | avg+rules+t0.6, k-NN on rare-pack rows | R=200 | 86.61 | 0.001361 | 0 | 11.1% rows routed to k-NN |
-| E5-knnroute400 | raw+consensus | avg+rules+t0.6, k-NN on rare-pack rows | R=400 | 80.72 | 0.001505 | 0 | 24.0% rows routed to k-NN |
-| E5-reg-mcs20-t0.5 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=20, reg_lambda=1.0, n_models=1, thr=0.5, split_seed=42 | 87.84 | 0.001375 | 211.1 |  **(champion)** |
+| E5-br-t0.5 | raw+consensus | br probs + rules + threshold | thr=0.5 | 80.38 | 0.002457 | 0.0 |  |
+| E5-br-t0.6 | raw+consensus | br probs + rules + threshold | thr=0.6 | 80.54 | 0.002373 | 0.0 |  |
+| E5-cc-t0.5 | raw+consensus | cc probs + rules + threshold | thr=0.5 | 80.99 | 0.002510 | 0.0 |  |
+| E5-cc-t0.6 | raw+consensus | cc probs + rules + threshold | thr=0.6 | 81.24 | 0.002419 | 0.0 |  |
+| E5-avg-t0.5 | raw+consensus | avg probs + rules + threshold | thr=0.5 | 78.11 | 0.002436 | 0.0 |  |
+| E5-avg-t0.6 | raw+consensus | avg probs + rules + threshold | thr=0.6 | 87.21 | 0.001467 | 0.0 |  |
+| E5-knnroute100 | raw+consensus | avg+rules+t0.6, k-NN on rare-pack rows | R=100 | 87.21 | 0.001467 | 0.0 | 0.0% rows routed to k-NN |
+| E5-knnroute200 | raw+consensus | avg+rules+t0.6, k-NN on rare-pack rows | R=200 | 86.61 | 0.001361 | 0.0 | 11.1% rows routed to k-NN |
+| E5-knnroute400 | raw+consensus | avg+rules+t0.6, k-NN on rare-pack rows | R=400 | 80.72 | 0.001505 | 0.0 | 24.0% rows routed to k-NN |
+| E5-reg-mcs20-t0.5 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=20, reg_lambda=1.0, n_models=1, thr=0.5, split_seed=42 | 87.84 | 0.001375 | 211.1 |  |
 | E5-reg-mcs20-t0.6 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=20, reg_lambda=1.0, n_models=1, thr=0.6, split_seed=42 | 87.30 | 0.001379 | 211.1 |  |
 | E5-reg-mcs50-t0.5 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=50, reg_lambda=1.0, n_models=1, thr=0.5, split_seed=42 | 87.79 | 0.001381 | 210.1 |  |
 | E5-reg-mcs50-t0.6 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=50, reg_lambda=1.0, n_models=1, thr=0.6, split_seed=42 | 87.21 | 0.001385 | 210.1 |  |
 | E5-bag3-t0.5 | raw+consensus | BR LightGBM (variance reduction) + rules | subsample=0.8, subsample_freq=1, colsample_bytree=0.8, n_models=3, thr=0.5, split_seed=42 | 87.28 | 0.001488 | 570.6 |  |
 | E5-bag3-t0.6 | raw+consensus | BR LightGBM (variance reduction) + rules | subsample=0.8, subsample_freq=1, colsample_bytree=0.8, n_models=3, thr=0.6, split_seed=42 | 87.23 | 0.001446 | 570.6 |  |
 | E4-cc30-mcs20 | raw+consensus | Co-occurrence Classifier Chain LightGBM + rules | n_parents=30, order=prevalence desc, min_child_samples=20 | 87.71 | 0.001375 | 188.1 | teacher-forced training, sequential prediction |
-| E5-avg-mcs20-t0.5 | raw+consensus | avg(BR mcs20, chain mcs20) + rules | thr=0.5 | 87.72 | 0.001374 | 0 |  |
-| E5-avg-mcs20-t0.6 | raw+consensus | avg(BR mcs20, chain mcs20) + rules | thr=0.6 | 87.30 | 0.001377 | 0 |  |
+| E5-avg-mcs20-t0.5 | raw+consensus | avg(BR mcs20, chain mcs20) + rules | thr=0.5 | 87.72 | 0.001374 | 0.0 |  |
+| E5-avg-mcs20-t0.6 | raw+consensus | avg(BR mcs20, chain mcs20) + rules | thr=0.6 | 87.30 | 0.001377 | 0.0 |  |
 | E5-reg-mcs20-s7-t0.5 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=20, reg_lambda=1.0, n_models=1, thr=0.5, split_seed=7 | 86.49 | 0.001474 | 203.7 |  |
 | E5-reg-mcs20-s7-t0.6 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=20, reg_lambda=1.0, n_models=1, thr=0.6, split_seed=7 | 86.00 | 0.001474 | 203.7 |  |
 | EXT-solution | raw+consensus | FINAL champion on test (solution.csv diagnostic) | min_child_samples=20, reg_lambda=1.0, thr=0.5, rules=True, trained_on=all train | 95.04 | 0.000090 | 212.4 | external diagnostic only, not used for any selection |
+| E-Baseline-LR | Raw 745 CRM + L1 Regularization (OvR) | LogisticRegression | penalty=l1, solver=liblinear, C=1.0 | 86.44 | 0.001588 | 203.24358645803292 | Proves that 98% of the performance is captured linearly. LGBM EMR gain vs LR is only ~1.4%. |
+| andre-champion-ref | raw | lgbm-br | min_child_samples=20, reg_lambda=1.0, model_seed=None, split_seed=42 | 87.65 | 0.001327 | 274.9 | BR LightGBM, mcs=20, reg_lambda=1, threshold 0.5, no rules |
+| andre-champion-rules42 | raw | lgbm-br | min_child_samples=20, reg_lambda=1.0, model_seed=None, split_seed=42 | 87.84 | 0.001375 | 274.9 | champion + 42 Section 11 additive rules (LEAK: mined on all of train.csv) |
+| andre-wd512 | raw | widedeep | hidden=[512], dropout=0.2, wide=True, lr=0.002, batch_size=256, max_epochs=80, patience=8, model_seed=42, split_seed=42 | 87.93 | 0.002328 | 158.3 | wide additive path + shared 512-unit hidden layer |
+| andre-nndelta | raw | nndelta | min_pairs=2, min_rate=0.5, max_nb=5, model_seed=None, split_seed=42 | 81.50 | 0.002059 | 61.7 | nearest CRM config, then apply the per-pack BIL delta |
+| andre-blend-wd-nnd-champ | raw | blend | members=['andre-wd512', 'andre-nndelta', 'andre-champion-ref'], weights=equal, thr=0.5, split_seed=42 | 88.26 | 0.001364 | 0.0 | equal average of the wd / nndelta / champion probabilities **(champion)** |
+| andre-champion-ref | raw | lgbm-br | min_child_samples=20, reg_lambda=1.0, model_seed=None, split_seed=7 | 86.30 | 0.001420 | 494.8 | BR LightGBM, mcs=20, reg_lambda=1, threshold 0.5, no rules |
+| andre-champion-rules42 | raw | lgbm-br | min_child_samples=20, reg_lambda=1.0, model_seed=None, split_seed=7 | 86.49 | 0.001474 | 494.8 | champion + 42 Section 11 additive rules (LEAK: mined on all of train.csv) |
+| andre-wd512 | raw | widedeep | hidden=[512], dropout=0.2, wide=True, lr=0.002, batch_size=256, max_epochs=80, patience=8, model_seed=7, split_seed=7 | 86.98 | 0.002571 | 169.5 | wide additive path + shared 512-unit hidden layer |
+| andre-nndelta | raw | nndelta | min_pairs=2, min_rate=0.5, max_nb=5, model_seed=None, split_seed=7 | 85.40 | 0.002225 | 32.8 | nearest CRM config, then apply the per-pack BIL delta |
+| andre-blend-wd-nnd-champ | raw | blend | members=['andre-wd512', 'andre-nndelta', 'andre-champion-ref'], weights=equal, thr=0.5, split_seed=7 | 87.29 | 0.001454 | 0.0 | equal average of the wd / nndelta / champion probabilities |

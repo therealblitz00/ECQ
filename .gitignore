@@ -13,3 +13,6 @@ notebooks/exports/
 # Local audit & notes
 agent_audit_notebook.yaml
 resumo_crm_faturacao.md
+
+# Local backups of the experiment log
+experiments_log.csv.bak-*

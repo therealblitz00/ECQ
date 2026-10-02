@@ -397,6 +397,25 @@ genuine rare product and is not caught by the ≥ 4 filter.
 
 ---
 
+## Threats to validity
+
+Raised in an external review (2026-10-02) and checked against the code. Each one is stated
+with its measured or bounded impact.
+
+| Risk | Status | Impact on the reported results |
+|---|---|---|
+| **Additive rules learned with validation labels.** The 42 rules (`additive_rules_v2.json`) were derived in Sprint 1 from all of `train.csv`, including rows that later fell in our validation folds. | Real leak, measured | The rules add only **+0.02 points** to the champion's clean-like validation EMR (96.79% → 96.81% on seed 42; 96.30% → 96.33% on seed 7), so the leak inflates validation by at most that. The **test score is unaffected**: the rules never saw test labels. |
+| **Sprint 1 SVD and χ²+FDR selection fit on all of `train.csv`** before our split. | Real leak, **not used by the champion** | The champion uses the raw 745 CRM columns: no SVD, no FDR selection (which kept all 742 features anyway). The SVD runs (E3c, E3e) were 33 points *worse* despite the leak, so the conclusion "SVD hurts" only gets stronger. |
+| **Unsupervised statistics computed on all training rows.** The rare-pack frequency (0.2%) and the test-like definition use CRM features of every training row, validation included; the filters were designed by comparing train and test *inputs*. | Minor, disclosed | Feature-only (no labels), as disclosed under Ground rules. Consensus targets are computed per CRM configuration, and configurations never cross folds, so no label information crosses the split. |
+| **Survival bias from removing rows.** | Addressed | Rows are removed from **training** only. Every model is scored on all / test-like / clean-like validation rows, and the Sprint 2 champion was re-scored on the same subsets for a like-for-like comparison. The test diagnostic uses **all 97,100 test rows, unfiltered** (95.04% → 97.27%). |
+| **Threshold / post-processing overfitting.** | Addressed | Thresholds were chosen on seed 42 and checked on seed 7, then rejected (within noise); the champion uses 0.5. Early Sprint 2 threshold runs (E5, single split) are not part of the champion. |
+| **Repeated looks at the test set.** `solution.csv` was scored at three milestones (Sprint 2 final, Step 3, Step 4). | Disclosed | Each look came after the selection was frozen on validation, and no choice used it. Still, three looks are three looks: the test number is a diagnostic, not an untouched holdout. |
+| **Classifier chain with one fixed label order** (no random orders, no ensemble of chains). | Limitation | Once regularised, the chain tied plain per-column models (87.71% vs 87.84%), so per-column was kept. An ensemble of chains (5–10× the compute) was not tried. |
+| **Label powerset cannot predict unseen combinations.** | Confirmed, rejected | Measured ceiling ~23% (unseen CRM configurations produce unseen BIL configurations). Tested only because the Sprint 2 brief required all four paradigms. |
+| **Engineering: numbered scripts rather than a config-driven pipeline; derived CSVs in git.** | Accepted trade-off | Every run's settings and metrics are logged centrally (`results.jsonl` → generated leaderboard). Large data, caches and submissions are gitignored; tracked derived files are small Sprint 1 summaries (≤ 1.2 MB) kept as evidence for the graded notebook. Hydra/DVC would be over-engineering for a three-sprint course project. |
+
+---
+
 ## Step 5 — Light corruption, repair, capacity: none beats the Step 4 model
 
 Approved 2026-10-02. Script: `scripts/exp10_step5.py` (all three, both seeds). Every run

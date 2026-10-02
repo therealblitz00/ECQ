@@ -1,105 +1,126 @@
 # Case Study I — CRM → Billing Configuration Prediction
 
-Team project for the case study competition (Moodle course, section id 8608).
+Team project for the case-study competition (Moodle course, section 8608).
 
-## Problem
+A 4-Play telecom subscription is provisioned across several systems (CRM, TV, Internet,
+Billing), and human or automatic errors let them drift out of sync. Given a customer's
+**CRM** configuration (745 binary `CRM_*` columns), predict the correct **Billing (BIL)**
+configuration (731 binary `BIL_*` columns), to help catch provisioning errors.
 
-Predict the correct **Billing (BIL)** system configuration for a customer given their **CRM**
-system configuration. A 4-Play telecom subscription (Internet, TV, mobile, fixed line) gets
-provisioned across several systems (CRM, TV platform, Internet platform, Billing). Human and
-automatic errors mean these systems can drift out of sync; the goal is to build a model that
-predicts the *correct* Billing configuration from the CRM configuration, to help audit and
-catch provisioning errors.
+- **Metric: Exact Match Ratio (EMR).** A row counts only if all 731 BIL bits are right.
+- `train.csv` contains provisioning errors; the test pairs are the correct ones.
 
-- Input: 745 binary CRM columns (`CRM_...`)
-- Output: 731 binary Billing columns (`BIL_...`)
-- Metric: **Exact Matching Ratio (EMR)** — a prediction only counts as correct if *every one*
-  of the 731 labels matches for that row. Partial credit does not exist under this metric.
-- Known complications: CRM→BIL is many-to-one in places, the training data contains genuine
-  provisioning errors (same CRM config → different BIL config in different rows), and
-  individual CRM variables don't necessarily map 1:1 to individual BIL variables.
+## Status
 
-## Data
-
-Place the following files (from the competition, not included in this scaffold due to size)
-into `data/`:
-
-| File | Rows | Cols | Notes |
+| Sprint | Focus | Due | Status |
 |---|---|---|---|
-| `train.csv` | 187,442 | 1,477 | `MSISDN` + 745 CRM cols + 731 BIL cols |
-| `test.csv` | 97,100 | 746 | `MSISDN` + 745 CRM cols |
-| `solution.csv` | 97,100 | 2 | `MSISDN`, `Bill_Conf` — the 731 BIL bits concatenated into one string per row. **This looks like the answer key for the test set** — great for local validation of your own EMR score sprint-to-sprint, but double check with the instructor whether it's meant to be used this way before relying on it for anything graded. |
-| `sampleSubmission.csv` | — | — | Expected submission format |
+| 1 | Pre-processing | 22/09/2026 | Done — `notebooks/sprint1_preprocessing_v3.ipynb` |
+| 2 | Modelling | 29/09/2026 | Done — `notebooks/sprint2_modeling.ipynb` |
+| 3 | Optimisation & Explainability | 06/10/2026 | **In progress** — optimisation done (Steps 1–5), explainability next (Step 6) |
 
-All CRM/BIL columns are strictly binary (0/1), so load them as `int8` to keep memory sane —
-`train.csv` is ~560MB and will balloon under pandas' default `int64`.
+| Model | Validation EMR, clean-like (seed 42 / 7) | Test EMR (`solution.csv`, diagnostic) |
+|---|---|---|
+| Sprint 2 champion | 95.93% / 95.06% | 95.04% |
+| **Sprint 3 champion** (corrupted training rows removed + re-tuned) | **96.81% / 96.33%** | **97.27%** |
+| Public benchmark (reported) | — | ~98% |
+
+## Key findings
+
+1. **The test set needs generalisation, not lookup.** Only 6 of 97,100 test rows have a
+   CRM configuration seen in train, so validation is grouped on the exact configuration.
+2. **Billing is close to additive per CRM pack.** Per-column models (one LightGBM per BIL
+   column) beat neighbour copying and label powerset. Label powerset is capped at ~23%
+   because unseen CRM configurations produce unseen BIL configurations.
+3. **Neither Sprint 1 feature transformation helps.** PCA/SVD costs ~33 points and column
+   collapsing ~6. The model uses the raw 745 binary columns.
+4. **~7–8% of training rows are corrupted by random injection** (Sprint 3). These rows have
+   impossible one-hot categories (two statuses, a status called `0`) and bursts of
+   uniformly random rare products on both the CRM and BIL side. Removing them from
+   training: **+2.0 test points**. Re-tuning regularisation afterwards: +0.23.
+5. The remaining errors sit in rows with 1–2 rare products. Further cleaning, repair,
+   thresholds and extra capacity were tested and did not help beyond noise.
+
+Full story: `docs/sprint3/SPRINT3_DIAGNOSTIC_LOG.md` (Sprint 3) and
+`docs/sprint2/ITERATION_LOG.md` (Sprint 2). Every experiment: `docs/EXPERIMENT_LEADERBOARD.md`.
+
+## Repository layout
+
+```
+data/            raw CSVs (gitignored), derived/ summaries, cache/ (gitignored)
+src/             reusable library: data loading, validation, metrics, models, experiment logging
+scripts/         one runnable script per experiment / diagnostic (exp*, diag*), train_final, make_leaderboard
+notebooks/       sprint notebooks (+ archive/ of old versions, exports/ of HTML renders)
+docs/            ARCHITECTURE_AND_ROUTING.md, EXPERIMENT_LEADERBOARD.md, sprint1/ sprint2/ sprint3/
+```
+
+Details of every module and script: `docs/ARCHITECTURE_AND_ROUTING.md`.
+
+## Setup
+
+```bash
+python -m venv .venv
+.venv/Scripts/activate            # Windows (Git Bash: source .venv/Scripts/activate)
+pip install -r requirements.txt
+```
+
+Place the competition files in `data/`: `train.csv` (187,442 × 1,477), `test.csv`
+(97,100 × 746), `solution.csv` (97,100 × 2) and `sampleSubmission.csv`. They are large
+and gitignored. All CRM/BIL columns are binary: always load them as `int8`/`uint8`
+(`src/data.py` does this and caches the arrays in `data/cache/`).
+
+## Reproduce
+
+Run everything from the repo root with the venv's Python.
+
+```bash
+# Current champion: fit on train minus suspected-corrupted rows, write the submission,
+# report the solution.csv diagnostic  -> data/derived/submission_sprint3_k4_mcs5.csv
+.venv/Scripts/python scripts/train_final.py 4 5
+
+# Sprint 2 champion, for comparison -> data/derived/submission_sprint2.csv
+.venv/Scripts/python scripts/train_final.py
+
+# Sprint 3 diagnostics (read-only)
+.venv/Scripts/python scripts/diag1_audit.py > data/cache/diag1.txt
+.venv/Scripts/python scripts/diag2_why.py   > data/cache/diag2.txt
+
+# Rebuild the leaderboard from data/cache/results.jsonl
+.venv/Scripts/python scripts/make_leaderboard.py
+```
+
+The first run builds `data/cache/arrays.npz` (~1 minute); each model fit takes ~2–4 minutes.
+
+## Methodology rules
+
+- **Validation:** `GroupShuffleSplit` on the exact CRM configuration (20%, seed 42),
+  confirmed on a second split (seed 7). Scored against consensus targets (the most
+  frequent full BIL configuration per CRM configuration).
+- **Primary metric (Sprint 3):** EMR on *clean-like* validation rows (valid one-hot
+  categoricals, < 3 CRM packs rarer than 0.2%). This is the validation number that tracks
+  the test set.
+- **Selection:** settings must hold on both splits. When results are within one standard
+  error (~0.1 points), the simpler / more regularised setting wins.
+- **`solution.csv`:** never used for training or selection. Read only at the end of
+  `scripts/train_final.py` to report a test diagnostic once a model is frozen.
+  Test-set *inputs* (no answers) were compared with train inputs to design the
+  corruption filters.
+- **Workflow (Sprint 3):** experiments run as Python scripts. Notebooks are updated only
+  after explicit approval from the team lead.
+
+## Next steps
+
+1. **Step 6 — explainability (agreed, next session):** freeze the Sprint 3 champion; write
+   `scripts/explain_shap.py` (SHAP on common, rare and "flipping" BIL columns; global
+   CRM → BIL importance; worked examples of wrong rows).
+2. **Notebooks (after approval):**
+   - re-execute `notebooks/sprint2_modeling.ipynb` (the committed copy has no outputs);
+   - update its pointer `docs/ITERATION_LOG.md` → `docs/sprint2/ITERATION_LOG.md`;
+   - build the Sprint 3 notebook from `docs/sprint3/SPRINT3_DIAGNOSTIC_LOG.md`.
+3. Check the submission format against `sampleSubmission.csv`, and confirm with the
+   instructor how `solution.csv` may be used.
 
 ## Team & process
 
-- Work is organized in **Microsoft Planner** by the team leader (activities + assignment to
-  members). This repo is where the code/notebooks actually get built.
-- 3 sprints, one notebook submitted per sprint on Moodle:
-
-| Sprint | Focus | Weight | Due |
-|---|---|---|---|
-| 1 | Pre-processing | 40% | **22/09/2026 23:59** |
-| 2 | Modeling | 30% | **29/09/2026 23:59** |
-| 3 | Optimization & Explainability | 30% | **06/10/2026 23:59** |
-
-- End of each week: team presents completed activities + results for that sprint.
-
-## Project layout
-
-```
-project/
-├── README.md
-├── requirements.txt
-├── data/                       # put train.csv / test.csv / solution.csv / sampleSubmission.csv here
-│   └── derived/                # intermediate artifacts written by the notebooks (CSV/JSON)
-├── docs/                       # write-ups and planning notes (not notebook content)
-├── notebooks/
-│   ├── sprint1_preprocessing_v3.ipynb   # current Sprint 1 notebook
-│   ├── archive/                # superseded notebook versions (v1, v2), kept for history
-│   └── exports/                # rendered HTML exports, regenerable, gitignored
-└── src/                        # shared helper code as the project grows (feature building, metrics, etc.)
-```
-
-## Getting started
-
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-jupyter notebook notebooks/sprint1_preprocessing_v3.ipynb
-```
-
-## Sprint roadmap (suggested)
-
-**Sprint 1 — Pre-processing** (`notebooks/sprint1_preprocessing_v3.ipynb`)
-- Load data with proper dtypes, sanity-check for missing/duplicate rows
-- Quantify sparsity, drop zero-variance columns
-- Quantify CRM→BIL ambiguity (provisioning errors) and decide how to handle it
-- Quantify output-label cardinality (how many distinct BIL combinations actually occur)
-- Export a cleaned train/test set for Sprint 2
-
-**Sprint 2 — Modeling**
-- Given 731 correlated binary labels and a large but likely-clustered label space (see Sprint 1
-  §4), decide between: 731 independent binary classifiers, a classifier-chain, a
-  multi-output tree model (e.g. LightGBM/XGBoost with `MultiOutputClassifier`), or reframing as
-  multi-class over the ~N distinct observed label combinations.
-- Optimize directly for EMR where possible (it punishes any single wrong bit), not per-label
-  accuracy/F1, since those don't align with the competition metric.
-- Hold out a validation split and score with EMR before submitting.
-
-**Sprint 3 — Optimization & Explainability**
-- Hyperparameter tuning / model selection against EMR on the validation split
-- Explainability: e.g. SHAP to show which CRM options drive which BIL predictions — useful
-  both for the report and for spotting cases where the model is exploiting quirks in the
-  (error-containing) training labels rather than the true CRM→BIL logic.
-
-## A note on the errors in the training data
-
-The brief is explicit that `train.csv` contains provisioning errors baked into the labels
-(same CRM config, inconsistent BIL config across rows), but that **test pairs are the ones
-deemed correct**. That means blindly minimizing training loss can teach the model to reproduce
-noise. Worth treating "which training rows look erroneous" as a first-class Sprint 1
-deliverable, not just an EDA footnote — it directly affects Sprint 2's ceiling.
+Work is organised in Microsoft Planner by the team leader; this repo is where the code is
+built. One notebook is submitted per sprint on Moodle, and results are presented at the
+end of each week.

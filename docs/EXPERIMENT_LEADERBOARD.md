@@ -11,52 +11,93 @@ matching the real test set (6 of 97,100 test rows, 0.006%, have a config seen in
 `s11` = Sprint 1 Section 10 / Section 11 feature sets; `+consensus` = trained on unique
 configurations with consensus labels.
 
-**Current Champion:** E5-reg-mcs20-t0.5 — BR LightGBM (variance reduction) + rules (raw+consensus) — **87.84% val EMR**, Hamming loss 0.001375.
+Three validation numbers (Sprint 3, see `docs/sprint3/SPRINT3_DIAGNOSTIC_LOG.md`): **all** rows;
+**test-like** rows (valid one-hot categoricals, no value `0`); **clean-like** rows (test-like
+and < 3 CRM packs rarer than 0.2% of train) — the primary selection metric since Step 3,
+because it is the validation number that tracks the test set. Sprint 2 rows predate the
+extra metrics and show "—".
 
-| Exp ID | Data Pipeline (Sec 10 vs 11) | Model Family | Key Hyperparameters / Features | Val EMR (%) | Val Hamming Loss | Train Time (s) | Status / Notes |
-|---|---|---|---|---|---|---|---|
-| E1a | raw | Global mode config | — | 0.00 | 0.033509 | 0.1 |  |
-| E1-knn1 | raw | Hamming k-NN (unique configs) | k=1, n_train_configs=53947 | 0.48 | 0.003198 | 24.0 | val exact-lookup coverage 0.00%; test 0.0051% |
-| E1-knn3 | raw | Hamming k-NN (unique configs) | k=3, n_train_configs=53947 | 33.70 | 0.002351 | 24.0 | val exact-lookup coverage 0.00%; test 0.0051% |
-| E1-knn5 | raw | Hamming k-NN (unique configs) | k=5, n_train_configs=53947 | 45.99 | 0.002134 | 24.0 | val exact-lookup coverage 0.00%; test 0.0051% |
-| E1-knn15 | raw | Hamming k-NN (unique configs) | k=15, n_train_configs=53947 | 51.98 | 0.002068 | 24.0 | val exact-lookup coverage 0.00%; test 0.0051% |
-| E1-knn1 | s10 | Hamming k-NN (unique configs) | k=1, n_train_configs=53715 | 1.59 | 0.003910 | 23.0 | val exact-lookup coverage 0.00%; test 0.0051% |
-| E1-knn3 | s10 | Hamming k-NN (unique configs) | k=3, n_train_configs=53715 | 24.37 | 0.002516 | 23.0 | val exact-lookup coverage 0.00%; test 0.0051% |
-| E1-knn5 | s10 | Hamming k-NN (unique configs) | k=5, n_train_configs=53715 | 44.63 | 0.002170 | 23.0 | val exact-lookup coverage 0.00%; test 0.0051% |
-| E1-knn15 | s10 | Hamming k-NN (unique configs) | k=15, n_train_configs=53715 | 51.77 | 0.002085 | 23.0 | val exact-lookup coverage 0.00%; test 0.0051% |
-| E3a | raw+consensus | Binary Relevance LightGBM | n_estimators=100, num_leaves=15 | 58.66 | 0.003701 | 184.3 | unique configs, consensus labels, weight=multiplicity |
-| E3b | s10 | Binary Relevance LightGBM | n_estimators=100, num_leaves=15 | 50.58 | 0.003868 | 440.1 | all rows, S10 relabeled targets |
-| E3c | s11 | Binary Relevance LightGBM | n_estimators=100, num_leaves=15 | 12.80 | 0.006224 | 685.1 | all rows, raw targets, 742 CRM + 45 SVD |
-| E3c+rules | s11 | Binary Relevance LightGBM + 42 additive rules | n_estimators=100, num_leaves=15 | 14.87 | 0.005985 | 685.1 | 42 Section 11 rule columns overwritten |
-| E3a2 | raw+consensus | Binary Relevance LightGBM | n_estimators=100, num_leaves=15 | 80.05 | 0.002454 | 183.2 | unique configs, consensus labels, unweighted |
-| E3a2+rules | raw+consensus | Binary Relevance LightGBM + 42 additive rules | n_estimators=100, num_leaves=15 | 80.38 | 0.002457 | 183.2 | 42 Section 11 rule columns overwritten |
-| E3d | s10+consensus | Binary Relevance LightGBM | n_estimators=100, num_leaves=15 | 74.31 | 0.002517 | 161.0 | s10 features, unique configs, consensus labels, unweighted |
-| E3e | s11+consensus | Binary Relevance LightGBM | n_estimators=100, num_leaves=15 | 47.42 | 0.004260 | 265.1 | s11 features, unique configs, consensus labels, unweighted |
-| E3e+rules | s11+consensus | Binary Relevance LightGBM + 42 additive rules | n_estimators=100, num_leaves=15 | 49.16 | 0.004145 | 265.1 | 42 Section 11 rule columns overwritten |
-| E2-lp | raw+consensus | Label Powerset decoder (all seen configs) | probs_from=E3a2, n_configs=53369 | 23.09 | 0.002583 | 20.5 | ceiling 23.12%; top-1000 ceiling 0.97% |
-| E2-hyb0.5 | raw+consensus | BR + LP snap when within delta log-lik | probs_from=E3a2, delta=0.5 | 80.06 | 0.002453 | 20.5 | snapped 23.5% of rows |
-| E2-hyb1.0 | raw+consensus | BR + LP snap when within delta log-lik | probs_from=E3a2, delta=1.0 | 80.04 | 0.002452 | 20.5 | snapped 23.6% of rows |
-| E2-hyb2.0 | raw+consensus | BR + LP snap when within delta log-lik | probs_from=E3a2, delta=2.0 | 80.05 | 0.002450 | 20.5 | snapped 23.9% of rows |
-| E2-hyb4.0 | raw+consensus | BR + LP snap when within delta log-lik | probs_from=E3a2, delta=4.0 | 74.26 | 0.002528 | 20.5 | snapped 30.0% of rows |
-| E4-cc30 | raw+consensus | Co-occurrence Classifier Chain LightGBM | n_parents=30, order=prevalence desc | 80.57 | 0.002509 | 186.5 | teacher-forced training, sequential prediction |
-| E5-br-t0.5 | raw+consensus | br probs + rules + threshold | thr=0.5 | 80.38 | 0.002457 | 0 |  |
-| E5-br-t0.6 | raw+consensus | br probs + rules + threshold | thr=0.6 | 80.54 | 0.002373 | 0 |  |
-| E5-cc-t0.5 | raw+consensus | cc probs + rules + threshold | thr=0.5 | 80.99 | 0.002510 | 0 |  |
-| E5-cc-t0.6 | raw+consensus | cc probs + rules + threshold | thr=0.6 | 81.24 | 0.002419 | 0 |  |
-| E5-avg-t0.5 | raw+consensus | avg probs + rules + threshold | thr=0.5 | 78.11 | 0.002436 | 0 |  |
-| E5-avg-t0.6 | raw+consensus | avg probs + rules + threshold | thr=0.6 | 87.21 | 0.001467 | 0 |  |
-| E5-knnroute100 | raw+consensus | avg+rules+t0.6, k-NN on rare-pack rows | R=100 | 87.21 | 0.001467 | 0 | 0.0% rows routed to k-NN |
-| E5-knnroute200 | raw+consensus | avg+rules+t0.6, k-NN on rare-pack rows | R=200 | 86.61 | 0.001361 | 0 | 11.1% rows routed to k-NN |
-| E5-knnroute400 | raw+consensus | avg+rules+t0.6, k-NN on rare-pack rows | R=400 | 80.72 | 0.001505 | 0 | 24.0% rows routed to k-NN |
-| E5-reg-mcs20-t0.5 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=20, reg_lambda=1.0, n_models=1, thr=0.5, split_seed=42 | 87.84 | 0.001375 | 211.1 |  **(champion)** |
-| E5-reg-mcs20-t0.6 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=20, reg_lambda=1.0, n_models=1, thr=0.6, split_seed=42 | 87.30 | 0.001379 | 211.1 |  |
-| E5-reg-mcs50-t0.5 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=50, reg_lambda=1.0, n_models=1, thr=0.5, split_seed=42 | 87.79 | 0.001381 | 210.1 |  |
-| E5-reg-mcs50-t0.6 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=50, reg_lambda=1.0, n_models=1, thr=0.6, split_seed=42 | 87.21 | 0.001385 | 210.1 |  |
-| E5-bag3-t0.5 | raw+consensus | BR LightGBM (variance reduction) + rules | subsample=0.8, subsample_freq=1, colsample_bytree=0.8, n_models=3, thr=0.5, split_seed=42 | 87.28 | 0.001488 | 570.6 |  |
-| E5-bag3-t0.6 | raw+consensus | BR LightGBM (variance reduction) + rules | subsample=0.8, subsample_freq=1, colsample_bytree=0.8, n_models=3, thr=0.6, split_seed=42 | 87.23 | 0.001446 | 570.6 |  |
-| E4-cc30-mcs20 | raw+consensus | Co-occurrence Classifier Chain LightGBM + rules | n_parents=30, order=prevalence desc, min_child_samples=20 | 87.71 | 0.001375 | 188.1 | teacher-forced training, sequential prediction |
-| E5-avg-mcs20-t0.5 | raw+consensus | avg(BR mcs20, chain mcs20) + rules | thr=0.5 | 87.72 | 0.001374 | 0 |  |
-| E5-avg-mcs20-t0.6 | raw+consensus | avg(BR mcs20, chain mcs20) + rules | thr=0.6 | 87.30 | 0.001377 | 0 |  |
-| E5-reg-mcs20-s7-t0.5 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=20, reg_lambda=1.0, n_models=1, thr=0.5, split_seed=7 | 86.49 | 0.001474 | 203.7 |  |
-| E5-reg-mcs20-s7-t0.6 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=20, reg_lambda=1.0, n_models=1, thr=0.6, split_seed=7 | 86.00 | 0.001474 | 203.7 |  |
-| EXT-solution | raw+consensus | FINAL champion on test (solution.csv diagnostic) | min_child_samples=20, reg_lambda=1.0, thr=0.5, rules=True, trained_on=all train | 95.04 | 0.000090 | 212.4 | external diagnostic only, not used for any selection |
+**Current Champion:** E8-mcs5-l1 — BR LightGBM re-tuned on clean data — clean-like val EMR seed 42: 96.81%, seed 7: 96.33% (mean **96.57%**). Selection rule: clean-like EMR, configurations confirmed on more split seeds first, then by their mean. Chosen by the one-standard-error rule: among settings within one standard error of the best, the simplest / most regularised one. (rule-best was E10-cap at 96.63%, within one standard error.)
+
+| Exp ID | Data Pipeline (Sec 10 vs 11) | Model Family | Key Hyperparameters / Features | Val EMR (%) | Val EMR test-like (%) | Val EMR clean-like (%) | Val Hamming Loss | Train Time (s) | Status / Notes |
+|---|---|---|---|---|---|---|---|---|---|
+| E1a | raw | Global mode config | — | 0.00 | — | — | 0.033509 | 0.1 |  |
+| E1-knn1 | raw | Hamming k-NN (unique configs) | k=1, n_train_configs=53947 | 0.48 | — | — | 0.003198 | 24.0 | val exact-lookup coverage 0.00%; test 0.0051% |
+| E1-knn3 | raw | Hamming k-NN (unique configs) | k=3, n_train_configs=53947 | 33.70 | — | — | 0.002351 | 24.0 | val exact-lookup coverage 0.00%; test 0.0051% |
+| E1-knn5 | raw | Hamming k-NN (unique configs) | k=5, n_train_configs=53947 | 45.99 | — | — | 0.002134 | 24.0 | val exact-lookup coverage 0.00%; test 0.0051% |
+| E1-knn15 | raw | Hamming k-NN (unique configs) | k=15, n_train_configs=53947 | 51.98 | — | — | 0.002068 | 24.0 | val exact-lookup coverage 0.00%; test 0.0051% |
+| E1-knn1 | s10 | Hamming k-NN (unique configs) | k=1, n_train_configs=53715 | 1.59 | — | — | 0.003910 | 23.0 | val exact-lookup coverage 0.00%; test 0.0051% |
+| E1-knn3 | s10 | Hamming k-NN (unique configs) | k=3, n_train_configs=53715 | 24.37 | — | — | 0.002516 | 23.0 | val exact-lookup coverage 0.00%; test 0.0051% |
+| E1-knn5 | s10 | Hamming k-NN (unique configs) | k=5, n_train_configs=53715 | 44.63 | — | — | 0.002170 | 23.0 | val exact-lookup coverage 0.00%; test 0.0051% |
+| E1-knn15 | s10 | Hamming k-NN (unique configs) | k=15, n_train_configs=53715 | 51.77 | — | — | 0.002085 | 23.0 | val exact-lookup coverage 0.00%; test 0.0051% |
+| E3a | raw+consensus | Binary Relevance LightGBM | n_estimators=100, num_leaves=15 | 58.66 | — | — | 0.003701 | 184.3 | unique configs, consensus labels, weight=multiplicity |
+| E3b | s10 | Binary Relevance LightGBM | n_estimators=100, num_leaves=15 | 50.58 | — | — | 0.003868 | 440.1 | all rows, S10 relabeled targets |
+| E3c | s11 | Binary Relevance LightGBM | n_estimators=100, num_leaves=15 | 12.80 | — | — | 0.006224 | 685.1 | all rows, raw targets, 742 CRM + 45 SVD |
+| E3c+rules | s11 | Binary Relevance LightGBM + 42 additive rules | n_estimators=100, num_leaves=15 | 14.87 | — | — | 0.005985 | 685.1 | 42 Section 11 rule columns overwritten |
+| E3a2 | raw+consensus | Binary Relevance LightGBM | n_estimators=100, num_leaves=15 | 80.05 | — | — | 0.002454 | 183.2 | unique configs, consensus labels, unweighted |
+| E3a2+rules | raw+consensus | Binary Relevance LightGBM + 42 additive rules | n_estimators=100, num_leaves=15 | 80.38 | — | — | 0.002457 | 183.2 | 42 Section 11 rule columns overwritten |
+| E3d | s10+consensus | Binary Relevance LightGBM | n_estimators=100, num_leaves=15 | 74.31 | — | — | 0.002517 | 161.0 | s10 features, unique configs, consensus labels, unweighted |
+| E3e | s11+consensus | Binary Relevance LightGBM | n_estimators=100, num_leaves=15 | 47.42 | — | — | 0.004260 | 265.1 | s11 features, unique configs, consensus labels, unweighted |
+| E3e+rules | s11+consensus | Binary Relevance LightGBM + 42 additive rules | n_estimators=100, num_leaves=15 | 49.16 | — | — | 0.004145 | 265.1 | 42 Section 11 rule columns overwritten |
+| E2-lp | raw+consensus | Label Powerset decoder (all seen configs) | probs_from=E3a2, n_configs=53369 | 23.09 | — | — | 0.002583 | 20.5 | ceiling 23.12%; top-1000 ceiling 0.97% |
+| E2-hyb0.5 | raw+consensus | BR + LP snap when within delta log-lik | probs_from=E3a2, delta=0.5 | 80.06 | — | — | 0.002453 | 20.5 | snapped 23.5% of rows |
+| E2-hyb1.0 | raw+consensus | BR + LP snap when within delta log-lik | probs_from=E3a2, delta=1.0 | 80.04 | — | — | 0.002452 | 20.5 | snapped 23.6% of rows |
+| E2-hyb2.0 | raw+consensus | BR + LP snap when within delta log-lik | probs_from=E3a2, delta=2.0 | 80.05 | — | — | 0.002450 | 20.5 | snapped 23.9% of rows |
+| E2-hyb4.0 | raw+consensus | BR + LP snap when within delta log-lik | probs_from=E3a2, delta=4.0 | 74.26 | — | — | 0.002528 | 20.5 | snapped 30.0% of rows |
+| E4-cc30 | raw+consensus | Co-occurrence Classifier Chain LightGBM | n_parents=30, order=prevalence desc | 80.57 | — | — | 0.002509 | 186.5 | teacher-forced training, sequential prediction |
+| E5-br-t0.5 | raw+consensus | br probs + rules + threshold | thr=0.5 | 80.38 | — | — | 0.002457 | 0 |  |
+| E5-br-t0.6 | raw+consensus | br probs + rules + threshold | thr=0.6 | 80.54 | — | — | 0.002373 | 0 |  |
+| E5-cc-t0.5 | raw+consensus | cc probs + rules + threshold | thr=0.5 | 80.99 | — | — | 0.002510 | 0 |  |
+| E5-cc-t0.6 | raw+consensus | cc probs + rules + threshold | thr=0.6 | 81.24 | — | — | 0.002419 | 0 |  |
+| E5-avg-t0.5 | raw+consensus | avg probs + rules + threshold | thr=0.5 | 78.11 | — | — | 0.002436 | 0 |  |
+| E5-avg-t0.6 | raw+consensus | avg probs + rules + threshold | thr=0.6 | 87.21 | — | — | 0.001467 | 0 |  |
+| E5-knnroute100 | raw+consensus | avg+rules+t0.6, k-NN on rare-pack rows | R=100 | 87.21 | — | — | 0.001467 | 0 | 0.0% rows routed to k-NN |
+| E5-knnroute200 | raw+consensus | avg+rules+t0.6, k-NN on rare-pack rows | R=200 | 86.61 | — | — | 0.001361 | 0 | 11.1% rows routed to k-NN |
+| E5-knnroute400 | raw+consensus | avg+rules+t0.6, k-NN on rare-pack rows | R=400 | 80.72 | — | — | 0.001505 | 0 | 24.0% rows routed to k-NN |
+| E5-reg-mcs20-t0.5 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=20, reg_lambda=1.0, n_models=1, thr=0.5, split_seed=42 | 87.84 | — | — | 0.001375 | 211.1 |  |
+| E5-reg-mcs20-t0.6 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=20, reg_lambda=1.0, n_models=1, thr=0.6, split_seed=42 | 87.30 | — | — | 0.001379 | 211.1 |  |
+| E5-reg-mcs50-t0.5 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=50, reg_lambda=1.0, n_models=1, thr=0.5, split_seed=42 | 87.79 | — | — | 0.001381 | 210.1 |  |
+| E5-reg-mcs50-t0.6 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=50, reg_lambda=1.0, n_models=1, thr=0.6, split_seed=42 | 87.21 | — | — | 0.001385 | 210.1 |  |
+| E5-bag3-t0.5 | raw+consensus | BR LightGBM (variance reduction) + rules | subsample=0.8, subsample_freq=1, colsample_bytree=0.8, n_models=3, thr=0.5, split_seed=42 | 87.28 | — | — | 0.001488 | 570.6 |  |
+| E5-bag3-t0.6 | raw+consensus | BR LightGBM (variance reduction) + rules | subsample=0.8, subsample_freq=1, colsample_bytree=0.8, n_models=3, thr=0.6, split_seed=42 | 87.23 | — | — | 0.001446 | 570.6 |  |
+| E4-cc30-mcs20 | raw+consensus | Co-occurrence Classifier Chain LightGBM + rules | n_parents=30, order=prevalence desc, min_child_samples=20 | 87.71 | — | — | 0.001375 | 188.1 | teacher-forced training, sequential prediction |
+| E5-avg-mcs20-t0.5 | raw+consensus | avg(BR mcs20, chain mcs20) + rules | thr=0.5 | 87.72 | — | — | 0.001374 | 0 |  |
+| E5-avg-mcs20-t0.6 | raw+consensus | avg(BR mcs20, chain mcs20) + rules | thr=0.6 | 87.30 | — | — | 0.001377 | 0 |  |
+| E5-reg-mcs20-s7-t0.5 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=20, reg_lambda=1.0, n_models=1, thr=0.5, split_seed=7 | 86.49 | — | — | 0.001474 | 203.7 |  |
+| E5-reg-mcs20-s7-t0.6 | raw+consensus | BR LightGBM (variance reduction) + rules | min_child_samples=20, reg_lambda=1.0, n_models=1, thr=0.6, split_seed=7 | 86.00 | — | — | 0.001474 | 203.7 |  |
+| EXT-solution | raw+consensus | FINAL champion on test (solution.csv diagnostic) | min_child_samples=20, reg_lambda=1.0, thr=0.5, rules=True, trained_on=all train | 95.04 | — | — | 0.000090 | 212.4 | external diagnostic only, not used for any selection |
+| E6-base | raw+consensus | Sprint 2 champion, re-scored | min_child_samples=20, reg_lambda=1.0, split_seed=42 | 87.84 | 89.22 | — | 0.001375 | 0 | same predictions as E5-reg-mcs20; adds test-like metric |
+| E6-clean | raw+consensus (test-like rows) | Champion trained without non-test-like rows | min_child_samples=20, reg_lambda=1.0, split_seed=42, dropped_train_rows=2278 | 87.93 | 89.32 | — | 0.001391 | 209.3 | 51,669 unique train configs |
+| E7-rescore-E5-reg-mcs20 | raw+consensus | Sprint 2 champion, re-scored | split_seed=42 | 87.84 | 89.22 | 95.93 | 0.001375 | 0 | adds clean-like metric |
+| E7-rescore-E6-clean | raw+consensus | E6-clean (non-test-like dropped), re-scored | split_seed=42 | 87.93 | 89.32 | 96.03 | 0.001391 | 0 | adds clean-like metric |
+| E7-drop-k2 | raw+consensus (corrupted rows dropped) | Champion trained without suspected-corrupted rows (>= 2 rare packs or not test-like) | min_child_samples=20, reg_lambda=1.0, k=2, split_seed=42, dropped_train_rows=14807, dropped_share=0.098 | 87.27 | 88.65 | 95.45 | 0.001522 | 103.6 | 39,676 unique train configs |
+| E7-drop-k3 | raw+consensus (corrupted rows dropped) | Champion trained without suspected-corrupted rows (>= 3 rare packs or not test-like) | min_child_samples=20, reg_lambda=1.0, k=3, split_seed=42, dropped_train_rows=12221, dropped_share=0.0809 | 88.19 | 89.58 | 96.41 | 0.001480 | 111.4 | 41,891 unique train configs |
+| E7-drop-k4 | raw+consensus (corrupted rows dropped) | Champion trained without suspected-corrupted rows (>= 4 rare packs or not test-like) | min_child_samples=20, reg_lambda=1.0, k=4, split_seed=42, dropped_train_rows=10476, dropped_share=0.0694 | 88.41 | 89.80 | 96.57 | 0.001470 | 141.0 | 43,552 unique train configs |
+| E7-rescore-E5-reg-mcs20 | raw+consensus | Sprint 2 champion, re-scored | split_seed=42 | 87.84 | 89.22 | 95.93 | 0.001375 | 0 | adds clean-like metric |
+| E7-rescore-E6-clean | raw+consensus | E6-clean (non-test-like dropped), re-scored | split_seed=42 | 87.93 | 89.32 | 96.03 | 0.001391 | 0 | adds clean-like metric |
+| E7-drop-k5 | raw+consensus (corrupted rows dropped) | Champion trained without suspected-corrupted rows (>= 5 rare packs or not test-like) | min_child_samples=20, reg_lambda=1.0, k=5, split_seed=42, dropped_train_rows=8827, dropped_share=0.0584 | 88.38 | 89.77 | 96.50 | 0.001465 | 185.8 | 45,128 unique train configs |
+| E7-drop-k6 | raw+consensus (corrupted rows dropped) | Champion trained without suspected-corrupted rows (>= 6 rare packs or not test-like) | min_child_samples=20, reg_lambda=1.0, k=6, split_seed=42, dropped_train_rows=7433, dropped_share=0.0492 | 88.50 | 89.89 | 96.62 | 0.001450 | 203.7 | 46,514 unique train configs |
+| E7-drop-k8 | raw+consensus (corrupted rows dropped) | Champion trained without suspected-corrupted rows (>= 8 rare packs or not test-like) | min_child_samples=20, reg_lambda=1.0, k=8, split_seed=42, dropped_train_rows=5154, dropped_share=0.0341 | 88.21 | 89.60 | 96.30 | 0.001423 | 193.7 | 48,793 unique train configs |
+| E7-rescore-E5-reg-mcs20-s7 | raw+consensus | Sprint 2 champion, re-scored | split_seed=7 | 86.49 | 88.05 | 95.06 | 0.001474 | 0 | adds clean-like metric |
+| E7-drop-k4-s7 | raw+consensus (corrupted rows dropped) | Champion trained without suspected-corrupted rows (>= 4 rare packs or not test-like) | min_child_samples=20, reg_lambda=1.0, k=4, split_seed=7, dropped_train_rows=10505, dropped_share=0.0681 | 87.39 | 88.96 | 96.15 | 0.001570 | 143.0 | 43,508 unique train configs |
+| E7-drop-k6-s7 | raw+consensus (corrupted rows dropped) | Champion trained without suspected-corrupted rows (>= 6 rare packs or not test-like) | min_child_samples=20, reg_lambda=1.0, k=6, split_seed=7, dropped_train_rows=7468, dropped_share=0.0484 | 87.13 | 88.70 | 95.80 | 0.001553 | 172.9 | 46,479 unique train configs |
+| EXT-solution-drop-k4 | raw+consensus | FINAL model on test (solution.csv diagnostic) | min_child_samples=20, reg_lambda=1.0, thr=0.5, rules=True, drop_k=4, trained_on=all train minus suspected-corrupted rows | 97.04 | — | — | 0.000061 | 158.7 | external diagnostic only, not used for any selection |
+| E8-mcs5-l1 | raw+consensus (corrupted rows dropped, k=4) | BR LightGBM re-tuned on clean data | min_child_samples=5, reg_lambda=1.0, drop_k=4, split_seed=42 | 88.65 | 90.05 | 96.81 | 0.001461 | 162.2 | 43,552 unique train configs **(champion)** |
+| E8-mcs10-l1 | raw+consensus (corrupted rows dropped, k=4) | BR LightGBM re-tuned on clean data | min_child_samples=10, reg_lambda=1.0, drop_k=4, split_seed=42 | 88.62 | 90.01 | 96.78 | 0.001467 | 160.0 | 43,552 unique train configs |
+| E8-mcs5-l1-s7 | raw+consensus (corrupted rows dropped, k=4) | BR LightGBM re-tuned on clean data | min_child_samples=5, reg_lambda=1.0, drop_k=4, split_seed=7 | 87.63 | 89.21 | 96.33 | 0.001561 | 117.3 | 43,508 unique train configs |
+| E8-mcs10-l1-s7 | raw+consensus (corrupted rows dropped, k=4) | BR LightGBM re-tuned on clean data | min_child_samples=10, reg_lambda=1.0, drop_k=4, split_seed=7 | 87.44 | 89.01 | 96.11 | 0.001569 | 116.2 | 43,508 unique train configs |
+| E8-mcs2-l1 | raw+consensus (corrupted rows dropped, k=4) | BR LightGBM re-tuned on clean data | min_child_samples=2, reg_lambda=1.0, drop_k=4, split_seed=42 | 88.66 | 90.06 | 96.82 | 0.001455 | 117.9 | 43,552 unique train configs |
+| E8-mcs5-l0 | raw+consensus (corrupted rows dropped, k=4) | BR LightGBM re-tuned on clean data | min_child_samples=5, reg_lambda=0.0, drop_k=4, split_seed=42 | 30.17 | 30.65 | 33.00 | 0.003869 | 114.2 | 43,552 unique train configs |
+| E8-mcs5-l5 | raw+consensus (corrupted rows dropped, k=4) | BR LightGBM re-tuned on clean data | min_child_samples=5, reg_lambda=5.0, drop_k=4, split_seed=42 | 88.45 | 89.84 | 96.61 | 0.001414 | 118.4 | 43,552 unique train configs |
+| E8-mcs2-l1-s7 | raw+consensus (corrupted rows dropped, k=4) | BR LightGBM re-tuned on clean data | min_child_samples=2, reg_lambda=1.0, drop_k=4, split_seed=7 | 87.67 | 89.25 | 96.36 | 0.001556 | 123.1 | 43,508 unique train configs |
+| E8-mcs5-l0-s7 | raw+consensus (corrupted rows dropped, k=4) | BR LightGBM re-tuned on clean data | min_child_samples=5, reg_lambda=0.0, drop_k=4, split_seed=7 | 23.85 | 24.29 | 26.29 | 0.004066 | 115.3 | 43,508 unique train configs |
+| E8-mcs5-l5-s7 | raw+consensus (corrupted rows dropped, k=4) | BR LightGBM re-tuned on clean data | min_child_samples=5, reg_lambda=5.0, drop_k=4, split_seed=7 | 87.49 | 89.07 | 96.25 | 0.001510 | 121.6 | 43,508 unique train configs |
+| EXT-solution-drop-k4-mcs5 | raw+consensus | FINAL model on test (solution.csv diagnostic) | min_child_samples=5, reg_lambda=1.0, thr=0.5, rules=True, drop_k=4, trained_on=all train minus suspected-corrupted rows | 97.27 | — | — | 0.000056 | 117.5 | external diagnostic only, not used for any selection |
+| E10-cl-m1 | raw+consensus (corrupted rows dropped, k=4) | Step 4 champion + confident-learning cleaning | min_child_samples=5, reg_lambda=1.0, drop_k=4, split_seed=42, cl_min_disagreements=1, cl_dropped_configs=4578, cl_dropped_share=0.1051 | 88.45 | 89.84 | 96.59 | 0.001813 | 47.6 | 38,974 unique train configs |
+| E10-cl-m2 | raw+consensus (corrupted rows dropped, k=4) | Step 4 champion + confident-learning cleaning | min_child_samples=5, reg_lambda=1.0, drop_k=4, split_seed=42, cl_min_disagreements=2, cl_dropped_configs=3896, cl_dropped_share=0.0895 | 87.34 | 88.72 | 95.38 | 0.001641 | 63.2 | 39,656 unique train configs |
+| E10-repair | raw+consensus (corrupted rows dropped, k=4) | Step 4 champion + repaired corrupted rows | min_child_samples=5, reg_lambda=1.0, drop_k=4, split_seed=42, repaired_rows=8198 | 88.45 | 89.84 | 96.60 | 0.001425 | 142.3 | 51,306 unique train configs |
+| E10-cap | raw+consensus (corrupted rows dropped, k=4) | Step 4 champion with more capacity | min_child_samples=5, reg_lambda=1.0, n_estimators=200, num_leaves=31, drop_k=4, split_seed=42 | 88.71 | 90.11 | 96.87 | 0.001488 | 210.0 | 43,552 unique train configs |
+| E10-cl-m1-s7 | raw+consensus (corrupted rows dropped, k=4) | Step 4 champion + confident-learning cleaning | min_child_samples=5, reg_lambda=1.0, drop_k=4, split_seed=7, cl_min_disagreements=1, cl_dropped_configs=4526, cl_dropped_share=0.104 | 87.27 | 88.85 | 96.01 | 0.001941 | 45.4 | 38,982 unique train configs |
+| E10-cl-m2-s7 | raw+consensus (corrupted rows dropped, k=4) | Step 4 champion + confident-learning cleaning | min_child_samples=5, reg_lambda=1.0, drop_k=4, split_seed=7, cl_min_disagreements=2, cl_dropped_configs=3881, cl_dropped_share=0.0892 | 87.27 | 88.84 | 95.93 | 0.001736 | 59.0 | 39,627 unique train configs |
+| E10-repair-s7 | raw+consensus (corrupted rows dropped, k=4) | Step 4 champion + repaired corrupted rows | min_child_samples=5, reg_lambda=1.0, drop_k=4, split_seed=7, repaired_rows=8247 | 87.37 | 88.94 | 96.03 | 0.001527 | 136.7 | 51,310 unique train configs |
+| E10-cap-s7 | raw+consensus (corrupted rows dropped, k=4) | Step 4 champion with more capacity | min_child_samples=5, reg_lambda=1.0, n_estimators=200, num_leaves=31, drop_k=4, split_seed=7 | 87.68 | 89.26 | 96.39 | 0.001589 | 197.4 | 43,508 unique train configs |

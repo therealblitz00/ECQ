@@ -1,3 +1,5 @@
+import re
+
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import GroupKFold, GroupShuffleSplit
@@ -31,6 +33,45 @@ def consensus_targets(crm_codes, Y):
     Y_cons = Y[src_rows]
     is_noisy = bil_codes != bil_codes[src_rows]
     return Y_cons, is_noisy
+
+
+def test_like_mask(X, crm_cols):
+    """Rows whose CRM categorical blocks look like test rows: exactly one value per group
+    (BUSINESS_LINE, SUBSCRIBER_TYPE, SUBSCRIBER_STATUS) and never the value '0'.
+    ~1.5% of train rows fail this; essentially no test row does.
+    """
+    groups = {}
+    for i, c in enumerate(crm_cols):
+        m = re.match(r'^CRM_(.+?)_ORIG_(.+)$', c)
+        if m:
+            groups.setdefault(m.group(1), []).append((i, m.group(2)))
+    ok = np.ones(len(X), bool)
+    for items in groups.values():
+        ok &= X[:, [i for i, _ in items]].sum(1) == 1
+        zero = [i for i, v in items if v == '0']
+        if zero:
+            ok &= X[:, zero].sum(1) == 0
+    return ok
+
+
+RARE_FREQ = 0.002
+HEAVY_K = 3
+
+
+def rare_pack_count(X, crm_cols, X_ref=None, rare_freq=RARE_FREQ):
+    """Per row, how many CRM packs it has that occur in < rare_freq of the reference rows
+    (default: X itself). Uses CRM features only, never labels."""
+    pk = np.array([c.endswith('_PACK') for c in crm_cols])
+    ref = X if X_ref is None else X_ref
+    rare = np.zeros(len(crm_cols), bool)
+    rare[pk] = ref[:, pk].mean(0) < rare_freq
+    return X[:, rare].sum(1)
+
+
+def clean_like_mask(X, crm_cols, X_ref=None, heavy_k=HEAVY_K, rare_freq=RARE_FREQ):
+    """Test-like rows that also carry fewer than heavy_k rare CRM packs. ~9% of train rows
+    fail this (suspected injected corruption); 0.55% of test rows do."""
+    return test_like_mask(X, crm_cols) & (rare_pack_count(X, crm_cols, X_ref, rare_freq) < heavy_k)
 
 
 def grouped_holdout(groups, val_size=0.2, seed=42):

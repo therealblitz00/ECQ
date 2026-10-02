@@ -1,6 +1,7 @@
 """Render docs/EXPERIMENT_LEADERBOARD.md from data/cache/results.jsonl (the source of truth)."""
 import json
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -8,6 +9,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import pandas as pd
 
 from src import data, experiment as E
+
+ONE_SE = 0.001  # ~1 standard error of EMR on ~33k clean-like validation rows
+SELECTED = ('E8-mcs5-l1', 'Chosen by the one-standard-error rule: among settings within one '
+            'standard error of the best, the simplest / most regularised one.')
 
 DOC = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'docs',
                    'EXPERIMENT_LEADERBOARD.md')
@@ -25,23 +30,50 @@ matching the real test set (6 of 97,100 test rows, 0.006%, have a config seen in
 `s11` = Sprint 1 Section 10 / Section 11 feature sets; `+consensus` = trained on unique
 configurations with consensus labels.
 
+Three validation numbers (Sprint 3, see `docs/sprint3/SPRINT3_DIAGNOSTIC_LOG.md`): **all** rows;
+**test-like** rows (valid one-hot categoricals, no value `0`); **clean-like** rows (test-like
+and < 3 CRM packs rarer than 0.2% of train) — the primary selection metric since Step 3,
+because it is the validation number that tracks the test set. Sprint 2 rows predate the
+extra metrics and show "—".
+
 """
 
 
 def main():
     rows = [json.loads(l) for l in open(E.RESULTS)]
-    best = max((r for r in rows if not r['exp_id'].startswith('EXT')), key=lambda r: r['emr'])
+    # Selection: clean-like val EMR; configurations confirmed on more split seeds rank first,
+    # then by their mean across seeds (one seed alone can be within noise of the next run).
+    by_cfg = {}
+    for r in rows:
+        if 'emr_cleanlike' in r:
+            cfg = re.sub(r'-s\d+$', '', r['exp_id'])
+            by_cfg.setdefault(cfg, {})[r['params'].get('split_seed', 42)] = r  # one run per seed
+    key = lambda rs: (len(rs), sum(x['emr_cleanlike'] for x in rs) / len(rs))
+    rule_cfg = max((list(v.values()) for v in by_cfg.values()), key=key)
+    best_cfg, note = rule_cfg, ''
+    if SELECTED[0] in by_cfg:
+        chosen = list(by_cfg[SELECTED[0]].values())
+        if chosen is not rule_cfg and key(rule_cfg)[1] - key(chosen)[1] <= ONE_SE:
+            best_cfg = chosen
+            note = (f" {SELECTED[1]} (rule-best was {rule_cfg[0]['exp_id']} at "
+                    f"{key(rule_cfg)[1]:.2%}, within one standard error.)")
+    best = next(r for r in best_cfg if r['params'].get('split_seed', 42) == 42)
+    seeds = ', '.join(f"seed {r['params'].get('split_seed', 42)}: {r['emr_cleanlike']:.2%}" for r in best_cfg)
     out = [HEADER,
-           f"**Current Champion:** {best['exp_id']} — {best['family']} ({best['pipeline']}) — "
-           f"**{best['emr']:.2%} val EMR**, Hamming loss {best['hamming_loss']:.6f}.\n\n",
+           f"**Current Champion:** {best['exp_id']} — {best['family']} — clean-like val EMR "
+           f"{seeds} (mean **{key(best_cfg)[1]:.2%}**). Selection rule: clean-like EMR, configurations "
+           f"confirmed on more split seeds first, then by their mean.{note}\n\n",
            '| Exp ID | Data Pipeline (Sec 10 vs 11) | Model Family | Key Hyperparameters / Features '
-           '| Val EMR (%) | Val Hamming Loss | Train Time (s) | Status / Notes |\n',
-           '|---|---|---|---|---|---|---|---|\n']
+           '| Val EMR (%) | Val EMR test-like (%) | Val EMR clean-like (%) | Val Hamming Loss '
+           '| Train Time (s) | Status / Notes |\n',
+           '|---|---|---|---|---|---|---|---|---|---|\n']
+    pct = lambda r, k: f'{r[k] * 100:.2f}' if k in r else '—'
     for r in rows:
         params = ', '.join(f'{k}={v}' for k, v in r['params'].items()) or '—'
         mark = ' **(champion)**' if r is best else ''
         out.append(f"| {r['exp_id']} | {r['pipeline']} | {r['family']} | {params} | "
-                   f"{r['emr'] * 100:.2f} | {r['hamming_loss']:.6f} | {r['train_time_s']} | "
+                   f"{pct(r, 'emr')} | {pct(r, 'emr_testlike')} | {pct(r, 'emr_cleanlike')} | "
+                   f"{r['hamming_loss']:.6f} | {r['train_time_s']} | "
                    f"{r['notes']}{mark} |\n")
     with open(DOC, 'w', encoding='utf-8') as f:
         f.writelines(out)

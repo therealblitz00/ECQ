@@ -30,6 +30,7 @@ benchmark. One entry per step: plan → what was run → what the data showed �
 | Step 3: same model, ~7% suspected-corrupted training rows removed | 96.57% / 96.15% | 97.04% |
 | **Step 4: + regularisation re-tuned on the clean data (`min_child_samples` 20 → 5)** | **96.81% / 96.33%** | **97.27%** |
 | Step 5: confident learning / repair / more capacity | none better beyond noise | — (not selected) |
+| **Step 8 — final model: Step 4 without the Sprint 1 additive rules** (`notebooks/sprint3_final.ipynb`, professor's CSVs only) | **96.79% / 96.30%** | **97.21%** |
 | Public benchmark (reported) | — | ~98% |
 
 **One-line story:** the training data contains rows into which random products were
@@ -145,6 +146,7 @@ The script reproduces the champion exactly (validation EMR 87.8411%).
 | 5 | 2026-10-02 | `exp10_step5.py` | Confident learning −0.27 / −0.91, repair −0.26, capacity +0.06 (within noise) — mean over both seeds. None adopted; Step 4 model stays champion. Remaining errors look like an irreducible floor for this approach. | 96.81% clean-like (unchanged) | Step 6 agreed for next session |
 | 6 | 2026-10-03 | `explain_shap.py` | SHAP top driver = independent co-occurrence driver for 95.7% of clearly-linked columns. Concentration on one driver predicts F1 (Spearman +0.86): errors are on items with no clear CRM cause. No reliance on injected rare packs. Rare-product misses are "right cause, p ≈ 0.2". | 96.81% clean-like (frozen) | Final notebook built (`notebooks/sprint3_final.ipynb`) |
 | 7 | 2026-10-04 | `exp11_count_features.py` | Teammate's MCA lead (+0.31 in Sprint 2 set-up) tested as plain basket-size counts on the current champion: +0.03 / −0.05 mean, within noise. Not adopted. | 96.81% clean-like (unchanged) | Champion unchanged |
+| 8 | 2026-10-04 | `notebooks/sprint3_final.ipynb` | Final notebook on the professor's CSVs only. Sprint 1 additive rules dropped (+0.02 on validation, within noise; mined on all of train). Test 97.21% (97.27% with rules, reported not used). | 96.79% clean-like | Final model |
 
 ---
 
@@ -589,3 +591,31 @@ The likely reason the teammate saw a gain: in the Sprint 2 set-up the corrupted 
 in training, and basket size is a strong marker of those rows (21 packs vs 12). Once they are
 removed (Step 3), the signal has nothing left to add. The teammate's exact MCA features were not
 re-tested (code not available); the result above suggests their effect would also vanish.
+
+---
+
+## Step 8 — Final notebook on the professor's CSVs only; additive rules dropped
+
+Approved 2026-10-04. Notebook: `notebooks/sprint3_final.ipynb` (Sprints 1–3, ~10 minutes).
+
+**Requirement (team lead).** The final notebook must run on the files the professor gave —
+`train.csv`, `test.csv`, and `solution.csv` only to score the frozen model at the end — and
+contain all its own code (no imports from `src/` or `scripts/`).
+
+**Consequences.**
+- **The 42 Sprint 1 additive rules are dropped from the final model.** They live in a derived
+  file (`additive_rules_v2.json`). On the champion they add only +0.02 / +0.03 clean-like
+  validation points (96.81% → 96.79% on seed 42, 96.33% → 96.30% on seed 7), within one
+  standard error, so the simpler model is preferred. They were also mined on all of
+  `train.csv`, so dropping them removes the one documented leak (Threats to validity).
+  The decision rests on validation. On test, the model without rules scores **97.21%**
+  against 97.27% with them; that number was reported afterwards, not used to decide.
+- **SVD evidence is recomputed live** from `train.csv` (45 components for 80% of variance,
+  matching Sprint 1).
+- **Sprint 2–3 experiment tables are written into the notebook's markdown** (they took hours
+  to run and are not recomputed). The final model, the corruption evidence and SHAP are all
+  computed live.
+
+**Result (computed in the notebook's last cell):** test EMR **97.21%** (94,391 of 97,100 rows
+exactly right), 2.18% of rows one bit off, F1 micro 0.9987. Every live number matches the
+script-based results (clean-like 96.79%, SHAP Spearman +0.86, noise check unchanged).

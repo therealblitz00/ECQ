@@ -21,7 +21,8 @@ configuration (731 binary `BIL_*` columns), to help catch provisioning errors.
 | Model | Validation EMR, clean-like (seed 42 / 7) | Test EMR (`solution.csv`, diagnostic) |
 |---|---|---|
 | Sprint 2 champion | 95.93% / 95.06% | 95.04% |
-| **Sprint 3 champion** (corrupted training rows removed + re-tuned) | **96.81% / 96.33%** | **97.27%** |
+| Sprint 3 champion with the Sprint 1 additive rules | 96.81% / 96.33% | 97.27% |
+| **Final model** (`notebooks/sprint3_final.ipynb`: corrupted training rows removed + re-tuned, no rules; needs only `train.csv` / `test.csv`) | **96.79% / 96.30%** | **97.21%** |
 | Public benchmark (reported) | — | ~98% |
 
 ## Key findings
@@ -36,7 +37,9 @@ configuration (731 binary `BIL_*` columns), to help catch provisioning errors.
 4. **~7–8% of training rows are corrupted by random injection** (Sprint 3). These rows have
    impossible one-hot categories (two statuses, a status called `0`) and bursts of
    uniformly random rare products on both the CRM and BIL side. Removing them from
-   training: **+2.0 test points**. Re-tuning regularisation afterwards: +0.23.
+   training: **+2.0 test points**. Re-tuning regularisation afterwards: +0.23. The Sprint 1
+   additive rules were then dropped (within-noise gain, mined on all of train), so the final
+   model depends only on the professor's CSVs.
 5. The remaining errors sit in rows with 1–2 rare products. Further cleaning, repair,
    thresholds and extra capacity were tested and did not help beyond noise.
 6. **SHAP explainability** (Step 6): where a BIL item has a clear CRM cause, the model relies

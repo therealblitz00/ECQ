@@ -87,11 +87,15 @@ grouping; the CRM→BIL pack mapping is many-to-one.
 - **Training data corruption:** ~7–8% of train rows have randomly injected rare packs (CRM
   and BIL) and/or impossible one-hot categoricals (two statuses, value `0`). Drop rows that
   are not test-like or carry ≥ 4 rare packs before training.
-- **Current champion:** per-label LightGBM on the raw 745 CRM columns, unique configs +
-  consensus labels, corrupted rows dropped, `min_child_samples=5`, `reg_lambda=1`
-  (never 0 — rare columns blow up), threshold 0.5, then the 42 additive rules from
-  `data/derived/additive_rules_v2.json`. Clean-like val 96.81% / 96.33%; test diagnostic
-  97.27% (benchmark ~98%).
+- **Final model** (in `notebooks/sprint3_final.ipynb`): per-label LightGBM on the raw 745 CRM
+  columns, unique configs + consensus labels, corrupted rows dropped, `min_child_samples=5`,
+  `reg_lambda=1` (never 0 — rare columns blow up), threshold 0.5, **no additive rules**.
+  Clean-like val 96.79% / 96.30%; test 97.21% (benchmark ~98%). The Sprint 1 rules
+  (`additive_rules_v2.json`) add only +0.02 on validation and were mined on all of train, so
+  they were dropped; `scripts/train_final.py 4 5` still applies them (test 97.27%).
+- **The final notebook may read only `train.csv`, `test.csv` and `solution.csv`** (the
+  professor's files; `solution.csv` only in the last scoring cell) and must not import from
+  `src/` or `scripts/`. Earlier experiment results appear there as markdown tables.
 - **Tried and rejected** (see leaderboard / logs): PCA/SVD features, Section 10 column
   collapsing, multiplicity weights, k-NN, label powerset, classifier chains, blends,
   rare-column thresholds, confident-learning cleaning, repairing corrupted rows, more capacity.
@@ -102,4 +106,4 @@ grouping; the CRM→BIL pack mapping is many-to-one.
 |---|---|---|---|---|
 | 1 | Pre-processing (`notebooks/sprint1_preprocessing_v3.ipynb`) | 40% | 22/09/2026 | done |
 | 2 | Modeling (`notebooks/sprint2_modeling.ipynb`) | 30% | 29/09/2026 | done (committed copy needs re-execution) |
-| 3 | Optimization & Explainability | 30% | 06/10/2026 | done — `notebooks/sprint3_final.ipynb`: self-contained (no `src/`/`scripts/` imports, by the user's request), Sprints 1–3, ~10 min run |
+| 3 | Optimization & Explainability | 30% | 06/10/2026 | done — `notebooks/sprint3_final.ipynb`: Sprints 1–3, professor's CSVs only, ~10 min run, test 97.21% |

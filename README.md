@@ -16,7 +16,7 @@ configuration (731 binary `BIL_*` columns), to help catch provisioning errors.
 |---|---|---|---|
 | 1 | Pre-processing | 22/09/2026 | Done — `notebooks/sprint1_preprocessing_v3.ipynb` |
 | 2 | Modelling | 29/09/2026 | Done — `notebooks/sprint2_modeling.ipynb` |
-| 3 | Optimisation & Explainability | 06/10/2026 | **In progress** — optimisation (Steps 1–5) and SHAP explainability (Step 6) done; notebook next |
+| 3 | Optimisation & Explainability | 06/10/2026 | Done — `notebooks/sprint3_final.ipynb` (self-contained, Sprints 1–3) |
 
 | Model | Validation EMR, clean-like (seed 42 / 7) | Test EMR (`solution.csv`, diagnostic) |
 |---|---|---|
@@ -115,11 +115,12 @@ The first run builds `data/cache/arrays.npz` (~1 minute); each model fit takes ~
 
 1. ~~Step 6 — explainability~~ done: `scripts/explain_shap.py`, figures in
    `docs/sprint3/figures/`, per-column drivers in `data/derived/sprint3_shap_drivers.csv`.
-2. **Notebooks (after approval):**
-   - re-execute `notebooks/sprint2_modeling.ipynb` (the committed copy has no outputs);
-   - update its pointer `docs/ITERATION_LOG.md` → `docs/sprint2/ITERATION_LOG.md`;
-   - build the Sprint 3 notebook from `docs/sprint3/SPRINT3_DIAGNOSTIC_LOG.md`.
-3. Check the submission format against `sampleSubmission.csv`, and confirm with the
+2. ~~Sprint 3 notebook~~ done: `notebooks/sprint3_final.ipynb`. It is fully self-contained
+   (no imports from `src/` or `scripts/`), runs end to end in ~10 minutes, and writes
+   `data/derived/submission_sprint3_final.csv`.
+3. **Optional (after approval):** re-execute `notebooks/sprint2_modeling.ipynb` (the committed
+   copy has no outputs) and update its pointer `docs/ITERATION_LOG.md` → `docs/sprint2/ITERATION_LOG.md`.
+4. Check the submission format against `sampleSubmission.csv`, and confirm with the
    instructor how `solution.csv` may be used.
 
 ## Team & process

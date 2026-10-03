@@ -143,7 +143,8 @@ The script reproduces the champion exactly (validation EMR 87.8411%).
 | 3 | 2026-10-02 | `exp7_drop_corrupted.py`, `diag3_remaining_errors.py`, `train_final.py 4` | Clean-like metric tracks test (95.9 vs 95.0). Dropping rows with ≥4 rare packs or invalid categoricals (7%): clean-like 96.57% / 96.15% (seeds 42/7). **Test 95.04% → 97.04%.** Remaining errors: 78% in rows with 1–2 rare packs, mostly missed items. | 96.57% clean-like (88.41% all) | Step 4 approved |
 | 4 | 2026-10-02 | `exp8_retune.py`, `exp9_rare_thresholds.py`, `train_final.py 4 5` | `min_child_samples` 20 → 5 on clean data: clean-like 96.81% / 96.33% (seeds 42/7). `reg_lambda=0` collapses (one rare column fires on 27% of rows). Rare-column thresholds: +0.07/+0.10, within noise, not adopted. **Test 97.04% → 97.27%.** | 96.81% clean-like (88.65% all) | Step 5 approved |
 | 5 | 2026-10-02 | `exp10_step5.py` | Confident learning −0.27 / −0.91, repair −0.26, capacity +0.06 (within noise) — mean over both seeds. None adopted; Step 4 model stays champion. Remaining errors look like an irreducible floor for this approach. | 96.81% clean-like (unchanged) | Step 6 agreed for next session |
-| 6 | 2026-10-03 | `explain_shap.py` | SHAP top driver = independent co-occurrence driver for 95.7% of clearly-linked columns. Concentration on one driver predicts F1 (Spearman +0.86): errors are on items with no clear CRM cause. No reliance on injected rare packs. Rare-product misses are "right cause, p ≈ 0.2". | 96.81% clean-like (frozen) | Sprint 3 notebook — awaiting approval |
+| 6 | 2026-10-03 | `explain_shap.py` | SHAP top driver = independent co-occurrence driver for 95.7% of clearly-linked columns. Concentration on one driver predicts F1 (Spearman +0.86): errors are on items with no clear CRM cause. No reliance on injected rare packs. Rare-product misses are "right cause, p ≈ 0.2". | 96.81% clean-like (frozen) | Final notebook built (`notebooks/sprint3_final.ipynb`) |
+| 7 | 2026-10-04 | `exp11_count_features.py` | Teammate's MCA lead (+0.31 in Sprint 2 set-up) tested as plain basket-size counts on the current champion: +0.03 / −0.05 mean, within noise. Not adopted. | 96.81% clean-like (unchanged) | Champion unchanged |
 
 ---
 
@@ -561,3 +562,30 @@ such cases exist but are few, while lowering the threshold also adds false posit
    than its own driver).
 4. Remaining misses on rare products are "right cause, not enough evidence" (p ≈ 0.2).
 
+
+---
+
+## Step 7 — Basket-size count features (a teammate's MCA lead)
+
+Approved 2026-10-04. Script: `scripts/exp11_count_features.py` (both seeds).
+
+**Origin.** A teammate tested adding 2 MCA "meta-variables" to the **Sprint 2** set-up (no
+corrupted-row filter, `min_child_samples=20`; his `experiments_log.csv`, not in git). All-rows
+validation EMR rose 87.84% → 88.15% (+0.31, one split, no clean-like metric). His own analysis
+noted the MCA components mostly proxy basket size (component 2 vs number of packs: +0.61).
+Before adopting MCA, with its known "double zero" problem on sparse binary data (and given
+that SVD components cost ~33 points in Sprint 2), the simple version of that signal was
+tested on the **current** champion:
+
+| Clean-like validation EMR | Seed 42 | Seed 7 | Mean | vs champion |
+|---|---|---|---|---|
+| Champion (Step 4) | 96.81% | 96.33% | 96.57% | — |
+| + number of CRM packs per customer | 96.79% | 96.41% | 96.60% | +0.03 |
+| + number of CRM packs and number of rare CRM packs | 96.85% | 96.19% | 96.52% | −0.05 |
+
+**Decision: not adopted.** Both variants are within one standard error (~0.1) with opposite
+signs across splits; all-rows EMR is also unchanged (88.63% / 87.69% vs 88.65% / 87.63%).
+The likely reason the teammate saw a gain: in the Sprint 2 set-up the corrupted rows were still
+in training, and basket size is a strong marker of those rows (21 packs vs 12). Once they are
+removed (Step 3), the signal has nothing left to add. The teammate's exact MCA features were not
+re-tested (code not available); the result above suggests their effect would also vanish.

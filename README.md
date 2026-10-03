@@ -16,7 +16,7 @@ configuration (731 binary `BIL_*` columns), to help catch provisioning errors.
 |---|---|---|---|
 | 1 | Pre-processing | 22/09/2026 | Done — `notebooks/sprint1_preprocessing_v3.ipynb` |
 | 2 | Modelling | 29/09/2026 | Done — `notebooks/sprint2_modeling.ipynb` |
-| 3 | Optimisation & Explainability | 06/10/2026 | **In progress** — optimisation done (Steps 1–5), explainability next (Step 6) |
+| 3 | Optimisation & Explainability | 06/10/2026 | **In progress** — optimisation (Steps 1–5) and SHAP explainability (Step 6) done; notebook next |
 
 | Model | Validation EMR, clean-like (seed 42 / 7) | Test EMR (`solution.csv`, diagnostic) |
 |---|---|---|
@@ -39,6 +39,10 @@ configuration (731 binary `BIL_*` columns), to help catch provisioning errors.
    training: **+2.0 test points**. Re-tuning regularisation afterwards: +0.23.
 5. The remaining errors sit in rows with 1–2 rare products. Further cleaning, repair,
    thresholds and extra capacity were tested and did not help beyond noise.
+6. **SHAP explainability** (Step 6): where a BIL item has a clear CRM cause, the model relies
+   on exactly that cause (96–99% agreement with an independent check). Errors concentrate
+   on items with no clear CRM cause (Spearman +0.86 between "one clear driver" and F1).
+   The model does not lean on the injected noise.
 
 Full story: `docs/sprint3/SPRINT3_DIAGNOSTIC_LOG.md` (Sprint 3) and
 `docs/sprint2/ITERATION_LOG.md` (Sprint 2). Every experiment: `docs/EXPERIMENT_LEADERBOARD.md`.
@@ -109,9 +113,8 @@ The first run builds `data/cache/arrays.npz` (~1 minute); each model fit takes ~
 
 ## Next steps
 
-1. **Step 6 — explainability (agreed, next session):** freeze the Sprint 3 champion; write
-   `scripts/explain_shap.py` (SHAP on common, rare and "flipping" BIL columns; global
-   CRM → BIL importance; worked examples of wrong rows).
+1. ~~Step 6 — explainability~~ done: `scripts/explain_shap.py`, figures in
+   `docs/sprint3/figures/`, per-column drivers in `data/derived/sprint3_shap_drivers.csv`.
 2. **Notebooks (after approval):**
    - re-execute `notebooks/sprint2_modeling.ipynb` (the committed copy has no outputs);
    - update its pointer `docs/ITERATION_LOG.md` → `docs/sprint2/ITERATION_LOG.md`;

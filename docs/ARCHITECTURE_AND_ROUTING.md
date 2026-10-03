@@ -100,5 +100,6 @@ Kept in one flat folder because the Sprint 2 notebook imports `scripts.exp1_look
 | `exp8_retune.py <seed> <mcs>:<lambda> ...` | 3 | Step 4: regularisation re-tuned on clean data |
 | `exp9_rare_thresholds.py <probs id>` | 3 | Step 4: lower threshold for rare BIL columns (choose on seed 42, check on seed 7) |
 | `exp10_step5.py <seed> cl repair cap` | 3 | Step 5: confident learning, repair, capacity |
+| `explain_shap.py` | 3 | Step 6: SHAP explainability (drivers vs expected, concentration vs F1, noise check, worked examples, figures) |
 | `train_final.py [k] [mcs]` | 2–3 | fit on all train, write + validate submission, `solution.csv` diagnostic |
 | `make_leaderboard.py` | 2–3 | regenerate `docs/EXPERIMENT_LEADERBOARD.md` and the tracked results CSV |

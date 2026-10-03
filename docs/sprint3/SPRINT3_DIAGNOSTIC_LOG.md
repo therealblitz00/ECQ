@@ -143,6 +143,7 @@ The script reproduces the champion exactly (validation EMR 87.8411%).
 | 3 | 2026-10-02 | `exp7_drop_corrupted.py`, `diag3_remaining_errors.py`, `train_final.py 4` | Clean-like metric tracks test (95.9 vs 95.0). Dropping rows with ≥4 rare packs or invalid categoricals (7%): clean-like 96.57% / 96.15% (seeds 42/7). **Test 95.04% → 97.04%.** Remaining errors: 78% in rows with 1–2 rare packs, mostly missed items. | 96.57% clean-like (88.41% all) | Step 4 approved |
 | 4 | 2026-10-02 | `exp8_retune.py`, `exp9_rare_thresholds.py`, `train_final.py 4 5` | `min_child_samples` 20 → 5 on clean data: clean-like 96.81% / 96.33% (seeds 42/7). `reg_lambda=0` collapses (one rare column fires on 27% of rows). Rare-column thresholds: +0.07/+0.10, within noise, not adopted. **Test 97.04% → 97.27%.** | 96.81% clean-like (88.65% all) | Step 5 approved |
 | 5 | 2026-10-02 | `exp10_step5.py` | Confident learning −0.27 / −0.91, repair −0.26, capacity +0.06 (within noise) — mean over both seeds. None adopted; Step 4 model stays champion. Remaining errors look like an irreducible floor for this approach. | 96.81% clean-like (unchanged) | Step 6 agreed for next session |
+| 6 | 2026-10-03 | `explain_shap.py` | SHAP top driver = independent co-occurrence driver for 95.7% of clearly-linked columns. Concentration on one driver predicts F1 (Spearman +0.86): errors are on items with no clear CRM cause. No reliance on injected rare packs. Rare-product misses are "right cause, p ≈ 0.2". | 96.81% clean-like (frozen) | Sprint 3 notebook — awaiting approval |
 
 ---
 
@@ -464,20 +465,99 @@ No new test diagnostic was computed, because no new model was selected.
 
 ---
 
-## Step 6 — agreed, to start next session
+## Step 6 — Explainability (SHAP)
 
-_Status (2026-10-02): approved in principle by the team lead; work starts next session._
+Approved 2026-10-03. Script: `scripts/explain_shap.py` (read-only; output
+`data/cache/explain_shap.txt`). Per-column results: `data/derived/sprint3_shap_drivers.csv`
+(731 rows). Figures: `docs/sprint3/figures/`.
 
-Sprint 3 is "Optimization **& Explainability**" (due 06/10/2026). The optimisation side has
-reached diminishing returns, while explainability has not been started.
+**Set-up.** The champion is frozen (Step 4: `min_child_samples=5`, `reg_lambda=1`, k=4
+filter, rules) and retrained on the seed-42 training fold; it reproduces the reported
+clean-like EMR exactly (96.81%). Predictions are explained on clean-like **validation** rows,
+where the correct answer is known. SHAP values come from LightGBM's built-in TreeSHAP
+(`pred_contrib=True`), identical to `shap.TreeExplainer`, in log-odds.
 
-1. **Freeze the model** (Step 4 champion) as the Sprint 3 submission candidate
-   (`submission_sprint3_k4_mcs5.csv`).
-2. **Explainability in Python** (`scripts/explain_shap.py`):
-   - SHAP for a sample of BIL columns (common, rare, and the "flipping" ones), checking
-     each is driven by the CRM packs that should drive it;
-   - global CRM → BIL importance map;
-   - a few worked examples of wrong rows, showing *why* the model erred.
-   This also serves the professor's interest in the noisy training labels.
-3. **Notebook update only after explicit approval**, assembling Steps 1–6 into the Sprint 3
-   notebook.
+**Two yardsticks:**
+- *Importance* of a CRM column for a BIL column = mean |SHAP| over the rows where that BIL
+  column is positive (true or predicted), i.e. "why does this item get billed?". A first
+  version averaged over random rows. That under-weights rare drivers, which almost never
+  appear in a random sample (it gave a misleading 11.6% agreement), so it was replaced.
+- *Expected driver* = the CRM column that co-occurs best with the BIL column in the
+  cleaned training data. It is computed independently of the model, so agreement between
+  the two is a real check.
+
+### 6.1 Does the model rely on the CRM columns it should?
+
+| BIL columns | Count | Top SHAP driver = expected driver | Expected driver in SHAP top 3 |
+|---|---|---|---|
+| with a clear expected driver (co-occurrence score ≥ 0.8) | 233 | **95.7%** | **99.1%** |
+| without a clear one | 498 | 46.4% | 50.2% |
+| all | 731 | 62.1% | 65.8% |
+
+Where the data has a clear CRM → BIL link, the model has learned **that** link. Examples
+(figure `shap_selected_columns.png`):
+- `BIL_3748` ← `CRM_1537` (+3.5 log-odds when present).
+- `BIL_3921` ← `CRM_1529`, supported by the bundle packs `1542/1533/1541` that always come
+  with it.
+- `BIL_SUBSCRIBER_STATUS_ORIG_Active` ← `CRM_SUBSCRIBER_STATUS_ORIG_Active` (+3.6). The
+  other status and type columns likewise follow their CRM counterpart.
+- The rare `BIL_3782` ← the rare `CRM_2132` (+8.5).
+- `BIL_4167` is driven by three CRM packs (`1876`, `1761`, `1719`) with near-equal weight.
+  That is the many-to-one CRM → BIL mapping found in Step 1, and the model handles it
+  (F1 0.98).
+
+### 6.2 Why some columns fail: no single CRM cause
+
+Concentration = share of a column's SHAP mass on its single top driver.
+
+| Concentration | BIL columns | Median validation F1 | Share that are "flipping" columns |
+|---|---|---|---|
+| ≤ 0.3 (diffuse) | 299 | **0.00** | 46% |
+| 0.3 – 0.5 | 116 | 0.67 | 28% |
+| 0.5 – 0.7 | 150 | 0.95 | 7% |
+| > 0.7 (one clear driver) | 166 | **0.99** | 4% |
+
+Spearman(concentration, F1) = **+0.86** over 726 columns (figure
+`shap_concentration_vs_f1.png`). **The model is right where a BIL item has one clear CRM
+cause and wrong where it has none.** The diffuse columns are largely the ones that flip
+between customers with identical CRM configurations (`BIL_3803`: F1 0.11, mostly fired by
+common packs; its best co-occurring pack `CRM_2205` has a +5.4 effect but explains only a
+few of its rows). Eight rare pack columns have a *status or type* column as top driver and F1 0:
+with no real CRM cause, the model falls back on a generic signal. These columns are not
+predictable from CRM data, which is the explanation for the irreducible floor seen in
+Steps 4–5.
+
+### 6.3 Noise check — is the model exploiting the injected corruption?
+
+- Median share of SHAP mass on rare CRM packs (< 0.2% of rows): **1.1%**.
+- 119 columns put > 50% of their mass on rare packs, but in **100%** of them the expected
+  driver is itself that rare pack: a rare billing item explained by its own rare product,
+  which is legitimate.
+- No column relies on rare packs that are *not* its own driver.
+
+So there is no sign the model learned the random injected links. That is consistent with
+the corrupted rows being removed before training (Step 3).
+
+### 6.4 Worked examples (clean-like validation rows wrong by exactly one bit)
+
+| Case | What SHAP shows | Explanation |
+|---|---|---|
+| `BIL_4277` missed; the row has the rare `CRM_1908` | `CRM_1908` pushes **+5.97** against a baseline of −8.21 → p = 0.22 | The model found the **right** cause, but with few training examples the regularised evidence falls just short of 0.5. This is the mechanism behind the false-negative-heavy errors (Steps 3–4). |
+| `BIL_4139` missed; rare `CRM_1727` | `CRM_1727` **+7.60** vs baseline −8.44 → p = 0.23 | Same pattern, on a flipping column. |
+| `BIL_3940` missed (flipping column) | `CRM_1568` +4.48, `CRM_1587` +1.44 → p = 0.40 | Near-miss on a column that is inconsistent even for identical CRM customers. |
+| `BIL_3796` missed; expected driver `CRM_2099` **absent** | No contribution above +0.9 → p = 0.002 | Nothing in the CRM data explains this item. Likely label noise or a billing-only item; no model could predict it from CRM. |
+
+**Link to Step 4.2.** The near-miss cases (p ≈ 0.2–0.4 with the right driver) are exactly
+what a lower threshold for rare columns would recover. That test gave only +0.07 / +0.10:
+such cases exist but are few, while lowering the threshold also adds false positives.
+
+### Conclusions for the presentation
+
+1. The model has learned the real CRM → BIL product mapping: 96–99% agreement with the
+   independent co-occurrence check wherever a clear link exists.
+2. Its errors concentrate on billing items with no clear CRM cause (Spearman +0.86
+   between "one clear driver" and F1); that part is not predictable from CRM data.
+3. It does not exploit the injected training noise (no column leans on rare packs other
+   than its own driver).
+4. Remaining misses on rare products are "right cause, not enough evidence" (p ≈ 0.2).
+

@@ -102,4 +102,4 @@ grouping; the CRM→BIL pack mapping is many-to-one.
 |---|---|---|---|---|
 | 1 | Pre-processing (`notebooks/sprint1_preprocessing_v3.ipynb`) | 40% | 22/09/2026 | done |
 | 2 | Modeling (`notebooks/sprint2_modeling.ipynb`) | 30% | 29/09/2026 | done (committed copy needs re-execution) |
-| 3 | Optimization & Explainability | 30% | 06/10/2026 | optimisation done; **next: Step 6, SHAP explainability** (`scripts/explain_shap.py`), then the Sprint 3 notebook after approval |
+| 3 | Optimization & Explainability | 30% | 06/10/2026 | optimisation (Steps 1–5) and SHAP explainability (Step 6, `scripts/explain_shap.py`) done; **next: Sprint 3 notebook, only after approval** |

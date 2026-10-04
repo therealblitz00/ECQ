@@ -99,14 +99,28 @@ grouping; the CRM→BIL pack mapping is many-to-one.
 - **The final notebook may read only `train.csv`, `test.csv` and `solution.csv`** (the
   professor's files; `solution.csv` only in the last scoring cell) and must not import from
   `src/` or `scripts/`. Earlier experiment results appear there as markdown tables.
+- **Uncertainty (Step 9):** rows of one configuration are not independent — compute SEs and
+  comparisons by resampling configurations (paired bootstrap in
+  `scripts/sprint3/review_checks.py`). Validation SE ≈ 0.35–0.38 pt; 5-fold GroupKFold
+  96.83% ± 0.20; test 97.21% [97.11, 97.31] (every test row is its own configuration).
+- **Adoption rule:** a change is adopted only if paired-significant on both seeds, ≥ ~0.1 pt,
+  leak-free, and it holds in 5-fold. The rare-column threshold (0.45) is real but +0.03 →
+  not adopted.
+- **Business use (Step 9):** flag customers whose actual billing disagrees with the
+  prediction; queue rare-product customers last, then fewer disagreeing items first. Top 2%
+  of customers catch 83–92% of known errors (~40× random). Ranking by model confidence alone
+  does not work.
+- **Baselines (same metric):** logistic regression 95.97 / 94.61 (trees significantly better),
+  rules floor 67.9 / 74.2, k-NN 56.8 / 49.6.
 - **Tried and rejected** (see leaderboard / logs): PCA/SVD features, Section 10 column
   collapsing, multiplicity weights, k-NN, label powerset, classifier chains, blends,
-  rare-column thresholds, confident-learning cleaning, repairing corrupted rows, more capacity.
+  rare-column thresholds, confident-learning cleaning, repairing corrupted rows, more capacity,
+  basket-size count features. Not built (by decision): multi-output neural net.
 
 ## Sprint plan
 
 | Sprint | Focus | Weight | Due | Status |
 |---|---|---|---|---|
 | 1 | Pre-processing (`notebooks/sprint1_preprocessing_v3.ipynb`) | 40% | 22/09/2026 | done |
-| 2 | Modeling (`notebooks/sprint2_modeling.ipynb`) | 30% | 29/09/2026 | done (committed copy needs re-execution) |
+| 2 | Modeling (`notebooks/sprint2_modeling.ipynb`) | 30% | 29/09/2026 | done (executed with outputs) |
 | 3 | Optimization & Explainability | 30% | 06/10/2026 | done — `notebooks/sprint3_final.ipynb`: Sprints 1–3, professor's CSVs only, ~10 min run, test 97.21% |

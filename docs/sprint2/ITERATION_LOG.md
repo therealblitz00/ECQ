@@ -154,6 +154,13 @@ depends on pack combinations the trees see too few times to learn. **The test se
 ~11× fewer of these packs per row than validation (0.04 vs 0.43)**, so validation EMR
 likely understates test EMR.
 
+> **Later correction (Sprint 3, Step 2).** "Model failures, not label noise" was wrong in an
+> instructive way. The 1–2-bit provisioning noise is indeed small, but the Sprint 3 audit
+> found a *different* defect: ~7–8% of training rows look corrupted by random injection of
+> rare products on both the CRM and the BIL side. The multi-bit failures concentrate on
+> exactly those rows, so they reflect the data, not the model. Dropping them from training
+> gained +2 test points. See `docs/sprint3/SPRINT3_DIAGNOSTIC_LOG.md`, Steps 2–3.
+
 ## Iteration 6 — Exp 5: hybrid post-processing and the variance finding
 
 **Hypothesis:** Rules, a tuned threshold, and blending BR with the chain each add a

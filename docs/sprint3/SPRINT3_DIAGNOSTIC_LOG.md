@@ -147,6 +147,7 @@ The script reproduces the champion exactly (validation EMR 87.8411%).
 | 6 | 2026-10-03 | `explain_shap.py` | SHAP top driver = independent co-occurrence driver for 95.7% of clearly-linked columns. Concentration on one driver predicts F1 (Spearman +0.86): errors are on items with no clear CRM cause. No reliance on injected rare packs. Rare-product misses are "right cause, p ≈ 0.2". | 96.81% clean-like (frozen) | Final notebook built (`notebooks/sprint3_final.ipynb`) |
 | 7 | 2026-10-04 | `exp11_count_features.py` | Teammate's MCA lead (+0.31 in Sprint 2 set-up) tested as plain basket-size counts on the current champion: +0.03 / −0.05 mean, within noise. Not adopted. | 96.81% clean-like (unchanged) | Champion unchanged |
 | 8 | 2026-10-04 | `notebooks/sprint3_final.ipynb` | Final notebook on the professor's CSVs only. Sprint 1 additive rules dropped (+0.02 on validation, within noise; mined on all of train). Test 97.21% (97.27% with rules, reported not used). | 96.79% clean-like | Final model |
+| 9 | 2026-10-04 | `review_checks.py`, `exp12_review_models.py` | Mock jury review answered: configuration-level uncertainty, paired tests, 5-fold CV (96.83% ± 0.20), baselines (LR 95.97%), error detection (83–92% of known errors by reviewing 2% of customers, ~40× random), test CI [97.11, 97.31]. Rare threshold real but +0.03 — not adopted. | 96.79% clean-like (unchanged) | Final model unchanged |
 
 ---
 
@@ -620,3 +621,136 @@ contain all its own code (no imports from `src/` or `scripts/`).
 **Result (computed in the notebook's last cell):** test EMR **97.21%** (94,391 of 97,100 rows
 exactly right), 2.18% of rows one bit off, F1 micro 0.9987. Every live number matches the
 script-based results (clean-like 96.79%, SHAP Spearman +0.86, noise check unchanged).
+
+---
+
+## Step 9 — Response to a mock jury review
+
+Approved 2026-10-04. An AI was asked to review the repository as a professor (64/100). Each
+point was checked against our outputs; the assessment and roadmap are in
+`docs/sprint3/REVIEW_RESPONSE_AND_ROADMAP.md`. About 80% of the review was right. It was wrong
+on one stale fact (`BIL_4167` is now F1 0.98, not "all missed") and overstated the
+"40% of billing items the model cannot verify" (see 9.5).
+Scripts: `scripts/sprint3/review_checks.py`, `scripts/sprint3/exp12_review_models.py`.
+
+**Decision rule set before running (what a good engineer would do):** a rejected change is
+adopted only if (1) a paired test shows it is real on both splits, (2) it is practically
+meaningful (≈ 0.1 point or more), (3) it adds no leakage or fragile tuning, and (4) it holds in
+5-fold cross-validation.
+
+### 9.1 Uncertainty
+
+Rows of one configuration share prediction and consensus target, so validation uncertainty
+must be computed by resampling configurations. The review estimated SE ≈ 0.16; the real
+figure is larger, because a few configurations are very frequent:
+
+| | Seed 42 | Seed 7 |
+|---|---|---|
+| Final model, clean-like EMR | 96.79% | 96.30% |
+| Configuration-level SE (naive row SE) | 0.38 pt (0.10) | 0.34 pt (0.11) |
+| 95% CI | [95.99, 97.48] | [95.59, 96.89] |
+
+Every test row is its own configuration, so test uncertainty is binomial: **97.21%, 95% CI
+[97.11, 97.31]**. The 97.21 vs 97.27 (with/without rules) difference is inside it; the ~98%
+benchmark is not (≈ 767 customers short).
+
+### 9.2 Paired tests of the key decisions (clean-like, B − A, points, 95% CI)
+
+| Decision | Seed 42 | Seed 7 | Verdict |
+|---|---|---|---|
+| Drop suspected-corrupted rows (k=4) vs keep | +0.81 [+0.44, +1.19] | +1.25 [+0.91, +1.74] | real — adopted |
+| `min_child_samples` 5 vs 20 | +0.27 [+0.08, +0.62] | +0.20 [+0.08, +0.35] | real — adopted |
+| Sprint 1 rules on vs off | +0.02 [+0.00, +0.04] | +0.02 [+0.00, +0.05] | real but ~6 customers — dropped (leak, derived file) |
+| Rare-column threshold 0.45 vs 0.5 | +0.07 [+0.02, +0.16] | +0.10 [+0.03, +0.23] | real, see 9.3 |
+| More capacity | +0.04 [−0.04, +0.15] | +0.05 [−0.12, +0.23] | not significant |
+| `min_child_samples` 2 vs 5 | −0.00 [−0.05, +0.04] | +0.03 [−0.03, +0.08] | not significant |
+| Basket-size count feature | −0.02 [−0.08, +0.03] | +0.09 [−0.00, +0.23] | inconsistent |
+| LightGBM vs logistic regression | +0.83 [+0.55, +1.24] | +1.69 [+0.76, +3.11] | trees significantly better |
+
+The review was right that unpaired reasoning had dismissed one real effect (the threshold).
+
+### 9.3 5-fold GroupKFold of the final model
+
+Clean-like EMR **96.83% ± 0.20** (std over folds; 96.64–97.12); all rows 89.07% ± 0.21.
+Rare-column threshold 0.45: **+0.03**, positive in all 5 folds (+0.017 to +0.044).
+**Decision: not adopted.** It is real (7 of 7 evaluations positive) but about ten customers per
+fold, below the ≈ 0.1-point bar set before testing. Raising it after seeing the result would be
+choosing the rule to fit the data. Recorded as an optional, low-value improvement.
+
+### 9.4 Baselines on the same footing (clean-like validation, seed 42 / 7)
+
+| Model | Seed 42 | Seed 7 |
+|---|---|---|
+| Hamming k-NN (k=15) | 56.81% | 49.64% |
+| Rules floor: OR of CRM products implying the item ≥ 90% of the time | 67.94% | 74.15% |
+| Logistic regression, one per billing item | 95.97% | 94.61% |
+| **LightGBM, one per billing item (final)** | **96.79%** | **96.30%** |
+
+A linear model gets within 1–2 points, which supports "billing is close to additive per
+product"; the trees add the rare-product interactions. A multi-output neural net was not
+built: the regularised classifier chain tied plain per-label models (Sprint 2), so shared
+label structure is not where the errors are.
+
+### 9.5 What the model cannot vouch for, segments, split realism
+
+- Billing items with validation F1 < 0.5: 314 of 731 columns but only **0.34% of billed
+  items** and **2.4% of customers**; those customers' EMR is 5.8% vs **99.0%** for everyone
+  else. The review's "~40% of billing items" counted columns, not items. "Diffuse" SHAP
+  columns are not the right measure: they include common bundle items explained by several
+  correlated packs.
+- Segments: product mix drives errors, status and type barely do. Customers with 1–2 rare
+  products (7%) hold 76% of wrong customers; EMR falls to 88% at 16–20 products and 58% at 21+.
+- Nearest training configuration (Hamming): distance 1 for 70% of validation vs 53% of test
+  rows; test has more rows at distance 2–3, validation more at 4+ (mostly suspect rows).
+  The grouped split mirrors test reasonably, slightly optimistically for the near neighbours.
+
+### 9.6 EMR harshness
+
+Validation bit error 1.6e-4 → 0.12 wrong bits per customer; independent errors would give EMR
+88.9%, actual 96.8%. Test: bit error 5.7e-5 → independent 95.9%, actual 97.2%. About 2% of
+customers carry 91% of the wrong bits: errors cluster in rare-product customers.
+
+### 9.7 Business use — error detection
+
+On the validation fold, known provisioning errors are customers of repeated configurations
+whose actual billing differs from consensus (seed 42: 221, 0.66% of clean-like customers).
+A customer is flagged if any actual billing item disagrees with the prediction (about 4% of
+clean-like customers; 92% of known errors caught, precision ≥ 16%).
+
+**Ranking by model confidence works badly.** The model's most confident disagreements are its
+own mistakes on rare-product customers, so the top 2% catches only 19%. Flagged customers are
+instead queued with two rules taken from earlier findings, not tuned here: rare-product
+customers last (they hold 76% of model errors, 9.5), then fewer disagreeing items first (real
+provisioning errors are 1–2 items, Sprint 1).
+
+| Review the top | Seed 42: caught / precision / lift | Seed 7: caught / precision / lift |
+|---|---|---|
+| 1% of customers | 73% / 49% / 73× | 59% / 38% / 59× |
+| 2% of customers | **92% / 31% / 46×** | **83% / 27% / 42×** |
+| all flagged (~4%) | 92% / 16% / 25× | 90% / 14% / 22× |
+
+Precision is a lower bound: errors in configurations seen once cannot be confirmed. 97.6% of
+suspected-corrupted CRM records are also flagged; they form a separate CRM data-quality queue.
+The notebook adds the review curve and a production design (two queues, cost trade-off,
+thresholds recomputed on the live CRM base, monitoring, retraining).
+
+### 9.8 Notebook and documents
+
+`notebooks/sprint3_final.ipynb` gained:
+- a glossary;
+- the injection crosstab and partner evidence;
+- EMR harshness;
+- configuration-level uncertainty;
+- baseline, paired-test and 5-fold tables;
+- segments and coverage;
+- the business section;
+- corrected SHAP wording;
+- the test CI;
+- a **live** ablation of the corruption filter: the same final model trained without dropping the
+  suspected-corrupted rows scores **94.67%** on test, against **97.21%** with the filter
+  (**+2.54 points, 2,467 customers**).
+
+It still reads only the professor's three CSVs. Also updated: `requirements.txt` pinned,
+README (setup for all OSes, glossary, comparable baselines), the Sprint 2 log (forward note),
+and a new executive summary (`docs/EXECUTIVE_SUMMARY.md`). The Sprint 2 notebook was executed
+end to end.

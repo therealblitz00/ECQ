@@ -15,7 +15,7 @@ data/                                  # raw competition files and everything bu
                                        #   sprint3_shap_drivers.csv; submission_*.csv (gitignored)
 notebooks/
 ├── sprint1_preprocessing_v3.ipynb     # Sprint 1 deliverable
-├── sprint2_modeling.ipynb             # Sprint 2 deliverable (committed without outputs)
+├── sprint2_modeling.ipynb             # Sprint 2 deliverable
 ├── sprint3_final.ipynb                # FINAL: Sprints 1-3, professor's CSVs only
 ├── archive/                           # superseded notebook versions
 └── exports/                           # HTML renders (gitignored)
@@ -26,11 +26,13 @@ scripts/
 ├── sprint2/                           # Sprint 2 experiments (exp1-exp5)
 └── sprint3/                           # Sprint 3 diagnostics and experiments (diag1-3, exp6-11, SHAP)
 docs/
+├── EXECUTIVE_SUMMARY.md               # 2-page summary for the jury
 ├── ARCHITECTURE_AND_ROUTING.md        # this file
 ├── EXPERIMENT_LEADERBOARD.md          # generated - never edit by hand
 ├── sprint1/                           # Section 11/12 explainer
 ├── sprint2/                           # iteration log, deliverables, early model candidates
-└── sprint3/                           # SPRINT3_DIAGNOSTIC_LOG.md (Steps 1-8), figures/,
+└── sprint3/                           # SPRINT3_DIAGNOSTIC_LOG.md (Steps 1-9), figures/,
+                                       # REVIEW_RESPONSE_AND_ROADMAP.md (mock jury review),
                                        # teammate_mca_experiments_log.csv (Step 7 input)
 ```
 
@@ -111,3 +113,5 @@ Run from the repo root with the project venv, e.g.
 | `sprint3/exp10_step5.py <seed> cl repair cap` | Step 5: confident learning, repair, capacity |
 | `sprint3/explain_shap.py` | Step 6: SHAP explainability, figures in `docs/sprint3/figures/` |
 | `sprint3/exp11_count_features.py <seed> npk npk_rare` | Step 7: basket-size count features (not adopted) |
+| `sprint3/exp12_review_models.py kfold \| lr <seed>` | Step 9: 5-fold GroupKFold of the final model; logistic-regression baseline |
+| `sprint3/review_checks.py [paired baselines harsh detect testci]` | Step 9: paired configuration bootstrap, baselines, EMR harshness, segments, coverage, split realism, error detection, test CI |

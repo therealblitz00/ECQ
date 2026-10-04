@@ -43,9 +43,10 @@ jupyter notebook notebooks/sprint3_final.ipynb
 1. **The test set needs generalisation, not lookup.** Only 6 of 97,100 test customers have a
    CRM configuration seen in train, so validation is split by exact configuration and scored
    against consensus targets (the most frequent billing per configuration).
-2. **Billing is close to additive per CRM product.** On the same validation rows, a linear
-   model (logistic regression per billing item) reaches ~95–96%. One LightGBM per billing item
-   is significantly better (+0.8 / +1.7 points, paired test on two splits). Copying similar
+2. **Billing is close to additive per CRM product.** On the same validation rows, a tuned
+   linear model (logistic regression per billing item) gets within 0.15–0.23 points of
+   LightGBM. One LightGBM per billing item is kept: better on both splits (paired test), but
+   only slightly. Copying similar
    customers' billing (k-NN) reaches ~50–57%; label powerset is capped at ~23%.
 3. **Sprint 1's feature transformations hurt.** PCA/SVD costs ~33 points; collapsing
    correlated columns ~6.
@@ -55,8 +56,10 @@ jupyter notebook notebooks/sprint3_final.ipynb
    points** (the same model without the filter scores 94.67%; live ablation in the notebook),
    confirmed by paired tests on two splits.
 5. **Business use — error detection.** Flagging customers whose actual billing disagrees with
-   the model, with unusual customers queued last, catches **83–92% of known provisioning
-   errors by reviewing 2% of customers** (two splits), about 40× better than random review.
+   the model, with unusual customers queued last, catches **83% of known provisioning errors
+   (95% CI 73–92%) by reviewing 2% of customers**, about 40× better than random review. On
+   synthetic 1–3-item errors it catches ~92%, but ~80% for customers with a unique
+   configuration (the realistic production case).
 6. **Explainability (SHAP):** on the 233 billing items with a clear CRM cause, the model
    relies on that cause (~96% top-1 agreement with an independent check). Errors concentrate
    on items with no clear CRM cause (~2% of customers), and the model does not exploit the

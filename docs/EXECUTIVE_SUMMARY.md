@@ -26,9 +26,9 @@ the whole customer, and errors cluster in a few customers with rare products.
    a CRM record identical to one in training. Validation therefore keeps identical records
    on the same side of the split, and scores against each record's most frequent billing
    (to avoid rewarding the model for copying provisioning errors).
-2. **Billing is close to "one product → its billing items".** A simple linear model reaches
-   ~95–96%; one LightGBM per billing item reaches ~96–97%, significantly better on both
-   validation splits (paired test). Copying similar customers (52%) and choosing among
+2. **Billing is close to "one product → its billing items".** A tuned linear model (logistic
+   regression) reaches ~96.2–96.6%; one LightGBM per billing item is slightly better on both
+   validation splits (+0.16 to +0.23 points, paired test; borderline on one split). Copying similar customers (52%) and choosing among
    billing combinations seen before (capped at ~23%) do not work.
 3. **The training data contains suspected corruption.** About 7–8% of training rows show
    impossible categories (a customer with two statuses at once, a status literally called
@@ -46,12 +46,17 @@ the whole customer, and errors cluster in a few customers with rare products.
 
 Compare the billing the model predicts with what the billing system actually contains.
 Flag customers where they disagree, and queue unusual customers (rare products, many
-disagreeing items) last, because that is where the model itself is weakest. On validation
-data with known provisioning errors, on two independent splits:
-- reviewing the **top 2% of customers catches 83–92% of the known errors**;
-- that is about **40–46× better than reviewing customers at random**;
-- precision is 27–31% (a lower bound: errors that cannot be confirmed count as false alarms);
-- the top 1% alone catches 59–73% at 38–49% precision.
+disagreeing items) last, because that is where the model itself is weakest. (This rule was
+chosen after ranking by model confidence failed on one split, so the *other* split is the
+honest check and is quoted first.)
+- On known provisioning errors, reviewing the **top 2% of customers catches 83%**
+  (95% CI 73–92%) on the honest split, 92% on the design split: about **40× better than
+  random**. Precision is ~27–31%, a lower bound.
+- On **synthetic errors** (1–3 wrong items injected into clean customers) the same 2% catches
+  ~92%, whatever the size of the error, but only **~80% for customers with a unique
+  configuration**, which is the realistic production case.
+- With **assumed** costs (€2.5 per alert, €20–200 per missed error), the cheapest review share
+  is about **1.3–2.3% of customers**.
 
 A second, separate queue flags CRM records that themselves look corrupted, so they can be
 corrected.

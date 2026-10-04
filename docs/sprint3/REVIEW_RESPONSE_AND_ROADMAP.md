@@ -61,3 +61,20 @@ Step 9.
 | 14 | Sprint 2 forward note; Step 9 in the Sprint 3 log | Done | ✅ |
 | — | Rare-column threshold (real on 7/7 evaluations but +0.03 in 5-fold) | Not adopted: below the ~0.1-point bar set before testing | ❌ by decision |
 | — | Multi-output neural net / ensemble of chains | Not built: the regularised chain tied per-label models, so label structure is not where the errors are | ❌ by decision |
+
+## 3. Second review (64 → 80/100) — response and status
+
+The reviewer accepted our three pushbacks (`BIL_4167`, the "40% of billing items", and that
+the true SE is larger than it estimated). Its remaining points, checked:
+
+| Point | Verdict | Done |
+|---|---|---|
+| Stale text contradicts the new rigour ("~0.1 SE", "within noise", "`solution.csv` only in the final cell", "+2" vs "+2.54") | Agree | ✅ rewritten; "+2.0" (milestone) vs "+2.54" (final model ablation) explained |
+| Detection evaluated only on easy, narrow errors | Agree — the most important point | ✅ synthetic 1–3-item errors on both seeds: ~92% caught in a 2% budget, flat across error size; **~80% for unique-configuration customers** |
+| Queue rule designed on seed 42 → lead with seed 7 | Agree | ✅ disclosed; seed 7 quoted first (83%) |
+| No CI on detection recall | Agree | ✅ configuration bootstrap: 83% [73–92%] (seed 7), 92% [86–96%] (seed 42) |
+| Cost trade-off is prose only | Partly (costs are unknown) | ✅ illustrative operating point with assumed costs: 1.3–2.3% review share |
+| Logistic regression untuned | Agree — and it mattered | ✅ C swept: tuned LR within 0.15–0.23 pt of LightGBM (was quoted as 0.8–1.7) |
+| Validation-vs-test relationship undersold | Agree | ✅ stated plainly: validation ranks choices, test measures them |
+| Model still enforces no structure | Disagree on value | — tested in Step 1 (+0.01) |
+| Check the course's AI-use rules | Team decision | ⚠️ for the team, before submitting |

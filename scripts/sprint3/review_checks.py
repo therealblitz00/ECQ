@@ -239,6 +239,97 @@ def error_detection():
 
 
 # ----------------------------------------------------------------------------------------------
+def queue(D, rare):
+    """Review queue: flagged customers first; rare-product customers last; fewer disagreeing items first."""
+    dis = D > 0.5
+    flag = dis.any(1)
+    key = (~flag) * 1000 + rare * 100 + dis.sum(1)
+    return np.lexsort((np.arange(len(D)), key)), flag
+
+
+def ratio_boot(groups, num, den, rng, b=B):
+    codes, _ = pd.factorize(groups)
+    sn, sd = np.bincount(codes, weights=num), np.bincount(codes, weights=den)
+    idx = rng.integers(0, len(sn), size=(b, len(sn)))
+    boot = sn[idx].sum(1) / np.maximum(sd[idx].sum(1), 1)
+    return np.percentile(boot, [2.5, 97.5])
+
+
+def detection_extended(reps=5):
+    section('Error detection, extended: recall CIs, synthetic injected errors, illustrative costs')
+    rng = np.random.default_rng(0)
+    for seed in (42, 7):
+        d = setup(seed)
+        s = '' if seed == 42 else f'-s{seed}'
+        va, cl = d['va'], d['cl']
+        P = load_p(f'E8-mcs5-l1{s}')[cl]
+        Yobs = d['Y_raw'][va][cl]
+        e = d['is_noisy'][va][cl]
+        g = d['gv'][cl]
+        rare = d['rare_count'][va][cl] > 0
+        D = np.abs(P - Yobs)
+        order, flag = queue(D, rare)
+        n = len(e)
+        print(f'\n--- seed {seed}: {n:,} clean-like customers, {e.sum()} known errors')
+        for share in (0.01, 0.02):
+            top = np.zeros(n, bool)
+            top[order[:int(share * n)]] = True
+            lo, hi = ratio_boot(g, (e & top).astype(float), e.astype(float), rng)
+            print(f'  known errors caught in top {share:.0%}: {(e & top).sum() / e.sum():.0%} '
+                  f'(95% configuration-bootstrap CI {lo:.0%}-{hi:.0%}); precision {e[top].mean():.0%}')
+
+        # Synthetic injection on customers that are not known errors (their observed billing = consensus).
+        clean = np.flatnonzero(~e)
+        prev = d['Y_cons'][d['keep']].mean(0)
+        val_count = pd.Series(g).map(pd.Series(g).value_counts()).to_numpy()
+        unique_cfg = val_count == 1
+        print(f'  synthetic test: {unique_cfg[clean].mean():.0%} of these customers have a configuration seen once in '
+              f'the fold (like every test customer)')
+        rows = []
+        for kind in ('missing item', 'extra item'):
+            for k in (1, 2, 3):
+                rec2, rec_all, rec_u, rec_r, prec2 = [], [], [], [], []
+                for _ in range(reps):
+                    S = rng.choice(clean, size=max(1, int(0.0065 * n)), replace=False)
+                    Ymod = Yobs.copy()
+                    for i in S:
+                        pool = np.flatnonzero(Ymod[i] == (1 if kind == 'missing item' else 0))
+                        if kind == 'missing item':
+                            pick = rng.choice(pool, size=min(k, len(pool)), replace=False)
+                        else:
+                            w = prev[pool] / prev[pool].sum()
+                            pick = rng.choice(pool, size=k, replace=False, p=w)
+                        Ymod[i, pick] = 1 - Ymod[i, pick]
+                    Dm = D.copy()
+                    Dm[S] = np.abs(P[S] - Ymod[S])
+                    o, f = queue(Dm, rare)
+                    inj = np.zeros(n, bool)
+                    inj[S] = True
+                    top = np.zeros(n, bool)
+                    top[o[:int(0.02 * n)]] = True
+                    rec2.append(top[S].mean())
+                    rec_all.append(f[S].mean())
+                    rec_u.append(top[S][unique_cfg[S]].mean() if unique_cfg[S].any() else np.nan)
+                    rec_r.append(top[S][~unique_cfg[S]].mean() if (~unique_cfg[S]).any() else np.nan)
+                    prec2.append(inj[top].mean())
+                rows.append(dict(error=kind, n_bits=k, flagged=np.mean(rec_all), caught_top2pct=np.mean(rec2),
+                                 caught_unique_cfg=np.nanmean(rec_u), caught_repeated_cfg=np.nanmean(rec_r),
+                                 precision_top2pct=np.mean(prec2)))
+        print(pd.DataFrame(rows).round(3).to_string(index=False))
+
+        # Illustrative operating point from assumed costs (known-error curve).
+        caught = np.cumsum(e[order]) / e.sum()
+        errors_per_10k = 10_000 * e.mean()
+        c_alert = 2.5  # assumed: 5 analyst-minutes at EUR 30/h
+        shares = np.linspace(0.0025, 0.06, 232)
+        for c_miss in (20, 50, 200):
+            cost = [sh * 10_000 * c_alert + (1 - caught[int(sh * n) - 1]) * errors_per_10k * c_miss for sh in shares]
+            j = int(np.argmin(cost))
+            print(f'  assumed cost of a missed error EUR {c_miss:>3}: cheapest review share {shares[j]:.1%} '
+                  f'(catches {caught[int(shares[j] * n) - 1]:.0%}; EUR {cost[j]:.0f} per 10,000 customers)')
+
+
+# ----------------------------------------------------------------------------------------------
 def test_ci():
     section('Test EMR with 95% confidence intervals (final model, no rules; solution.csv used for scoring only)')
     d = data.load()
@@ -268,5 +359,7 @@ if __name__ == '__main__':
         harshness_segments_coverage()
     if 'detect' in parts:
         error_detection()
+    if 'detect2' in parts:
+        detection_extended()
     if 'testci' in parts:
         test_ci()

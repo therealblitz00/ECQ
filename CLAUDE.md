@@ -106,12 +106,14 @@ grouping; the CRM→BIL pack mapping is many-to-one.
 - **Adoption rule:** a change is adopted only if paired-significant on both seeds, ≥ ~0.1 pt,
   leak-free, and it holds in 5-fold. The rare-column threshold (0.45) is real but +0.03 →
   not adopted.
-- **Business use (Step 9):** flag customers whose actual billing disagrees with the
-  prediction; queue rare-product customers last, then fewer disagreeing items first. Top 2%
-  of customers catch 83–92% of known errors (~40× random). Ranking by model confidence alone
-  does not work.
-- **Baselines (same metric):** logistic regression 95.97 / 94.61 (trees significantly better),
-  rules floor 67.9 / 74.2, k-NN 56.8 / 49.6.
+- **Business use (Steps 9–10):** flag customers whose actual billing disagrees with the
+  prediction; queue rare-product customers last, then fewer disagreeing items first. The rule
+  was designed on seed 42 (after confidence ranking failed there), so seed 7 is the honest
+  number: top 2% catch 83% [73–92%] of known errors (~40× random). Synthetic 1–3-item errors:
+  ~92%, but ~80% for unique-configuration customers.
+- **Baselines (same metric):** logistic regression untuned 95.97 / 94.61, tuned (C = 10)
+  96.56 / 96.15 — LightGBM better by +0.23 / +0.16 (borderline on seed 7); rules floor
+  67.9 / 74.2; k-NN 56.8 / 49.6.
 - **Tried and rejected** (see leaderboard / logs): PCA/SVD features, Section 10 column
   collapsing, multiplicity weights, k-NN, label powerset, classifier chains, blends,
   rare-column thresholds, confident-learning cleaning, repairing corrupted rows, more capacity,

@@ -63,25 +63,26 @@ def kfold(n_splits=5):
     print(f'threshold gain per fold (clean-like, points): {np.round(diff * 100, 3).tolist()} | mean {diff.mean() * 100:.3f}')
 
 
-def _fit_lr(X, y):
+def _fit_lr(X, y, C):
     if y.min() == y.max():
         return float(y[0])
-    return LogisticRegression(C=1.0, solver='liblinear', max_iter=200).fit(X, y)
+    return LogisticRegression(C=C, solver='liblinear', max_iter=200).fit(X, y)
 
 
-def lr(seed):
-    seed = int(seed)
+def lr(seed, C=1.0):
+    seed, C = int(seed), float(C)
     d = E.setup(seed=seed)
     Xu, Yu = clean_train(d, d['tr'])
     Xf = Xu.astype(np.float64)
     with E.Timer() as t:
-        models = Parallel(n_jobs=8)(delayed(_fit_lr)(Xf, Yu[:, j]) for j in range(Yu.shape[1]))
+        models = Parallel(n_jobs=8)(delayed(_fit_lr)(Xf, Yu[:, j], C) for j in range(Yu.shape[1]))
     Xv = d['X_train'][d['va']].astype(np.float64)
     P = np.column_stack([np.full(len(Xv), m) if isinstance(m, float) else m.predict_proba(Xv)[:, 1] for m in models])
     sfx = '' if seed == 42 else f'-s{seed}'
-    np.save(os.path.join(CACHE, f'proba_E12-lr{sfx}.npy'), P.astype(np.float16))
-    E.log(f'E12-lr{sfx}', 'raw+consensus (corrupted rows dropped, k=4)',
-          'Binary relevance logistic regression (liblinear, C=1)', {'C': 1.0, 'split_seed': seed},
+    tag = f'E12-lr{sfx}' if C == 1.0 else f'E12-lr-C{C:g}{sfx}'
+    np.save(os.path.join(CACHE, f'proba_{tag}.npy'), P.astype(np.float16))
+    E.log(tag, 'raw+consensus (corrupted rows dropped, k=4)',
+          f'Binary relevance logistic regression (liblinear, C={C:g})', {'C': C, 'split_seed': seed},
           E.score(d, (P >= .5).astype(np.uint8)), t.s, notes=f'{len(Xu):,} unique train configs')
 
 

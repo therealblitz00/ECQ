@@ -148,6 +148,7 @@ The script reproduces the champion exactly (validation EMR 87.8411%).
 | 7 | 2026-10-04 | `exp11_count_features.py` | Teammate's MCA lead (+0.31 in Sprint 2 set-up) tested as plain basket-size counts on the current champion: +0.03 / −0.05 mean, within noise. Not adopted. | 96.81% clean-like (unchanged) | Champion unchanged |
 | 8 | 2026-10-04 | `notebooks/sprint3_final.ipynb` | Final notebook on the professor's CSVs only. Sprint 1 additive rules dropped (+0.02 on validation, within noise; mined on all of train). Test 97.21% (97.27% with rules, reported not used). | 96.79% clean-like | Final model |
 | 9 | 2026-10-04 | `review_checks.py`, `exp12_review_models.py` | Mock jury review answered: configuration-level uncertainty, paired tests, 5-fold CV (96.83% ± 0.20), baselines (LR 95.97%), error detection (83–92% of known errors by reviewing 2% of customers, ~40× random), test CI [97.11, 97.31]. Rare threshold real but +0.03 — not adopted. | 96.79% clean-like (unchanged) | Final model unchanged |
+| 10 | 2026-10-04 | `review_checks.py detect2`, `exp12_review_models.py lr` | Second review (80/100) answered: stale text fixed; detection stress-tested (seed 7 honest split 83% [73–92%]; synthetic 1–3-item errors ~92%, unique configurations ~80%); assumed-cost operating point 1.3–2.3%; tuned logistic regression within 0.15–0.23 pt of LightGBM. | 96.79% clean-like (unchanged) | Final model unchanged |
 
 ---
 
@@ -665,7 +666,7 @@ benchmark is not (≈ 767 customers short).
 | More capacity | +0.04 [−0.04, +0.15] | +0.05 [−0.12, +0.23] | not significant |
 | `min_child_samples` 2 vs 5 | −0.00 [−0.05, +0.04] | +0.03 [−0.03, +0.08] | not significant |
 | Basket-size count feature | −0.02 [−0.08, +0.03] | +0.09 [−0.00, +0.23] | inconsistent |
-| LightGBM vs logistic regression | +0.83 [+0.55, +1.24] | +1.69 [+0.76, +3.11] | trees significantly better |
+| LightGBM vs logistic regression (untuned, C=1; see 10.3 for tuned) | +0.83 [+0.55, +1.24] | +1.69 [+0.76, +3.11] | trees better than *untuned* LR |
 
 The review was right that unpaired reasoning had dismissed one real effect (the threshold).
 
@@ -687,7 +688,8 @@ choosing the rule to fit the data. Recorded as an optional, low-value improvemen
 | **LightGBM, one per billing item (final)** | **96.79%** | **96.30%** |
 
 A linear model gets within 1–2 points, which supports "billing is close to additive per
-product"; the trees add the rare-product interactions. A multi-output neural net was not
+product"; the trees add the rare-product interactions. *(Correction in Step 10.3: this
+logistic regression was untuned; tuned (C = 10) it gets within 0.15–0.23 points.)* A multi-output neural net was not
 built: the regularised classifier chain tied plain per-label models (Sprint 2), so shared
 label structure is not where the errors are.
 
@@ -754,3 +756,89 @@ It still reads only the professor's three CSVs. Also updated: `requirements.txt`
 README (setup for all OSes, glossary, comparable baselines), the Sprint 2 log (forward note),
 and a new executive summary (`docs/EXECUTIVE_SUMMARY.md`). The Sprint 2 notebook was executed
 end to end.
+
+---
+
+## Step 10 — Response to the second mock review (64 → 80/100)
+
+Approved 2026-10-04. The reviewer accepted all three pushbacks from Step 9 (`BIL_4167`, the
+"40% of billing items", and that the true SE is larger than it estimated). Remaining
+criticisms, and what was done. Scripts: `scripts/sprint3/review_checks.py detect2`,
+`scripts/sprint3/exp12_review_models.py lr <seed> <C>`.
+
+### 10.1 Stale text
+
+The notebook still carried pre-Step-9 reasoning. Fixed:
+- "within one standard error, ~0.1 points" and "within noise" are replaced by the paired-test
+  results.
+- `solution.csv` is now described as read only at the end, after freezing, for scoring
+  **and** for the filter ablation.
+- "+2 points" vs "+2.54" is reconciled: +2.0 is the Sprint 2 → Step 3 milestone (older
+  settings), +2.54 the final model with vs without the filter.
+
+### 10.2 Error detection, stress-tested
+
+- **How the queue rule was chosen, disclosed.** Confidence ranking was tried first on seed 42
+  and failed, so seed 42 is the design split and **seed 7 the honest one; it is now quoted
+  first**: 83% of known errors in the top 2% (95% configuration-bootstrap CI 73–92%);
+  seed 42: 92% [86–96%].
+- **Synthetic errors** (the known errors are only 1–2-item deviations in repeated
+  configurations). Clean customers' actual billing was corrupted with 1, 2 or 3 errors, either
+  a missing billed item or a plausible extra item drawn by prevalence; 0.65% of customers,
+  5 repetitions, both seeds:
+
+| | Seed 42 | Seed 7 |
+|---|---|---|
+| Injected errors flagged at all | ~100% | ~100% |
+| Caught within a 2% review budget (all, 1–3 items, either kind) | 92–94% | 92–93% |
+| … customers with a **unique** configuration (every test customer) | 79–82% | 77–81% |
+| … customers with a repeated configuration | 97–99% | 97–98% |
+
+  The queue is **not** limited to 1–2-item errors: recall is flat across 1–3 items. Its real
+  weak spot is unique-configuration customers (~80%), which is the realistic production case.
+- **Operating point from assumed costs** (€2.5 per alert = 5 analyst-minutes at €30/h;
+  €20–200 per missed error): the cheapest review share is 1.3–2.3% of customers on both seeds.
+  Real costs belong to the business; the method shows how to set the cut-off.
+
+### 10.3 Logistic regression, tuned
+
+Sweep of C on both seeds (clean-like):
+
+| C | 0.1 | 1 | **10** | 100 |
+|---|---|---|---|---|
+| Seed 42 | 91.71% | 95.97% | **96.56%** | 96.55% |
+| Seed 7 | 89.57% | 94.61% | **96.15%** | 96.01% |
+
+Paired test, LightGBM vs tuned logistic regression (C = 10): **+0.23 [+0.14, +0.34]** on
+seed 42, **+0.16 [−0.04, +0.33]** on seed 7 (borderline).
+
+The earlier "+0.8 / +1.7" was against an untuned baseline, so the review was right to ask. A
+tuned linear model gets within 0.15–0.23 points, which *strengthens* the additivity finding.
+LightGBM is kept: it is better on both splits, but the margin is small, and a linear model
+would be a reasonable choice if interpretability mattered more.
+
+### 10.4 Validation vs test, stated plainly
+
+- Validation customers are closer to a training customer than test customers are (70% vs 53%
+  at distance 1): validation is *easier* on that.
+- Validation keeps more unusual customers: it is *harder* on that.
+- The filter is worth +0.8 / +1.25 on validation but +2.0 to +2.5 on test.
+
+The biases partly cancel. The notebook now says validation is used to **rank** choices
+(paired tests, two splits, 5-fold) and the test set to **measure** the result.
+
+### 10.5 Not done, by decision
+
+- The rare-item threshold stays unadopted (real, but +0.03: below the bar set before testing).
+- No structural constraints were added to the model (argmax status repair was worth +0.01 in
+  Step 1).
+- Course AI-use rules: for the team to check before submitting. Step 9 and the
+  review-response file disclose the AI review openly.
+
+### 10.6 "If we had one more week"
+
+The remaining gap to ~98% (about 767 customers) is mostly customers with 1–2 rare products,
+where SHAP shows the right cause but too little training evidence (p ≈ 0.2–0.4). The next try
+would pool evidence across rare products that bill the same item (the many-to-one mapping in
+Step 1), for example a dedicated sub-model or shared parameters for rare-product → billing
+links, judged by the same adoption rule.

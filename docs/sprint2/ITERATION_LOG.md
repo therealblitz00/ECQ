@@ -62,7 +62,7 @@ applied to every training row and compared with consensus labels.
 **Hypothesis:** Near-identical CRM configurations have near-identical BIL configurations,
 so a neighbour's consensus label is a strong baseline.
 
-**Implementation:** `scripts/exp1_lookup_knn.py` — Hamming distance by chunked matrix
+**Implementation:** `scripts/sprint2/exp1_lookup_knn.py` — Hamming distance by chunked matrix
 product over 53,947 unique training configurations.
 
 **Result & error analysis:** Exact lookup covers 0% of val (0.006% of test vs all of train). 1-NN: 0.48%
@@ -80,7 +80,7 @@ features: no difference.
 with consensus labels removes provisioning noise.
 
 **Implementation:** `src/models.BinaryRelevanceLGBM` (threaded, ~0.6 s/label),
-`scripts/exp3_binary_relevance.py`.
+`scripts/sprint2/exp3_binary_relevance.py`.
 
 **Result & error analysis (E3a, 58.66%):** 19% of val rows are exactly 1 bit off; 10% have
 ≥6 wrong bits. Errors are **confident** (median |p − 0.5| = 0.5; only 7% of wrong cells in
@@ -105,7 +105,7 @@ probabilities) and Exp 4 (co-occurrence chain).
 **Hypothesis:** Removing multiplicity weights fixes the rare-label false positives, and
 training every feature set on identical rows isolates what each Sprint 1 pipeline does.
 
-**Implementation:** `scripts/exp3_binary_relevance.py E3a2 E3d E3e` — unique configs,
+**Implementation:** `scripts/sprint2/exp3_binary_relevance.py E3a2 E3d E3e` — unique configs,
 consensus labels, no weights; only the feature matrix changes.
 
 **Result & error analysis:**
@@ -134,9 +134,9 @@ binary CRM columns; neither pipeline's feature transformations help.
 **Hypothesis:** Enforcing joint label structure fixes rows where independent labels
 produce inconsistent combinations.
 
-**Implementation:** `scripts/exp2_label_powerset.py` (LP as a max-likelihood decoder over
+**Implementation:** `scripts/sprint2/exp2_label_powerset.py` (LP as a max-likelihood decoder over
 all 53,369 observed training configs, since multi-class over them is untrainable and the
-top-1,000 configs cover <1% of val rows); `scripts/exp4_classifier_chain.py` (each label
+top-1,000 configs cover <1% of val rows); `scripts/sprint2/exp4_classifier_chain.py` (each label
 sees X + its 30 most co-occurring upstream labels; prevalence order).
 
 **Result & error analysis:** LP reaches 23.09% — essentially its hard ceiling of 23.12%
@@ -159,7 +159,7 @@ likely understates test EMR.
 **Hypothesis:** Rules, a tuned threshold, and blending BR with the chain each add a
 little; k-NN may beat trees on rare-pack rows.
 
-**Implementation:** `scripts/exp5_postprocess.py` on saved validation probabilities.
+**Implementation:** `scripts/sprint2/exp5_postprocess.py` on saved validation probabilities.
 
 **Result & error analysis:** threshold 0.6 adds ~+0.2 pts per model. Averaging BR and
 chain probabilities is 78.1% at t=0.5 (≈ OR of the models) but **87.21% at t=0.6
@@ -180,7 +180,7 @@ confirming on an independent split before being trusted.
 **Hypothesis:** If the confident false positives are variance, stronger per-leaf
 regularization or bagging should remove them without needing a second model to veto them.
 
-**Implementation:** `scripts/exp5_regularize.py` — `min_child_samples` 20 / 50 with
+**Implementation:** `scripts/sprint2/exp5_regularize.py` — `min_child_samples` 20 / 50 with
 `reg_lambda=1`; 3-model bagging (row/feature subsampling 0.8); then the chain re-run with
 the same regularization (`exp4_classifier_chain.py 30 20`) and a BR/chain blend.
 

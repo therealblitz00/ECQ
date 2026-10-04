@@ -1,12 +1,12 @@
 """Diagnostic 3 - what is left wrong on clean-like validation rows (the population that
 tracks the test set)? Read-only.
 
-Run:  .venv/Scripts/python scripts/diag3_remaining_errors.py E7-drop-k3 > data/cache/diag3.txt
+Run:  .venv/Scripts/python scripts/sprint3/diag3_remaining_errors.py E7-drop-k3 > data/cache/diag3.txt
 """
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import numpy as np
 import pandas as pd

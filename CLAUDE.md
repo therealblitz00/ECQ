@@ -41,7 +41,7 @@ Python lacks the right packages. No test suite or linter exists.
 ```bash
 .venv/Scripts/python scripts/train_final.py 4 5      # current champion -> data/derived/submission_sprint3_k4_mcs5.csv
 .venv/Scripts/python scripts/make_leaderboard.py     # regenerate docs/EXPERIMENT_LEADERBOARD.md
-.venv/Scripts/python scripts/exp8_retune.py 42 5:1   # example experiment: seed, min_child_samples:reg_lambda
+.venv/Scripts/python scripts/sprint3/exp8_retune.py 42 5:1   # example experiment: seed, min_child_samples:reg_lambda
 ```
 
 Model fits take ~2–4 min each — run long jobs in the background. GitHub CLI is installed at
@@ -56,13 +56,16 @@ the working branch is `ManuelS`.
   `clean_like_mask`, grouped split), `metrics.py` (EMR, Hamming, `multilabel_report`,
   `top_offending_columns`), `models.py` (`BinaryRelevanceLGBM`, `CoOccurrenceChainLGBM`),
   `experiment.py` (`setup()` shared split/targets/masks, `score()`, `log()` → `data/cache/results.jsonl`).
-- `scripts/` — one script per experiment (`exp1`–`exp10`), diagnostic (`diag1`–`diag3`),
-  `train_final.py`, `make_leaderboard.py`. Kept flat: the Sprint 2 notebook imports
-  `scripts.exp1_lookup_knn`, and reads `data/derived/sprint2_experiment_results.csv`
-  (don't rename either).
+- `scripts/` — `train_final.py` and `make_leaderboard.py` at the top; experiments grouped
+  by sprint in `scripts/sprint2/` (exp1–exp5) and `scripts/sprint3/` (diag1–3, exp6–exp11,
+  `explain_shap.py`). Scripts in subfolders put the repo root on `sys.path` (three
+  `dirname`s) and import each other as `scripts.sprintN.<module>`. The Sprint 2 notebook
+  imports `scripts.sprint2.exp1_lookup_knn` and reads
+  `data/derived/sprint2_experiment_results.csv` (don't rename either).
 - `docs/` — `ARCHITECTURE_AND_ROUTING.md` (module/script map), `EXPERIMENT_LEADERBOARD.md`
   (generated — never edit by hand), `sprint1/`, `sprint2/`, `sprint3/` write-ups.
-- `notebooks/` — one notebook per sprint (+ `archive/`, `exports/`).
+- `notebooks/` — one notebook per sprint; `sprint3_final.ipynb` is the final deliverable
+  (+ `archive/`, `exports/`).
 
 ## Data
 

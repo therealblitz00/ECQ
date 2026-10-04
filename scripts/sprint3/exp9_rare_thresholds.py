@@ -10,7 +10,7 @@ Usage:  exp9_rare_thresholds.py <probs id, e.g. E8-mcs5-l1>
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import numpy as np
 

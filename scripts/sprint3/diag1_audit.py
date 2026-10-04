@@ -1,13 +1,13 @@
 """Diagnostic 1 - audit column encoding, categorical blocks, pack-id structure and where the
 champion's validation errors live. Read-only: trains nothing, writes nothing.
 
-Run from the repo root:  .venv/Scripts/python scripts/diag1_audit.py > data/cache/diag1.txt
+Run from the repo root:  .venv/Scripts/python scripts/sprint3/diag1_audit.py > data/cache/diag1.txt
 """
 import os
 import re
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import numpy as np
 import pandas as pd

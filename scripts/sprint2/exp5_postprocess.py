@@ -6,12 +6,12 @@ threshold, and k-NN routing for rows that contain a rare CRM pack.
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import numpy as np
 
 from src import data, experiment as E
-from scripts.exp1_lookup_knn import knn_hamming
+from scripts.sprint2.exp1_lookup_knn import knn_hamming
 
 
 def main():

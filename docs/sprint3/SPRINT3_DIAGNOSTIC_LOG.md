@@ -70,8 +70,8 @@ may need different fixes.
 
 ## Step 1 — Diagnostic audit (read-only)
 
-**Script:** `scripts/diag1_audit.py` (trains nothing, writes nothing; ~1–2 min).
-**Run:** `.venv/Scripts/python scripts/diag1_audit.py > data/cache/diag1.txt`
+**Script:** `scripts/sprint3/diag1_audit.py` (trains nothing, writes nothing; ~1–2 min).
+**Run:** `.venv/Scripts/python scripts/sprint3/diag1_audit.py > data/cache/diag1.txt`
 
 | ID | Question | What would confirm a problem |
 |---|---|---|
@@ -152,8 +152,8 @@ The script reproduces the champion exactly (validation EMR 87.8411%).
 
 ## Step 2 — Test-like metric, dropping anomalous rows, and *why* the errors happen
 
-Approved 2026-10-02. Scripts: `scripts/exp6_clean_rows.py` (experiments),
-`scripts/diag2_why.py` (read-only; output `data/cache/diag2.txt`). New shared code:
+Approved 2026-10-02. Scripts: `scripts/sprint3/exp6_clean_rows.py` (experiments),
+`scripts/sprint3/diag2_why.py` (read-only; output `data/cache/diag2.txt`). New shared code:
 `src/validation.test_like_mask()`; `src/experiment.score()` now reports `emr_testlike`
 for every run, and the leaderboard shows it.
 
@@ -234,8 +234,8 @@ damage:
 
 ## Step 3 — Clean-like metric, removing corrupted rows, remaining errors
 
-Approved 2026-10-02. Scripts: `scripts/exp7_drop_corrupted.py` (experiments),
-`scripts/diag3_remaining_errors.py` (read-only; output `data/cache/diag3.txt`),
+Approved 2026-10-02. Scripts: `scripts/sprint3/exp7_drop_corrupted.py` (experiments),
+`scripts/sprint3/diag3_remaining_errors.py` (read-only; output `data/cache/diag3.txt`),
 `scripts/train_final.py 4` (final fit + test diagnostic). Shared code:
 `src/validation.rare_pack_count()`, `clean_like_mask()`; every run now reports all /
 test-like / clean-like validation EMR.
@@ -336,8 +336,8 @@ of clean-like validation rows.
 
 ## Step 4 — Re-tuning on clean data, rare-column thresholds
 
-Approved 2026-10-02. Scripts: `scripts/exp8_retune.py` (regularisation sweep, both
-seeds), `scripts/exp9_rare_thresholds.py` (thresholds), `scripts/diag3_remaining_errors.py
+Approved 2026-10-02. Scripts: `scripts/sprint3/exp8_retune.py` (regularisation sweep, both
+seeds), `scripts/sprint3/exp9_rare_thresholds.py` (thresholds), `scripts/sprint3/diag3_remaining_errors.py
 E8-mcs5-l1`, `scripts/train_final.py 4 5` (final fit + milestone test diagnostic). All
 runs use the k=4 corrupted-row filter from Step 3.
 
@@ -422,7 +422,7 @@ with its measured or bounded impact.
 
 ## Step 5 — Light corruption, repair, capacity: none beats the Step 4 model
 
-Approved 2026-10-02. Script: `scripts/exp10_step5.py` (all three, both seeds). Every run
+Approved 2026-10-02. Script: `scripts/sprint3/exp10_step5.py` (all three, both seeds). Every run
 starts from the Step 4 champion (k=4 filter, `min_child_samples=5`, `reg_lambda=1`).
 
 | Clean-like validation EMR | Seed 42 | Seed 7 | Mean | vs champion |
@@ -470,7 +470,7 @@ No new test diagnostic was computed, because no new model was selected.
 
 ## Step 6 — Explainability (SHAP)
 
-Approved 2026-10-03. Script: `scripts/explain_shap.py` (read-only; output
+Approved 2026-10-03. Script: `scripts/sprint3/explain_shap.py` (read-only; output
 `data/cache/explain_shap.txt`). Per-column results: `data/derived/sprint3_shap_drivers.csv`
 (731 rows). Figures: `docs/sprint3/figures/`.
 
@@ -569,10 +569,11 @@ such cases exist but are few, while lowering the threshold also adds false posit
 
 ## Step 7 — Basket-size count features (a teammate's MCA lead)
 
-Approved 2026-10-04. Script: `scripts/exp11_count_features.py` (both seeds).
+Approved 2026-10-04. Script: `scripts/sprint3/exp11_count_features.py` (both seeds).
 
 **Origin.** A teammate tested adding 2 MCA "meta-variables" to the **Sprint 2** set-up (no
-corrupted-row filter, `min_child_samples=20`; his `experiments_log.csv`, not in git). All-rows
+corrupted-row filter, `min_child_samples=20`; his results are in
+`docs/sprint3/teammate_mca_experiments_log.csv`). All-rows
 validation EMR rose 87.84% → 88.15% (+0.31, one split, no clean-like metric). His own analysis
 noted the MCA components mostly proxy basket size (component 2 vs number of packs: +0.61).
 Before adopting MCA, with its known "double zero" problem on sparse binary data (and given

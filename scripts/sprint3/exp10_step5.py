@@ -15,7 +15,7 @@ Usage:  exp10_step5.py <seed> <mode> [<mode> ...]
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import numpy as np
 from sklearn.model_selection import KFold

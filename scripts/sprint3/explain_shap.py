@@ -13,12 +13,12 @@ rows, where the correct answer is known. SHAP values come from LightGBM's built-
   3. Worked examples of wrong rows.
 
 Outputs: data/cache/explain_shap.txt (via stdout redirect), data/derived/sprint3_shap_drivers.csv,
-docs/sprint3/figures/*.png.   Run:  .venv/Scripts/python scripts/explain_shap.py > data/cache/explain_shap.txt
+docs/sprint3/figures/*.png.   Run:  .venv/Scripts/python scripts/sprint3/explain_shap.py > data/cache/explain_shap.txt
 """
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import matplotlib
 
@@ -30,7 +30,7 @@ from scipy.stats import spearmanr
 
 from src import data, experiment as E, metrics as M, validation as V
 from src.models import BinaryRelevanceLGBM
-from scripts.diag3_remaining_errors import flip_rate
+from scripts.sprint3.diag3_remaining_errors import flip_rate
 
 CHAMPION = dict(min_child_samples=5, reg_lambda=1.0)
 DROP_K = 4

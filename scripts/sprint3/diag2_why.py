@@ -4,12 +4,12 @@
     and is its billing the OR of their billings?
 (B) Anatomy of the most-missed BIL pack columns on test-like validation rows.
 
-Read-only. Run:  .venv/Scripts/python scripts/diag2_why.py > data/cache/diag2.txt
+Read-only. Run:  .venv/Scripts/python scripts/sprint3/diag2_why.py > data/cache/diag2.txt
 """
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 import numpy as np
 import pandas as pd

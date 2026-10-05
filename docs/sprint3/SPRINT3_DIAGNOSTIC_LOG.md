@@ -149,6 +149,10 @@ The script reproduces the champion exactly (validation EMR 87.8411%).
 | 8 | 2026-10-04 | `notebooks/sprint3_final.ipynb` | Final notebook on the professor's CSVs only. Sprint 1 additive rules dropped (+0.02 on validation, within noise; mined on all of train). Test 97.21% (97.27% with rules, reported not used). | 96.79% clean-like | Final model |
 | 9 | 2026-10-04 | `review_checks.py`, `exp12_review_models.py` | Mock jury review answered: configuration-level uncertainty, paired tests, 5-fold CV (96.83% ± 0.20), baselines (LR 95.97%), error detection (83–92% of known errors by reviewing 2% of customers, ~40× random), test CI [97.11, 97.31]. Rare threshold real but +0.03 — not adopted. | 96.79% clean-like (unchanged) | Final model unchanged |
 | 10 | 2026-10-04 | `review_checks.py detect2`, `exp12_review_models.py lr` | Second review (80/100) answered: stale text fixed; detection stress-tested (seed 7 honest split 83% [73–92%]; synthetic 1–3-item errors ~92%, unique configurations ~80%); assumed-cost operating point 1.3–2.3%; tuned logistic regression within 0.15–0.23 pt of LightGBM. | 96.79% clean-like (unchanged) | Final model unchanged |
+| 11 | 2026-10-05 | `notebooks/sprint3_final.ipynb` | Pre-submission check: all 23 code cells ran in order, no errors, printed numbers match the text. Assumed-cost (EUR) operating point removed from the notebook and executive summary at the team's request: the costs were invented, so it adds nothing academically. | 96.79% clean-like (unchanged) | Final model unchanged; notebook ready to submit |
+| 12 | 2026-10-05 | `exp13_macro_f1.py` | Macro F1 0.535 / 0.520 is driven by ~280 items never predicted; their positives sit in rows with rare CRM packs (91–92% vs 7–8%) and no CRM column predicts them (residue of the injection). Thresholds tuned for F1 on OOF: macro F1 +0.008 to +0.012 but EMR −0.10 to −0.90 → rejected. Error-minimising lower-only thresholds (`thr-net`): macro F1 +0.0021 / +0.0009 (CI > 0), EMR +0.003 / +0.023 pt → passes the pre-set rule, tiny. | 96.79% / 96.30% clean-like (unchanged) | Awaiting team-lead decision |
+| 13 | 2026-10-05 | `exp14_longtail.py`, `exp14_groups.py`, `exp15_kfold_longtail.py` | Long-tail labels investigated structurally: label table + classification; Stage-2 cascade, label communities, CRM-pattern rules, targeted chain. Winner: class-weighted CRM specialists for the ~330 problem labels, add-only, only on rows with a rare CRM pack: macro F1 +0.0135 / +0.0145, EMR +0.12 / +0.19 pt (both significant). Context features (Stage-1 probs, communities) hurt; rule features tie; rule override negligible. | 96.92% / 96.49% clean-like (candidate); 5-fold 96.99% ± 0.18 vs 96.83% | Passes the adoption rule; awaiting team-lead decision |
+| 14 | 2026-10-05 | `notebooks/sprint3_final.ipynb` | Stage 2 (long-tail specialists, rare gate) added to the final notebook after team-lead approval; executed end to end (~25 min). Validation reproduces Step 13 exactly. **Test 97.21% → 97.51%** (+290 customers); test macro F1 0.70 → 0.77. | 96.92% clean-like (seed 42) | Final model |
 
 ---
 
@@ -842,3 +846,306 @@ where SHAP shows the right cause but too little training evidence (p ≈ 0.2–0
 would pool evidence across rare products that bill the same item (the many-to-one mapping in
 Step 1), for example a dedicated sub-model or shared parameters for rare-product → billing
 links, judged by the same adoption rule.
+
+---
+
+## Step 11 — Pre-submission check; assumed-cost section removed
+
+2026-10-05. **Plan:** read `notebooks/sprint3_final.ipynb` end to end before submission and
+remove the EUR operating point (Step 10), which the team judged unsuitable for an academic
+deliverable.
+
+**Check.** All 23 code cells are saved with outputs, executed in order (1–23) with no
+errors. The numbers in the markdown match the printed outputs (clean-like validation 96.79%,
+test 97.21% [97.11, 97.31], filter ablation +2.54 pt, detection 92% [86–96%] on seed 42).
+The notebook reads only `train.csv`, `test.csv` and `solution.csv` (the last only after the
+model is frozen) and imports nothing from `src/` or `scripts/`.
+
+**Change.** Removed the cost code, its output table and the two cost bullets ("Operating
+point", "Cost trade-off"); "Three checks" became "Two checks". The removed code drew no
+random numbers and nothing downstream used it, so every other saved output is unchanged and
+no re-run was needed. One range was corrected: unique-configuration customers are caught at
+about **76–82%** (the notebook's own seed-42 table shows 76–81%; the scripts gave 79–82% and
+77–81%), previously written as 77–82%. The same cost bullet was removed from
+`docs/EXECUTIVE_SUMMARY.md`.
+
+**Decision.** Model and results unchanged. The review budget alone (top 2% of customers)
+now sets the operating point.
+
+---
+
+## Step 12 — Macro F1: diagnosis, per-item thresholds, class weights
+
+2026-10-05. Approved by the team lead as an autonomous loop: Step 1 (diagnose), then
+per-item thresholds, then class weights; stop at the first success, or after 5 failed
+configurations. Script: `scripts/sprint3/exp13_macro_f1.py`; every run is logged to
+`data/cache/results.jsonl` as `E13-*`.
+
+**Why.** Clean-like validation macro F1 of the final model is 0.535 (micro F1 0.996). Macro F1
+weights each of the ~726 scored billing items equally, and misses outnumber false alarms
+about 6 to 1. 226 items have only 1–5 validation positives.
+
+**Set-up, fixed before any candidate was run.**
+- Baseline: the final model (min_child_samples=5, reg_lambda=1, threshold 0.5, no additive
+  rules) refitted on the cleaned training fold. The cache was rebuilt in this session, so the
+  baseline is refitted rather than loaded.
+- Thresholds are **never tuned on validation**. Each fit also produces 5-fold out-of-fold
+  probabilities on the training fold's unique configurations (grouped by construction),
+  weighted by each configuration's row count. Each item's threshold maximises its OOF F1.
+- Metric: macro F1 over items with at least one clean-like validation positive (as in the
+  notebook), against consensus targets.
+- **Success rule:** on both seeds, the 95% paired configuration-bootstrap CI (1,000 draws) of
+  the macro-F1 difference is above 0, **and** the clean-like EMR difference vs the baseline
+  is ≥ 0. The Step 4 figures (96.81% / 96.33%) include the Sprint 1 rules, which the final
+  model no longer uses, so EMR is compared with the same pipeline without rules.
+
+**Environment.** `.venv` was rebuilt from `requirements.txt` (LightGBM 4.7.0, scikit-learn
+1.9.1) and the cache from the CSVs. The baseline reproduces the notebook exactly on seed 42
+(clean-like EMR 96.79%, macro F1 0.5348), and gives 96.30% / 0.5201 on seed 7.
+
+### 12.1 Diagnosis (baseline, clean-like validation)
+
+| | Seed 42 | Seed 7 |
+|---|---|---|
+| Macro F1 / micro F1 | 0.5348 / 0.9959 | 0.5201 / 0.9952 |
+| Missed items (FN) vs false alarms (FP) | 3,378 vs 525 | 3,688 vs 455 |
+| Items with F1 = 0 (never predicted / only false alarms) | 272 (265 / 7) | 286 (274 / 12) |
+| Share of the macro-F1 shortfall due to F1 = 0 items | 81% | 82% |
+| Items with 21–50 positive training configurations: count, mean F1 | 359, 0.15 | 360, 0.14 |
+| Share of the shortfall from those items | 90% | 89% |
+| F1 = 0 items whose true positives all score < 0.05 | 230 of 272 | 250 of 286 |
+| Rows billed for an F1 = 0 item that carry a rare CRM pack (all rows) | 92% (7.1%) | 91% (7.9%) |
+| Best P(item \| one CRM column) in training, median: F1 = 0 items vs F1 ≥ 0.5 | 0.12 vs 0.87 | 0.12 vs 0.87 |
+| OOF macro F1: threshold 0.5 → best per-item threshold | 0.510 → 0.528 | 0.515 → 0.533 |
+| Per-item threshold chosen *on validation* (upper bound, diagnostic only) | 0.566 | 0.543 |
+
+**Reading.** The low macro F1 is not a threshold problem. About 280 billing items are never
+predicted. Their positives sit almost only in rows with rare CRM packs, and no CRM column
+predicts them, so they look like the residue of the random rare-pack injection (rows with 1–3
+rare packs are kept in training and in the clean-like population). The model correctly gives
+them near-zero probability. Even thresholds picked with hindsight on validation would reach
+only 0.566 / 0.543.
+
+### 12.2 Attempts (thresholds tuned on the training fold's OOF only, row-weighted)
+
+Paired configuration bootstrap, 1,000 draws; Δ = candidate − baseline; EMR in points.
+
+| # | Candidate | Rule | Seed 42: ΔF1 [CI] / ΔEMR [CI] | Seed 7: ΔF1 [CI] / ΔEMR [CI] | Verdict |
+|---|---|---|---|---|---|
+| 1 | `thr-free` | per item, threshold in 0.05–0.95 maximising OOF F1 (200 lowered, 166 raised) | +0.0111 [+0.0068, +0.0143] / −0.90 [−2.56, −0.05] (−299 customers) | +0.0081 [+0.0040, +0.0107] / −0.20 [−0.87, +0.21] | rejected: EMR drops |
+| 2 | `thr-low` | as 1, but thresholds may only go down (0.05–0.5; ~230 lowered) | +0.0115 [+0.0074, +0.0147] / −0.84 [−2.48, +0.01] (−278) | +0.0094 [+0.0058, +0.0118] / −0.10 [−0.74, +0.31] | rejected: EMR drops |
+| 3 | `thr-net` | lower-only; per item, the threshold minimising row-weighted OOF wrong bits, adopted only if it removes ≥ 2 wrong rows (48 / 50 items lowered) | +0.0021 [+0.0002, +0.0029] / +0.003 [−0.04, +0.05] (+1) | +0.0009 [+0.0001, +0.0020] / +0.023 [−0.02, +0.08] (+7) | **passes the pre-set rule** |
+
+**Why 1 and 2 fail (seed-42 validation, diagnostic).** Maximising F1 lowers a threshold even
+when it adds more false alarms than hits: for an item at F1 = 0, a single hit raises its F1
+whatever the cost. Over the lowered items, new hits 131 vs new false alarms 562; one item
+alone added 226 false-alarm rows. The OOF predictions anticipated this (new false alarms
+correlate 0.85 between OOF and validation). Candidate 3 therefore switched to the
+EMR-aligned objective (fewest wrong bits).
+
+**Disclosure.** Candidate 3's rule was designed after looking at candidate 2's seed-42
+validation errors. Seed 7 is the honest check, and it passes there too. A planned variant
+(`thr-low-reg`, F1 objective with a minimum gain) was replaced by candidate 3 before it was
+run. Class weights (Step 4 of the plan) were not run: the loop stops at the first success.
+
+**Size of the effect.** The gain is statistically real but small: +0.002 / +0.001 macro F1,
+EMR unchanged (+1 / +7 customers). In absolute terms clean-like EMR is 96.80% / 96.33%. That
+is level with the Step 4 figures (96.81% / 96.33%), which included the Sprint 1 rules.
+
+**Decision.** Stopped and reported to the team lead. Not adopted yet. If approved, the next
+checks are 5-fold confirmation and then the notebook.
+
+---
+
+## Step 13 — Long-tail labels: is the low macro F1 recoverable from structure?
+
+2026-10-05. Requested by the team lead after Step 12: thresholds are the wrong lever; test
+whether the long-tail labels can be recovered through the structure of the CRM → BIL mapping
+(cascade, label communities, CRM-pattern rules, targeted chains), without lowering EMR.
+Scripts: `scripts/sprint3/exp14_longtail.py` (diagnosis, Stage 2, evaluation),
+`exp14_groups.py` (gain by label group), `exp15_kfold_longtail.py` (5-fold). Every run is
+logged to `data/cache/results.jsonl` as `E14-*`; the per-label tables are
+`data/cache/e14_label_table.csv` / `-s7.csv`.
+
+**Fixed before modelling.**
+- Baseline = the Step 12 champion probabilities (threshold 0.5, no rules), the same for
+  every comparison.
+- Problem labels come from the training fold only: row-weighted OOF F1 < 0.5 (332 labels on
+  seed 42, 335 on seed 7).
+- Stage-2 features that come from a model are Stage-1 **OOF** probabilities on the training
+  fold; rules, communities and neighbour lists are mined on the training fold only.
+- Merge = **add-only** (Stage 2 can switch a problem label on where Stage 1 said 0; it never
+  removes a Stage-1 positive and never touches other labels). Merge thresholds fixed at 0.5
+  and 0.8; validation sweeps are reported, never used to choose.
+- Class weights: scale_pos_weight = sqrt(neg/pos), clipped to [1, 10] (fixed in advance).
+
+### 13.1 Label table and classification (training fold for predictors, validation for scores)
+
+| Group (rule applied in order) | Seed 42 labels / val positives / mean val F1 | Seed 7 |
+|---|---|---|
+| 1 One CRM column bills it ≥ 50% (≥ 3 positive configs) | 14 / 141 / 0.41 | 21 / 134 / 0.39 |
+| 2 A CRM combination (≤ 3 items) bills it ≥ 50% | 105 / 711 / 0.25 | 105 / 726 / 0.19 |
+| 3 A common BIL label implies it ≥ 50% | 0 | 0 |
+| 4 Diffuse | 1 / 5 / 0.00 | 1 / 3 / 0.00 |
+| 5 Likely injection residue (≥ 80% of positives with a rare pack, no signal above) | 212 / 1,008 / 0.01 | 208 / 1,029 / 0.01 |
+
+- **Combinations transfer.** The training-fold patterns of groups 1–2 fire on validation 44 +
+  200 times with **93% / 92% precision** (seed 42). Group-5 patterns fire ~78,000 times with
+  0% precision, as expected for noise.
+- **No BIL-label structure.** No problem label is implied by a common label, and only 2% share
+  a Louvain community (Jaccard ≥ 0.1, 535 communities) with any common label: the long tail
+  co-occurs only with itself.
+- **Identity test.** Among training configurations with a rare CRM pack, a problem label's
+  best rare pack explains 13% of its positives vs 7% when the BIL rows are shuffled (95th
+  percentile 7%); well-predicted rare labels reach 38%. So the long tail carries a **weak but
+  real** CRM signal on top of noise. Same on both seeds.
+- FP-Growth/Apriori libraries are not installed; patterns were grown per label from the CRM
+  items frequent among its positive configurations (targeted conditional pattern growth, no
+  global rule mining).
+
+### 13.2 Experiments (clean-like validation; Δ vs the same Stage-1 champion; paired configuration bootstrap)
+
+Variants: `crm-cw` = specialist on CRM only with class weights; `ctx` = + all 731 Stage-1
+probabilities (cascade); `chain` = + Stage-1 probabilities of the 10 most related common
+labels (targeted chain); `comm` = + community activation; `rules` = + the label's pattern
+indicator and rare-pack count (`rulesoof` = indicators mined out-of-fold);
+`stage1` = no Stage 2, Stage-1 probabilities re-thresholded (ablation); `rule-override` =
+deterministic patterns with training precision ≥ 0.9 on ≥ 5 positive configs (32 / 37
+patterns). Suffix `-t` = merge threshold; `-grare` = only rows with ≥ 1 rare CRM pack;
+`-gdriver` = only rows containing one of the label's CRM predictors (P ≥ 0.3).
+Seed-7 runs of `ctx` / `ctx-cw` were stopped: `ctx-cw` had already failed decisively on
+seed 42 (fits take 22 min each).
+
+| Variant | Seed 42: Δ macro F1 [CI] | Δ EMR pt [CI] | recovered / broken | Seed 7: Δ macro F1 [CI] | Δ EMR pt [CI] | recovered / broken |
+|---|---|---|---|---|---|---|
+| `crm-cw-t0.5` | +0.0136 [+0.0091, +0.0175] | -0.078 [-0.37, +0.11] | 63 / 89 | +0.0145 [+0.0085, +0.0173] | +0.097 [-0.07, +0.28] | 82 / 53 |
+| `crm-cw-t0.8` | +0.0055 [+0.0028, +0.0078] | -0.087 [-0.39, +0.10] | 33 / 62 | +0.0089 [+0.0043, +0.0110] | +0.146 [+0.03, +0.31] | 55 / 11 |
+| `crm-cw-t0.5-grare` | +0.0135 [+0.0088, +0.0175] | +0.123 [+0.07, +0.18] | 49 / 8 | +0.0145 [+0.0084, +0.0171] | +0.186 [+0.08, +0.34] | 66 / 10 |
+| `crm-cw-t0.8-grare` | +0.0053 [+0.0025, +0.0076] | +0.057 [+0.03, +0.09] | 21 / 2 | +0.0083 [+0.0039, +0.0105] | +0.133 [+0.04, +0.28] | 42 / 2 |
+| `crm-cw-t0.5-gdriver` | +0.0042 [+0.0019, +0.0065] | +0.054 [+0.03, +0.09] | 19 / 1 | +0.0051 [+0.0027, +0.0073] | +0.070 [+0.04, +0.11] | 23 / 2 |
+| `crm-cw-t0.8-gdriver` | +0.0027 [+0.0010, +0.0044] | +0.033 [+0.01, +0.06] | 11 / 0 | +0.0023 [+0.0009, +0.0041] | +0.037 [+0.01, +0.07] | 12 / 1 |
+| `stage1-t0.3-grare` | +0.0091 [+0.0051, +0.0115] | +0.081 [+0.05, +0.12] | 28 / 1 | +0.0093 [+0.0052, +0.0116] | +0.127 [+0.05, +0.27] | 43 / 5 |
+| `stage1-t0.2-grare` | +0.0127 [+0.0079, +0.0156] | +0.105 [+0.06, +0.16] | 41 / 6 | +0.0106 [+0.0061, +0.0134] | -0.027 [-0.43, +0.23] | 50 / 58 |
+| `ctx-t0.5` | +0.0003 [+0.0000, +0.0009] | +0.009 [+0.00, +0.02] | 3 / 0 | — | — | — |
+| `ctx-t0.8` | +0.0002 [+0.0000, +0.0006] | +0.006 [+0.00, +0.02] | 2 / 0 | — | — | — |
+| `ctx-cw-t0.5` | -0.0045 [-0.0053, +0.0005] | -23.126 [-38.23, -9.57] | 10 / 7702 | — | — | — |
+| `ctx-cw-t0.8` | -0.0010 [-0.0022, +0.0020] | -5.297 [-9.36, -2.21] | 5 / 1767 | — | — | — |
+| `ctx-cw-t0.5-grare` | +0.0001 [-0.0014, +0.0036] | -0.361 [-0.82, -0.14] | 7 / 127 | — | — | — |
+| `chain-cw-t0.5` | +0.0074 [+0.0035, +0.0099] | -1.762 [-4.67, -0.11] | 37 / 623 | +0.0051 [+0.0018, +0.0069] | -0.037 [-0.19, +0.14] | 45 / 56 |
+| `chain-cw-t0.5-grare` | +0.0073 [+0.0035, +0.0098] | +0.057 [+0.03, +0.10] | 24 / 5 | +0.0048 [+0.0015, +0.0065] | +0.043 [-0.05, +0.19] | 31 / 18 |
+| `chain-cw-t0.8-grare` | +0.0038 [+0.0010, +0.0056] | +0.021 [+0.00, +0.04] | 9 / 2 | +0.0033 [+0.0010, +0.0047] | +0.040 [-0.05, +0.18] | 24 / 12 |
+| `comm-cw-t0.5` | -0.0096 [-0.0100, -0.0046] | -26.262 [-39.97, -13.54] | 8 / 8743 | -0.0066 [-0.0081, -0.0021] | -10.857 [-16.64, -6.14] | 21 / 3282 |
+| `comm-cw-t0.5-grare` | -0.0052 [-0.0060, -0.0021] | -0.631 [-1.05, -0.36] | 5 / 215 | -0.0015 [-0.0037, +0.0015] | -0.796 [-1.46, -0.39] | 8 / 247 |
+| `comm-cw-t0.8-grare` | -0.0033 [-0.0043, -0.0009] | -0.418 [-0.76, -0.20] | 3 / 142 | -0.0002 [-0.0021, +0.0022] | -0.702 [-1.36, -0.31] | 6 / 217 |
+| `rules-cw-t0.5` | +0.0136 [+0.0083, +0.0173] | -0.159 [-0.54, +0.18] | 100 / 153 | +0.0119 [+0.0069, +0.0149] | +0.043 [-0.12, +0.23] | 81 / 68 |
+| `rules-cw-t0.5-grare` | +0.0133 [+0.0081, +0.0168] | +0.207 [+0.06, +0.46] | 83 / 14 | +0.0119 [+0.0070, +0.0150] | +0.153 [+0.05, +0.31] | 66 / 20 |
+| `rules-cw-t0.8-grare` | +0.0108 [+0.0066, +0.0134] | +0.105 [+0.07, +0.15] | 37 / 2 | +0.0118 [+0.0068, +0.0140] | +0.166 [+0.07, +0.30] | 54 / 4 |
+| `rulesoof-cw-t0.5-grare` | +0.0137 [+0.0086, +0.0172] | +0.222 [+0.08, +0.47] | 84 / 10 | +0.0113 [+0.0064, +0.0142] | +0.160 [+0.06, +0.31] | 64 / 16 |
+| `rulesoof-cw-t0.8-grare` | +0.0097 [+0.0057, +0.0123] | +0.096 [+0.06, +0.15] | 34 / 2 | +0.0126 [+0.0074, +0.0150] | +0.180 [+0.08, +0.32] | 58 / 4 |
+| `rule-override` | +0.0009 [-0.0000, +0.0016] | +0.009 [+0.00, +0.02] | 3 / 0 | +0.0006 [-0.0001, +0.0018] | +0.013 [+0.00, +0.03] | 4 / 0 |
+
+**Reading.**
+1. **Class weights are what lets a specialist recover positives** (`ctx` without weights:
+   +0.0003). Without a gate, the extra positives also hit rows with no rare pack and break
+   them (EMR on rare-free rows 99.17% → 98.95%).
+2. **The rare gate comes straight from 13.1** (> 90% of problem-label positives are on rows
+   with a rare pack). With it, rare-free rows are untouched and both metrics rise on both
+   seeds. *Disclosure:* the gate was added after seeing seed-42 broken rows; seed 7 is the
+   honest check and confirms it (+0.19 pt EMR, +0.0145 macro F1).
+3. **Model-output features hurt.** Feeding Stage-1 probabilities (`ctx-cw`, `comm-cw`) makes
+   specialists latch onto them; their OOF (train) and full-fit (validation) distributions
+   differ, and thousands of rows break. The targeted chain is safer but adds less than CRM
+   alone.
+4. **Pattern features tie with CRM alone.** `rulesoof-cw` vs `crm-cw` (both gated, 0.5):
+   macro F1 +0.0002 [−0.0036, +0.0033] / −0.0032 [−0.0055, −0.0000], EMR +0.10 [−0.03, +0.34] /
+   −0.03 [−0.06, +0.00]. Simpler wins.
+5. **Specialists beat re-thresholding.** `crm-cw` (gated, 0.5) vs `stage1` at 0.3 (gated):
+   macro F1 +0.0044 [+0.0013, +0.0081] / +0.0052 [+0.0013, +0.0076], EMR +0.04 [+0.01, +0.08] /
+   +0.06 [+0.01, +0.12]. A fixed low threshold is also fragile (0.2 breaks 58 rows on seed 7).
+6. **Where the gain comes from** (`exp14_groups.py`): group 2 (CRM combinations) mean F1
+   0.25 → 0.31 / 0.19 → 0.25, 12–18 labels predicted for the first time; group 5 (residue)
+   0.006 → 0.025 / 0.005 → 0.021, with ~15 new hits against ~95 new false alarms that land on
+   rows already wrong.
+
+**Best combination:** `crm-cw-t0.5-grare`: clean-like EMR 96.92% / 96.49% (champion
+96.79% / 96.30%), macro F1 0.548 / 0.535 (0.535 / 0.520), 49 / 66 customers recovered vs 8 / 10
+broken, FP 715 / 653 (525 / 455), FN 3,319 / 3,612 (3,378 / 3,688), labels never predicted
+247 / 257 (272 / 286).
+
+### 13.3 5-fold confirmation (`exp15_kfold_longtail.py`)
+
+GroupKFold by configuration over all training rows (as in Step 9). In every fold Stage 1,
+the problem-label list (from that fold's training OOF) and the specialists are rebuilt from
+scratch; scored on the held-out fold's clean-like rows (~34,400 per fold).
+
+| Model | Clean-like EMR (mean ± sd) | Δ EMR per fold (pt) | Macro F1 (mean ± sd) | Δ macro F1 per fold | Recovered / broken (all folds) |
+|---|---|---|---|---|---|
+| Champion | 96.83% ± 0.18 | — | 0.524 ± 0.005 | — | — |
+| **Specialists, rare gate, 0.5** | **96.99% ± 0.18** | +0.15, +0.12, +0.17, +0.15, +0.18 | **0.539 ± 0.005** | +0.014, +0.016, +0.017, +0.013, +0.014 | 346 / 82 |
+| Ablation: Stage 1 at 0.3, rare gate | 96.93% ± 0.17 | +0.10, +0.08, +0.09, +0.13, +0.07 | 0.532 ± 0.004 | +0.009, +0.007, +0.010, +0.007, +0.008 | 181 / 17 |
+
+The champion reproduces Step 9 (96.83% ± 0.20). The specialist improves both metrics in all
+five folds; the simpler ablation is consistently weaker on both.
+
+### 13.4 Decision
+
+| Approach | Verdict |
+|---|---|
+| 1 Two-stage cascade, CRM-only class-weighted specialists, add-only, rare gate | **ADOPT** (pending team-lead approval): +0.15 pt EMR and +0.015 macro F1, significant on both seeds and positive in all 5 folds; no test labels; one explainable gate derived from the training-fold diagnosis |
+| 1b Cascade with all Stage-1 probabilities as features | REJECT: no gain without weights; with weights the stacked probabilities break hundreds to thousands of rows |
+| 2 Label communities | REJECT / insufficient signal: long-tail labels share no community with common labels; community features hurt EMR on both seeds |
+| 3 CRM-pattern rules as features | REJECT (ties with the simpler CRM-only specialist, paired test) |
+| 3b Deterministic rule override (precision ≥ 0.9) | REJECT: real but negligible (+0.001 macro F1, 3–4 customers) |
+| 4 Targeted classifier chain | REJECT: weaker than CRM-only; EMR not significant on seed 7 |
+| Hybrid | Not built: no context component added signal on top of CRM-only specialists |
+
+**What this says about the long tail.** It is not entirely irreducible. About a third of the
+problem labels (groups 1–2) have a real, transferable CRM signal (patterns with 92–93%
+validation precision) that the per-label model under-uses because each has only ~20–50
+positive configurations; class weights recover part of it. The remaining ~210 labels look like
+injection residue: their best rare pack explains 13% of positives vs 7% by chance, and the
+specialist gains little there. Macro F1 therefore stays low (0.54) for a structural reason that
+the notebook can explain.
+
+**Notebook (not changed yet).** If approved: add Stage 2 after the final fit; the problem-label
+list and the specialists are derived from `train.csv` only (OOF inside the training data); add a
+short section with the label table summary, the approaches tried, and this 5-fold table. The
+`solution.csv` score stays a post-selection diagnostic.
+
+---
+
+## Step 14 — Stage 2 in the final notebook
+
+2026-10-05. Approved by the team lead. The notebook stays self-contained (no imports from
+`src/` or `scripts/`; reads only `train.csv`, `test.csv`, `solution.csv`).
+
+**Changes.**
+- New section after the Stage-1 error analysis: diagnosis and approaches table (reported from
+  Steps 12–13), Stage 2 fitted live on the seed-42 training fold, paired comparison with
+  Stage 1, seed-7 and 5-fold results (reported from `exp14_longtail.py` /
+  `exp15_kfold_longtail.py`).
+- Final fit: Stage 1, then the long-tail list (5-fold OOF inside all of the filtered
+  `train.csv`), the specialists, and the add-only gated merge. The submission uses both stages.
+- Test cell: reports Stage 1 alone and the final model. The filter ablation now compares
+  Stage 1 with and without the filter, so only the filter differs.
+- Header, glossary, storyline, threats to validity and conclusions updated. Business and SHAP
+  sections still analyse Stage 1 (stated in the notebook).
+
+**Run** (venv, pinned packages, `jupyter nbconvert --execute`, ~25 min, no errors). All
+earlier outputs are unchanged.
+
+| | Stage 1 | Stage 1 + Stage 2 |
+|---|---|---|
+| Clean-like validation EMR (seed 42) | 96.79% | 96.92% |
+| Clean-like validation macro F1 (seed 42) | 0.5348 | 0.5483 |
+| Paired difference (seed 42) | | macro F1 +0.0135 [+0.0088, +0.0175], EMR +0.12 pt [+0.07, +0.18]; 49 recovered, 8 broken |
+| Long-tail items (all of `train.csv`) | | 332; 787 items added for 655 test customers |
+| **Test EMR** (`solution.csv`, after freezing) | 97.21% | **97.51%** [97.41, 97.61], +290 customers |
+| Test macro F1 (items with a positive) | 0.701 | 0.769 |
+| Gap to the ~98% benchmark | 767 customers | 477 customers |
+
+**Decision.** Final model = Stage 1 + Stage 2. The test score was computed after the design
+was frozen and was not used to choose anything.
+
+**Not updated.** `README.md` and `docs/EXECUTIVE_SUMMARY.md` still quote 97.21% as the final
+test score.

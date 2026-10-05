@@ -55,8 +55,6 @@ honest check and is quoted first.)
 - On **synthetic errors** (1–3 wrong items injected into clean customers) the same 2% catches
   ~92%, whatever the size of the error, but only **~80% for customers with a unique
   configuration**, which is the realistic production case.
-- With **assumed** costs (€2.5 per alert, €20–200 per missed error), the cheapest review share
-  is about **1.3–2.3% of customers**.
 
 A second, separate queue flags CRM records that themselves look corrupted, so they can be
 corrected.

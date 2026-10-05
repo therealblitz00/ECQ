@@ -16,7 +16,8 @@ configuration (745 binary `CRM_*` columns), predict the correct **Billing (BIL)*
 | Model | Test EMR (`solution.csv`) |
 |---|---|
 | Sprint 2 champion | 95.04% |
-| **Final model** — `notebooks/sprint3_final.ipynb` | **97.21%** (95% CI 97.11–97.31; 94,391 of 97,100 customers exactly right) |
+| Stage 1 only (per-label LightGBM, corrupted rows removed) | 97.21% |
+| **Final model** — `notebooks/sprint3_final.ipynb` (Stage 1 + long-tail specialists) | **97.51%** (95% CI 97.41–97.61; 94,681 of 97,100 customers exactly right) |
 | Public benchmark (reported) | ~98% |
 
 ## Start here: the final notebook
@@ -26,7 +27,7 @@ self-contained:
 - it reads **only the professor's files**: `train.csv`, `test.csv`, and `solution.csv`
   (the last one only at the end, to score the frozen model);
 - all code lives in the notebook (no imports from `src/` or `scripts/`);
-- it runs end to end in about 15 minutes and writes `data/derived/submission_sprint3_final.csv`.
+- it runs end to end in about 25 minutes and writes `data/derived/submission_sprint3_final.csv`.
 
 ```bash
 python -m venv .venv
@@ -64,6 +65,13 @@ jupyter notebook notebooks/sprint3_final.ipynb
    relies on that cause (~96% top-1 agreement with an independent check). Errors concentrate
    on items with no clear CRM cause (~2% of customers), and the model does not exploit the
    injected noise.
+7. **The long tail is partly recoverable (Stage 2).** About 330 billing items were almost never
+   predicted (macro F1 ~0.52). A third follow CRM product combinations that transfer to new
+   customers; most of the rest look like injection residue. Class-weighted specialists that
+   may only *add* an item, and only for customers with a rare product, raise EMR and macro F1
+   on both splits and in all 5 folds, and take test EMR from **97.21% to 97.51%** (+290
+   customers; test macro F1 0.70 → 0.77). Threshold tuning, label communities, stacked
+   probabilities, rule overrides and targeted chains were tried and rejected.
 
 Terms like *test-like*, *clean-like* and *consensus target* are defined in the glossary at
 the top of the final notebook.
@@ -114,7 +122,7 @@ fit takes about 2–4 minutes.
 
 - **Validation:** `GroupShuffleSplit` on the exact CRM configuration (20%, seed 42), every
   choice confirmed on a second split (seed 7) and the final model by 5-fold GroupKFold
-  (96.83% ± 0.20). The primary metric is EMR on *clean-like* validation rows, which tracks
+  (96.99% ± 0.20; Stage 1 alone 96.83%). The primary metric is EMR on *clean-like* validation rows, which tracks
   the test score.
 - **Uncertainty:** customers with an identical CRM configuration are not independent, so
   standard errors and comparisons resample whole configurations (paired bootstrap).

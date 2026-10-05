@@ -1147,5 +1147,5 @@ earlier outputs are unchanged.
 **Decision.** Final model = Stage 1 + Stage 2. The test score was computed after the design
 was frozen and was not used to choose anything.
 
-**Not updated.** `README.md` and `docs/EXECUTIVE_SUMMARY.md` still quote 97.21% as the final
-test score.
+**Docs.** `README.md` and `docs/EXECUTIVE_SUMMARY.md` updated on 2026-10-06 to the final test
+score (97.51%), with Stage 1 (97.21%) kept as a milestone.

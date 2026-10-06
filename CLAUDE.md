@@ -39,7 +39,7 @@ Always run from the repo root with the venv's Python (`.venv/Scripts/python`); t
 Python lacks the right packages. No test suite or linter exists.
 
 ```bash
-.venv/Scripts/python scripts/train_final.py 4 5      # current champion -> data/derived/submission_sprint3_k4_mcs5.csv
+.venv/Scripts/python scripts/train_final.py 4 5      # Stage 1 via scripts (with Sprint 1 rules) -> data/derived/submission_sprint3_k4_mcs5.csv
 .venv/Scripts/python scripts/make_leaderboard.py     # regenerate docs/EXPERIMENT_LEADERBOARD.md
 .venv/Scripts/python scripts/sprint3/exp8_retune.py 42 5:1   # example experiment: seed, min_child_samples:reg_lambda
 ```
@@ -57,15 +57,16 @@ the working branch is `ManuelS`.
   `top_offending_columns`), `models.py` (`BinaryRelevanceLGBM`, `CoOccurrenceChainLGBM`),
   `experiment.py` (`setup()` shared split/targets/masks, `score()`, `log()` → `data/cache/results.jsonl`).
 - `scripts/` — `train_final.py` and `make_leaderboard.py` at the top; experiments grouped
-  by sprint in `scripts/sprint2/` (exp1–exp5) and `scripts/sprint3/` (diag1–3, exp6–exp11,
-  `explain_shap.py`). Scripts in subfolders put the repo root on `sys.path` (three
+  by sprint in `scripts/sprint2/` (exp1–exp5) and `scripts/sprint3/` (diag1–3, exp6–exp15,
+  `explain_shap.py`, `review_checks.py`). Scripts in subfolders put the repo root on `sys.path` (three
   `dirname`s) and import each other as `scripts.sprintN.<module>`. The Sprint 2 notebook
   imports `scripts.sprint2.exp1_lookup_knn` and reads
   `data/derived/sprint2_experiment_results.csv` (don't rename either).
-- `docs/` — `ARCHITECTURE_AND_ROUTING.md` (module/script map), `EXPERIMENT_LEADERBOARD.md`
+- `docs/` — `PROBLEM_DESCRIPTION.md` (the brief), `EXECUTIVE_SUMMARY.md`,
+  `ARCHITECTURE_AND_ROUTING.md` (module/script map), `EXPERIMENT_LEADERBOARD.md`
   (generated — never edit by hand), `sprint1/`, `sprint2/`, `sprint3/` write-ups.
-- `notebooks/` — one notebook per sprint; `sprint3_final.ipynb` is the final deliverable
-  (+ `archive/`, `exports/`).
+- `notebooks/` — one notebook per sprint, numbered in reading order (`01_`, `02_`, `03_`);
+  `03_sprint3_final.ipynb` is the final deliverable (+ `archive/` for superseded versions).
 
 ## Data
 
@@ -90,12 +91,15 @@ grouping; the CRM→BIL pack mapping is many-to-one.
 - **Training data corruption:** ~7–8% of train rows have randomly injected rare packs (CRM
   and BIL) and/or impossible one-hot categoricals (two statuses, value `0`). Drop rows that
   are not test-like or carry ≥ 4 rare packs before training.
-- **Final model** (in `notebooks/sprint3_final.ipynb`): per-label LightGBM on the raw 745 CRM
+- **Final model** (in `notebooks/03_sprint3_final.ipynb`): per-label LightGBM on the raw 745 CRM
   columns, unique configs + consensus labels, corrupted rows dropped, `min_child_samples=5`,
   `reg_lambda=1` (never 0 — rare columns blow up), threshold 0.5, **no additive rules**.
-  Clean-like val 96.79% / 96.30%; test 97.21% (benchmark ~98%). The Sprint 1 rules
-  (`additive_rules_v2.json`) add only +0.02 on validation and were mined on all of train, so
-  they were dropped; `scripts/train_final.py 4 5` still applies them (test 97.27%).
+  This is **Stage 1**: clean-like val 96.79% / 96.30%; test 97.21%. **Stage 2** (Steps 12–14):
+  class-weighted LightGBM specialists for the ~330 long-tail items (training OOF F1 < 0.5),
+  add-only, only for customers with ≥ 1 rare CRM pack: val 96.92% / 96.49%, 5-fold
+  96.99% ± 0.20, **test 97.51%**. The Sprint 1 rules (`additive_rules_v2.json`) add only +0.02
+  and were mined on all of train, so they were dropped; `scripts/train_final.py 4 5` still
+  applies them and has no Stage 2 (test 97.27%).
 - **The final notebook may read only `train.csv`, `test.csv` and `solution.csv`** (the
   professor's files; `solution.csv` only in the last scoring cell) and must not import from
   `src/` or `scripts/`. Earlier experiment results appear there as markdown tables.
@@ -123,6 +127,6 @@ grouping; the CRM→BIL pack mapping is many-to-one.
 
 | Sprint | Focus | Weight | Due | Status |
 |---|---|---|---|---|
-| 1 | Pre-processing (`notebooks/sprint1_preprocessing_v3.ipynb`) | 40% | 22/09/2026 | done |
-| 2 | Modeling (`notebooks/sprint2_modeling.ipynb`) | 30% | 29/09/2026 | done (executed with outputs) |
-| 3 | Optimization & Explainability | 30% | 06/10/2026 | done — `notebooks/sprint3_final.ipynb`: Sprints 1–3, professor's CSVs only, ~10 min run, test 97.21% |
+| 1 | Pre-processing (`notebooks/01_sprint1_preprocessing.ipynb`) | 40% | 22/09/2026 | done |
+| 2 | Modeling (`notebooks/02_sprint2_modeling.ipynb`) | 30% | 29/09/2026 | done (executed with outputs) |
+| 3 | Optimization & Explainability | 30% | 06/10/2026 | done — `notebooks/03_sprint3_final.ipynb`: Sprints 1–3, professor's CSVs only, ~25 min run, test 97.51% |

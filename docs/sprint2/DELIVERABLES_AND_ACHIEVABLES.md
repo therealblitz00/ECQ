@@ -18,7 +18,7 @@ Due 29/09/2026, 30% of grade.
 - [x] **Hybrid/lookup post-processing & threshold optimization for EMR** — exact lookup
       coverage, BR+LP snapping, 42 additive rules, thresholds 0.3–0.7, BR/chain blends,
       k-NN routing for rare-pack rows (E2-hyb*, E5*)
-- [x] **Clean, reproducible `notebooks/sprint2_modeling.ipynb`** — executed end to end
+- [x] **Clean, reproducible `notebooks/02_sprint2_modeling.ipynb`** — executed end to end
       with `jupyter nbconvert --execute --inplace`
 - [x] **Validated `data/derived/submission_sprint2.csv`** — 97,100 rows, `MSISDN` +
       `Bill_Conf` (731 chars of 0/1), unique MSISDN, zero NaNs (asserted in code)

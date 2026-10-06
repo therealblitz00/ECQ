@@ -11,7 +11,7 @@ changes about the next step.
 "exact-lookup EMR ceiling = 0.993" (`crm_bil_relationship_summary.csv`) is actually
 achievable at test time, since the brief's Exp 1 leans on it as a primary strategy.
 
-**Implementation:** Re-read Sprint 1 notebook cell 18 (`sprint1_preprocessing_v3.ipynb`,
+**Implementation:** Re-read Sprint 1 notebook cell 18 (`01_sprint1_preprocessing.ipynb`,
 §3), which directly measures how many test-set CRM configurations already appear in
 train.csv.
 

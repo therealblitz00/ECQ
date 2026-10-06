@@ -1,6 +1,6 @@
 # Executive summary — CRM → Billing configuration prediction
 
-Case Study I, Moodle section 8608. Final notebook: `notebooks/sprint3_final.ipynb`.
+Case Study I, Moodle section 8608. Final notebook: `notebooks/03_sprint3_final.ipynb`.
 
 ## The problem
 
@@ -104,7 +104,7 @@ corrected.
 
 | | |
 |---|---|
-| Final notebook (Sprints 1–3, runs on the professor's CSVs only) | `notebooks/sprint3_final.ipynb` |
+| Final notebook (Sprints 1–3, runs on the professor's CSVs only) | `notebooks/03_sprint3_final.ipynb` |
 | Sprint 3 audit trail, design choices, threats to validity | `docs/sprint3/SPRINT3_DIAGNOSTIC_LOG.md` |
 | Response to the mock jury review | `docs/sprint3/REVIEW_RESPONSE_AND_ROADMAP.md` |
 | Every experiment | `docs/EXPERIMENT_LEADERBOARD.md` |

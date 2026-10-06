@@ -1,6 +1,6 @@
 # Explaining Sections 11 and 12 to the teacher
 
-This is a talking-points document for `sprint1_preprocessing_v3.ipynb`, sections **11
+This is a talking-points document for `01_sprint1_preprocessing.ipynb`, sections **11
 (Alternative Multi-Label Preprocessing Pipeline — V2)** and **12 (Multi-Label Baseline
 Modeling Architecture & Post-Processing Reconstruction)**. Section 10 is our baseline,
 heuristic preprocessing pipeline; Section 11 is a second, more statistically-grounded

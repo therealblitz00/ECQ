@@ -30,7 +30,7 @@ benchmark. One entry per step: plan → what was run → what the data showed �
 | Step 3: same model, ~7% suspected-corrupted training rows removed | 96.57% / 96.15% | 97.04% |
 | **Step 4: + regularisation re-tuned on the clean data (`min_child_samples` 20 → 5)** | **96.81% / 96.33%** | **97.27%** |
 | Step 5: confident learning / repair / more capacity | none better beyond noise | — (not selected) |
-| **Step 8 — final model: Step 4 without the Sprint 1 additive rules** (`notebooks/sprint3_final.ipynb`, professor's CSVs only) | **96.79% / 96.30%** | **97.21%** |
+| **Step 8 — final model: Step 4 without the Sprint 1 additive rules** (`notebooks/03_sprint3_final.ipynb`, professor's CSVs only) | **96.79% / 96.30%** | **97.21%** |
 | Public benchmark (reported) | — | ~98% |
 
 **One-line story:** the training data contains rows into which random products were
@@ -144,16 +144,17 @@ The script reproduces the champion exactly (validation EMR 87.8411%).
 | 3 | 2026-10-02 | `exp7_drop_corrupted.py`, `diag3_remaining_errors.py`, `train_final.py 4` | Clean-like metric tracks test (95.9 vs 95.0). Dropping rows with ≥4 rare packs or invalid categoricals (7%): clean-like 96.57% / 96.15% (seeds 42/7). **Test 95.04% → 97.04%.** Remaining errors: 78% in rows with 1–2 rare packs, mostly missed items. | 96.57% clean-like (88.41% all) | Step 4 approved |
 | 4 | 2026-10-02 | `exp8_retune.py`, `exp9_rare_thresholds.py`, `train_final.py 4 5` | `min_child_samples` 20 → 5 on clean data: clean-like 96.81% / 96.33% (seeds 42/7). `reg_lambda=0` collapses (one rare column fires on 27% of rows). Rare-column thresholds: +0.07/+0.10, within noise, not adopted. **Test 97.04% → 97.27%.** | 96.81% clean-like (88.65% all) | Step 5 approved |
 | 5 | 2026-10-02 | `exp10_step5.py` | Confident learning −0.27 / −0.91, repair −0.26, capacity +0.06 (within noise) — mean over both seeds. None adopted; Step 4 model stays champion. Remaining errors look like an irreducible floor for this approach. | 96.81% clean-like (unchanged) | Step 6 agreed for next session |
-| 6 | 2026-10-03 | `explain_shap.py` | SHAP top driver = independent co-occurrence driver for 95.7% of clearly-linked columns. Concentration on one driver predicts F1 (Spearman +0.86): errors are on items with no clear CRM cause. No reliance on injected rare packs. Rare-product misses are "right cause, p ≈ 0.2". | 96.81% clean-like (frozen) | Final notebook built (`notebooks/sprint3_final.ipynb`) |
+| 6 | 2026-10-03 | `explain_shap.py` | SHAP top driver = independent co-occurrence driver for 95.7% of clearly-linked columns. Concentration on one driver predicts F1 (Spearman +0.86): errors are on items with no clear CRM cause. No reliance on injected rare packs. Rare-product misses are "right cause, p ≈ 0.2". | 96.81% clean-like (frozen) | Final notebook built (`notebooks/03_sprint3_final.ipynb`) |
 | 7 | 2026-10-04 | `exp11_count_features.py` | Teammate's MCA lead (+0.31 in Sprint 2 set-up) tested as plain basket-size counts on the current champion: +0.03 / −0.05 mean, within noise. Not adopted. | 96.81% clean-like (unchanged) | Champion unchanged |
-| 8 | 2026-10-04 | `notebooks/sprint3_final.ipynb` | Final notebook on the professor's CSVs only. Sprint 1 additive rules dropped (+0.02 on validation, within noise; mined on all of train). Test 97.21% (97.27% with rules, reported not used). | 96.79% clean-like | Final model |
+| 8 | 2026-10-04 | `notebooks/03_sprint3_final.ipynb` | Final notebook on the professor's CSVs only. Sprint 1 additive rules dropped (+0.02 on validation, within noise; mined on all of train). Test 97.21% (97.27% with rules, reported not used). | 96.79% clean-like | Final model |
 | 9 | 2026-10-04 | `review_checks.py`, `exp12_review_models.py` | Mock jury review answered: configuration-level uncertainty, paired tests, 5-fold CV (96.83% ± 0.20), baselines (LR 95.97%), error detection (83–92% of known errors by reviewing 2% of customers, ~40× random), test CI [97.11, 97.31]. Rare threshold real but +0.03 — not adopted. | 96.79% clean-like (unchanged) | Final model unchanged |
 | 10 | 2026-10-04 | `review_checks.py detect2`, `exp12_review_models.py lr` | Second review (80/100) answered: stale text fixed; detection stress-tested (seed 7 honest split 83% [73–92%]; synthetic 1–3-item errors ~92%, unique configurations ~80%); assumed-cost operating point 1.3–2.3%; tuned logistic regression within 0.15–0.23 pt of LightGBM. | 96.79% clean-like (unchanged) | Final model unchanged |
-| 11 | 2026-10-05 | `notebooks/sprint3_final.ipynb` | Pre-submission check: all 23 code cells ran in order, no errors, printed numbers match the text. Assumed-cost (EUR) operating point removed from the notebook and executive summary at the team's request: the costs were invented, so it adds nothing academically. | 96.79% clean-like (unchanged) | Final model unchanged; notebook ready to submit |
+| 11 | 2026-10-05 | `notebooks/03_sprint3_final.ipynb` | Pre-submission check: all 23 code cells ran in order, no errors, printed numbers match the text. Assumed-cost (EUR) operating point removed from the notebook and executive summary at the team's request: the costs were invented, so it adds nothing academically. | 96.79% clean-like (unchanged) | Final model unchanged; notebook ready to submit |
 | 12 | 2026-10-05 | `exp13_macro_f1.py` | Macro F1 0.535 / 0.520 is driven by ~280 items never predicted; their positives sit in rows with rare CRM packs (91–92% vs 7–8%) and no CRM column predicts them (residue of the injection). Thresholds tuned for F1 on OOF: macro F1 +0.008 to +0.012 but EMR −0.10 to −0.90 → rejected. Error-minimising lower-only thresholds (`thr-net`): macro F1 +0.0021 / +0.0009 (CI > 0), EMR +0.003 / +0.023 pt → passes the pre-set rule, tiny. | 96.79% / 96.30% clean-like (unchanged) | Awaiting team-lead decision |
 | 13 | 2026-10-05 | `exp14_longtail.py`, `exp14_groups.py`, `exp15_kfold_longtail.py` | Long-tail labels investigated structurally: label table + classification; Stage-2 cascade, label communities, CRM-pattern rules, targeted chain. Winner: class-weighted CRM specialists for the ~330 problem labels, add-only, only on rows with a rare CRM pack: macro F1 +0.0135 / +0.0145, EMR +0.12 / +0.19 pt (both significant). Context features (Stage-1 probs, communities) hurt; rule features tie; rule override negligible. | 96.92% / 96.49% clean-like (candidate); 5-fold 96.99% ± 0.18 vs 96.83% | Passes the adoption rule; awaiting team-lead decision |
-| 14 | 2026-10-05 | `notebooks/sprint3_final.ipynb` | Stage 2 (long-tail specialists, rare gate) added to the final notebook after team-lead approval; executed end to end (~25 min). Validation reproduces Step 13 exactly. **Test 97.21% → 97.51%** (+290 customers); test macro F1 0.70 → 0.77. | 96.92% clean-like (seed 42) | Final model |
-| 15 | 2026-10-06 | `notebooks/sprint3_final.ipynb` | Presentation only: markdown rewritten into 12 numbered chapters + 3 appendices (results, threats, glossary) with a linked table of contents; audit-level tables moved to Appendix A. Fixed a misplaced Business heading introduced in Step 14. Code cells, outputs and execution counts unchanged (verified). | unchanged | Submission-ready |
+| 14 | 2026-10-05 | `notebooks/03_sprint3_final.ipynb` | Stage 2 (long-tail specialists, rare gate) added to the final notebook after team-lead approval; executed end to end (~25 min). Validation reproduces Step 13 exactly. **Test 97.21% → 97.51%** (+290 customers); test macro F1 0.70 → 0.77. | 96.92% clean-like (seed 42) | Final model |
+| 15 | 2026-10-06 | `notebooks/03_sprint3_final.ipynb` | Presentation only: markdown rewritten into 12 numbered chapters + 3 appendices (results, threats, glossary) with a linked table of contents; audit-level tables moved to Appendix A. Fixed a misplaced Business heading introduced in Step 14. Code cells, outputs and execution counts unchanged (verified). | unchanged | Submission-ready |
+| 16 | 2026-10-06 | repository | Folder and file names tidied (notebooks numbered 01–03, brief moved to `docs/`, doc names made consistent), README / architecture / instructions updated, teammate's Sprint 1 re-run committed (same content, new row order). No code changed; all scripts compile, import and run. | unchanged | Repository ready for submission |
 
 ---
 
@@ -604,7 +605,7 @@ re-tested (code not available); the result above suggests their effect would als
 
 ## Step 8 — Final notebook on the professor's CSVs only; additive rules dropped
 
-Approved 2026-10-04. Notebook: `notebooks/sprint3_final.ipynb` (Sprints 1–3, ~10 minutes).
+Approved 2026-10-04. Notebook: `notebooks/03_sprint3_final.ipynb` (Sprints 1–3, ~10 minutes).
 
 **Requirement (team lead).** The final notebook must run on the files the professor gave —
 `train.csv`, `test.csv`, and `solution.csv` only to score the frozen model at the end — and
@@ -743,7 +744,7 @@ thresholds recomputed on the live CRM base, monitoring, retraining).
 
 ### 9.8 Notebook and documents
 
-`notebooks/sprint3_final.ipynb` gained:
+`notebooks/03_sprint3_final.ipynb` gained:
 - a glossary;
 - the injection crosstab and partner evidence;
 - EMR harshness;
@@ -852,7 +853,7 @@ links, judged by the same adoption rule.
 
 ## Step 11 — Pre-submission check; assumed-cost section removed
 
-2026-10-05. **Plan:** read `notebooks/sprint3_final.ipynb` end to end before submission and
+2026-10-05. **Plan:** read `notebooks/03_sprint3_final.ipynb` end to end before submission and
 remove the EUR operating point (Step 10), which the team judged unsuitable for an academic
 deliverable.
 
@@ -1155,7 +1156,7 @@ score (97.51%), with Stage 1 (97.21%) kept as a milestone.
 
 ## Step 15 — Final notebook restructured for submission
 
-2026-10-06. Presentation only. The markdown of `notebooks/sprint3_final.ipynb` was rewritten as
+2026-10-06. Presentation only. The markdown of `notebooks/03_sprint3_final.ipynb` was rewritten as
 a Kaggle-style deliverable: a title section with the result and a linked table of contents,
 12 numbered chapters (setup, data, validation, Sprint 2 model choice, Sprint 3 data audit,
 Stage 1, Stage 2, business use, explainability, final training, test results, conclusions),
@@ -1174,3 +1175,42 @@ sentences were removed from the notebook. Because the chart changed, the noteboo
 end to end: no errors, every result identical to the Step 14 run (test EMR 97.51%). Every
 number in the markdown was re-checked against the new outputs; one sentence was corrected (one
 test customer is not test-like, so "every test customer" became "all but one").
+
+---
+
+## Step 16 — Repository tidy-up
+
+2026-10-06. Requested by the team lead: commit everything, improve folder structure and names
+without breaking any code, update the README.
+
+**Renamed (with `git mv`, history kept).**
+
+| Before | After |
+|---|---|
+| `notebooks/sprint1_preprocessing_v3.ipynb` | `notebooks/01_sprint1_preprocessing.ipynb` |
+| `notebooks/sprint2_modeling.ipynb` | `notebooks/02_sprint2_modeling.ipynb` |
+| `notebooks/sprint3_final.ipynb` | `notebooks/03_sprint3_final.ipynb` |
+| `notebooks/archive/sprint1_preprocessing.ipynb` | `notebooks/archive/sprint1_preprocessing_v1.ipynb` |
+| `problem_description.md` (repo root, untracked) | `docs/PROBLEM_DESCRIPTION.md` |
+| `docs/sprint1/section11_12_explainer.md` | `docs/sprint1/SECTION11_12_EXPLAINER.md` |
+| `docs/sprint2/sprint2_model_candidates.md` | `docs/sprint2/MODEL_CANDIDATES.md` |
+
+Every reference in the Markdown files was updated, including earlier entries of this log
+(path text only). **Kept on purpose:** script names (imported by other scripts and by the
+Sprint 2 notebook, and cited throughout this log) and `data/derived/` file names (read and
+written by code inside the Sprint 1 and 2 notebooks). Notebooks resolve paths relative to
+`notebooks/`, so renaming them inside that folder changes nothing.
+
+**Checks.** All of `src/` and `scripts/` compile; every script with a main guard imports;
+`exp14_groups.py` and `exp14_longtail.py compare 42` were run and reproduce their Step 13
+numbers.
+
+**Teammate's Sprint 1 re-run committed.** The re-executed Sprint 1 notebook and the ten
+regenerated `data/derived/` files were compared with the committed versions: same rows and
+values, only the row order differs (the additive rules have identical triggers).
+
+**Docs.** `README.md` rewritten (final result, chaptered notebook, layout, how to reproduce
+Steps 12–13); `docs/ARCHITECTURE_AND_ROUTING.md` updated (tree, Stage 2, exp13–15);
+`CLAUDE.md` updated (paths, Stage 2 as the final model). Note: `scripts/make_leaderboard.py`
+rebuilds the leaderboard from the local `data/cache/results.jsonl`; this machine's cache was
+rebuilt in Step 12 and holds only the E13–E14 runs, so the leaderboard was not regenerated.

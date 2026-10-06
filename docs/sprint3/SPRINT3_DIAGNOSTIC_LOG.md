@@ -153,6 +153,7 @@ The script reproduces the champion exactly (validation EMR 87.8411%).
 | 12 | 2026-10-05 | `exp13_macro_f1.py` | Macro F1 0.535 / 0.520 is driven by ~280 items never predicted; their positives sit in rows with rare CRM packs (91–92% vs 7–8%) and no CRM column predicts them (residue of the injection). Thresholds tuned for F1 on OOF: macro F1 +0.008 to +0.012 but EMR −0.10 to −0.90 → rejected. Error-minimising lower-only thresholds (`thr-net`): macro F1 +0.0021 / +0.0009 (CI > 0), EMR +0.003 / +0.023 pt → passes the pre-set rule, tiny. | 96.79% / 96.30% clean-like (unchanged) | Awaiting team-lead decision |
 | 13 | 2026-10-05 | `exp14_longtail.py`, `exp14_groups.py`, `exp15_kfold_longtail.py` | Long-tail labels investigated structurally: label table + classification; Stage-2 cascade, label communities, CRM-pattern rules, targeted chain. Winner: class-weighted CRM specialists for the ~330 problem labels, add-only, only on rows with a rare CRM pack: macro F1 +0.0135 / +0.0145, EMR +0.12 / +0.19 pt (both significant). Context features (Stage-1 probs, communities) hurt; rule features tie; rule override negligible. | 96.92% / 96.49% clean-like (candidate); 5-fold 96.99% ± 0.18 vs 96.83% | Passes the adoption rule; awaiting team-lead decision |
 | 14 | 2026-10-05 | `notebooks/sprint3_final.ipynb` | Stage 2 (long-tail specialists, rare gate) added to the final notebook after team-lead approval; executed end to end (~25 min). Validation reproduces Step 13 exactly. **Test 97.21% → 97.51%** (+290 customers); test macro F1 0.70 → 0.77. | 96.92% clean-like (seed 42) | Final model |
+| 15 | 2026-10-06 | `notebooks/sprint3_final.ipynb` | Presentation only: markdown rewritten into 12 numbered chapters + 3 appendices (results, threats, glossary) with a linked table of contents; audit-level tables moved to Appendix A. Fixed a misplaced Business heading introduced in Step 14. Code cells, outputs and execution counts unchanged (verified). | unchanged | Submission-ready |
 
 ---
 
@@ -1149,3 +1150,27 @@ was frozen and was not used to choose anything.
 
 **Docs.** `README.md` and `docs/EXECUTIVE_SUMMARY.md` updated on 2026-10-06 to the final test
 score (97.51%), with Stage 1 (97.21%) kept as a milestone.
+
+---
+
+## Step 15 — Final notebook restructured for submission
+
+2026-10-06. Presentation only. The markdown of `notebooks/sprint3_final.ipynb` was rewritten as
+a Kaggle-style deliverable: a title section with the result and a linked table of contents,
+12 numbered chapters (setup, data, validation, Sprint 2 model choice, Sprint 3 data audit,
+Stage 1, Stage 2, business use, explainability, final training, test results, conclusions),
+and three appendices (full experiment tables, threats to validity, glossary). Detailed tables
+and paired tests moved from the main text to Appendix A.
+
+Also fixed: in Step 14 the Stage 2 cells were inserted after a markdown cell that also held the
+start of the Business section, so the Business heading appeared before Stage 2.
+
+All 25 code cells, their outputs and execution counts are byte-identical to the Step 14 run
+(checked programmatically), so no re-run was needed.
+
+**Public benchmark removed** (2026-10-06, team-lead request): the benchmark row, the
+gap-to-benchmark print, the dashed benchmark line in the milestone chart and the related
+sentences were removed from the notebook. Because the chart changed, the notebook was re-run
+end to end: no errors, every result identical to the Step 14 run (test EMR 97.51%). Every
+number in the markdown was re-checked against the new outputs; one sentence was corrected (one
+test customer is not test-like, so "every test customer" became "all but one").

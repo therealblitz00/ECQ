@@ -155,6 +155,10 @@ The script reproduces the champion exactly (validation EMR 87.8411%).
 | 14 | 2026-10-05 | `notebooks/03_sprint3_final.ipynb` | Stage 2 (long-tail specialists, rare gate) added to the final notebook after team-lead approval; executed end to end (~25 min). Validation reproduces Step 13 exactly. **Test 97.21% → 97.51%** (+290 customers); test macro F1 0.70 → 0.77. | 96.92% clean-like (seed 42) | Final model |
 | 15 | 2026-10-06 | `notebooks/03_sprint3_final.ipynb` | Presentation only: markdown rewritten into 12 numbered chapters + 3 appendices (results, threats, glossary) with a linked table of contents; audit-level tables moved to Appendix A. Fixed a misplaced Business heading introduced in Step 14. Code cells, outputs and execution counts unchanged (verified). | unchanged | Submission-ready |
 | 16 | 2026-10-06 | repository | Folder and file names tidied (notebooks numbered 01–03, brief moved to `docs/`, doc names made consistent), README / architecture / instructions updated, teammate's Sprint 1 re-run committed (same content, new row order). No code changed; all scripts compile, import and run. | unchanged | Repository ready for submission |
+| 17 | 2026-10-07 | `diag4_unbilled_crm.py` | Professor's hint: employees added CRM packs without the matching billing. Model-free check on 293 billable CRM packs: 16,237 customers (8.7% of train) carry ≥ 1 CRM pack whose billing items are all missing; 1,333 with billing otherwise unchanged. Flag count per pack is near-constant (179 ± 32) whatever the pack size (41–48,939 rows) → the "corrupted rows" dropped in Step 3 are these customers (12,135 of 13,131 dropped rows flagged), plus 4,102 kept rows. | unchanged | Reported; next step pending |
+| 18 | 2026-10-07 | `diag5_counterfactual.py` | Model-based check (Stage 1, 5-fold out-of-fold; each active CRM pack switched 1 → 0): 12,249 customers have a CRM pack whose removal explains missing billing without breaking anything; 70.5% of Step 17's customers confirmed, 11,450 found by both. Synthetic added packs that change the expected billing are found 99.4% of the time, but only 10% of uniformly random packs change it. Same high-rate packs as Step 17 (7 of top 15); no single targeted pack (`CRM_1553_PACK` outlier = Barring/Suspend status rule). | unchanged (OOF 95.18% vs raw billing on kept rows) | Reported; next step pending |
+| 19 | 2026-10-07 | `diag6_crm_only_detector.py` | CRM-only detector (LightGBM on CRM, labels = Steps 17–18 agreement) so test can be scored without billing. Train out-of-fold AUC 0.995 / AP 0.977 (rare-pack count alone: AP 0.930); kept rows AP 0.82 vs 0.41; kept rows with no rare pack AP 0.05 (undetectable from CRM). Test: 77 of 97,100 customers flagged (0.08%) vs 8.27% of train → test looks clean, as the brief says. | unchanged | Reported; next step pending |
+| 20 | 2026-10-07 | `fraud_report.py` | Steps 17–19 consolidated (English): 17,036 suspected train customers (9.1%): high 11,450 (both methods), medium 3,359, low 2,227 (one method, non-Active status). Column table by rate and count: `CRM_1621_PACK` 70% of its customers; counts flat (~150–180 for the most affected packs). 77 test customers flagged CRM-only. Write-up: `docs/sprint3/FRAUD_DETECTION.md`. | unchanged | Deliverable ready; notebook chapter pending approval |
 
 ---
 
@@ -1214,3 +1218,200 @@ Steps 12–13); `docs/ARCHITECTURE_AND_ROUTING.md` updated (tree, Stage 2, exp13
 `CLAUDE.md` updated (paths, Stage 2 as the final model). Note: `scripts/make_leaderboard.py`
 rebuilds the leaderboard from the local `data/cache/results.jsonl`; this machine's cache was
 rebuilt in Step 12 and holds only the E13–E14 runs, so the leaderboard was not regenerated.
+
+---
+
+## Step 17 — "One CRM pack too many, same billing": the dropped rows as the fraud signal
+
+2026-10-07. **New information from the professor:** the case is a Sport TV-type operator
+that suspects employees changed customers' CRM packs so they get a service cheaper or free:
+the CRM shows a pack (e.g. a more expensive one) but the billing was not changed. One goal is
+to list those customers and the CRM columns where it happens most. The rows dropped as
+"noise" in Step 3 may carry exactly this signal.
+
+**Plan.** Model-free diagnostic on `train.csv` only (no test labels, no `solution.csv`):
+1. Billing map from the kept rows (test-like, < 4 rare packs): CRM pack *p* is billed as BIL
+   item *b* if P(b | p) ≥ 0.8 and lift ≥ 3 (packs with ≥ 30 kept rows). 293 of 495 such
+   packs have at least one billing item ("billable").
+2. Flag (customer, *p*) when *p* is active and **all** of *p*'s billing items are 0.
+3. Reverse direction: "orphan" billing items (billed, but no CRM pack that is billed as them).
+4. Confirmation by lookup: the configuration without *p* exists in train and has the same
+   billing.
+
+**Results.**
+
+| | Kept rows | Dropped rows (Step 3) | Total |
+|---|---|---|---|
+| Customers with ≥ 1 unbilled CRM pack | 4,102 (2.4%) | 12,135 (92.4%) | **16,237 (8.7%)** |
+| … and no orphan billing item ("CRM extra, billing unchanged") | 751 | 582 | **1,333** |
+| … and orphan billing items too ("CRM extra + billing extra") | 3,351 | 11,553 | 14,904 |
+
+- **Uniform across packs.** Each billable CRM pack is unbilled in 179 ± 32 customers
+  (range 104–241), whether the pack has 41 or 48,939 customers (quintile means 182, 172, 171,
+  174, 196). A real billing exception would scale with how common the pack is; a constant
+  count means the same number of customers was altered for every pack. In rate terms the
+  "most affected" columns are therefore the least common packs (e.g. `CRM_1790_PACK`,
+  `CRM_2174_PACK`, `CRM_2178_PACK`: ~18% of their kept customers, ~85–95% of their dropped
+  ones). Full table: `data/derived/unbilled_crm_pack_rates.csv`.
+- **Additions, not swaps.** CRM and BIL pack counts per row both grow by ~1.4 per rare pack
+  (11.4 / 10.8 with none → 17.6 / 17.6 with four), so packs were added on both sides; the
+  added billing items are unrelated to the added CRM packs (Step 2).
+- **Lookup confirmation is rare** (28 of 52,474 flags): configurations almost never repeat
+  once a pack is removed, so the lookup cannot confirm or refute most flags.
+- **Coverage limit.** Only the 293 billable packs can be checked; packs with < 30 clean rows
+  or with no consistent billing item cannot be tested this way.
+
+**Interpretation.** The Step 3 "corruption" is mostly the professor's fraud pattern: 92% of
+the dropped rows have at least one CRM pack with no billing. Dropping them was right for
+predicting the *correct* billing, but they are the answer to the detection question. A
+further 4,102 kept customers show the same pattern with fewer added packs, so they stayed
+in training.
+
+**Outputs.** `data/derived/unbilled_crm_customers.csv` (one line per customer: MSISDN,
+unbilled CRM packs, orphan billing items, pattern, kept/dropped),
+`unbilled_crm_suspects.csv` (customer × pack), `unbilled_crm_pack_rates.csv` (per pack).
+
+**Decision.** Reported to the team; next step pending.
+
+---
+
+## Step 18 — Model-based check: switch each CRM pack off and compare with the billing
+
+2026-10-07. Approved after Step 17. Script: `scripts/sprint3/diag5_counterfactual.py`
+(~19 min; `quick` argument = 20k-row smoke test).
+
+**Plan.** Step 17 only covers packs with one clear billing item. Here the Stage 1 model
+supplies the expected billing of any CRM configuration.
+1. Out-of-fold predictions for every train row: 5-fold GroupKFold on the CRM configuration;
+   each fold's model is trained on the kept rows (unique configs, consensus labels,
+   `min_child_samples=5`, `reg_lambda=1`) of the other folds.
+2. For each customer with *missing billing* (item predicted 1, billed 0) and each active CRM
+   pack *p*: predict again with *p* = 0. *p* is a **culprit** if this removes at least one
+   missing item and creates no new disagreement. All culprits are then removed together; if
+   the prediction equals the actual billing exactly → **"billing unchanged" (model-verified)**.
+3. Score = highest predicted probability among the missing items a culprit explains.
+4. Synthetic check: 5,000 clean rows the model gets exactly right (1,000 per fold), one
+   random CRM pack added, billing kept.
+
+**Results.**
+
+| | Kept rows | Dropped rows | Total |
+|---|---|---|---|
+| Customers with ≥ 1 culprit CRM pack | 2,475 | 9,774 | **12,249 (6.5%)** |
+| … billing unchanged once culprits are removed | 290 | 22 | 312 |
+| … also flagged in Step 17 | 2,011 | 9,439 | **11,450** |
+
+- Out-of-fold Stage 1 on kept rows: 95.18% exact vs raw billing, 95.76% vs consensus.
+- **Agreement with Step 17:** 70.5% of Step 17's 16,237 customers are confirmed. The rest
+  mostly carry many added packs, so removing one pack also changes something else, and the
+  "no new disagreement" condition fails. 799 customers are new (packs without one clear
+  billing item).
+- **Synthetic check:** when the added pack changes the expected billing (10.4% of random
+  packs), the detector flags the customer 99.4% of the time and names the added pack 99.4%
+  of the time; verdict "billing unchanged" 97.7%. When it does not (89.6%), the pack has no
+  billing the model has learned (mostly very rare packs), so it cannot be detected from billing
+  at all.
+- **Columns.** By count, the very common packs lead (`CRM_1529_PACK` 1,507 customers, 0.3% of
+  its rows) because they appear in most heavy rows. By rate, the leaders are the same less
+  common packs as in Step 17: 7 of the top 15 coincide (`CRM_1667`, `1692`, `1720`, `1776`,
+  `1798`, `1842`, `2174`; 4–9% of their kept customers). Full table:
+  `data/derived/fraud_model_packs.csv`.
+- **Checked and rejected as a target:** `CRM_1553_PACK` holds 122 of the 312 "billing
+  unchanged" customers (missing `BIL_3762_PACK`, billed for 99.7% of its customers). Without
+  the lift filter, common packs show hundreds to thousands of such misses (e.g.
+  `CRM_2087_PACK` → `BIL_3744_PACK`: 2,503), and the 1553 cases are mostly Barring/Suspend
+  customers (56% vs 23% among all 1553 customers with no rare pack) → a status-dependent
+  billing rule the model misses, not an alteration.
+
+**Interpretation.** Two independent methods (data rule, model counterfactual) agree on
+11,450 customers. The altered packs are spread evenly across the catalogue, with no single
+favoured pack, so the "most affected columns" are best reported as a rate: the less common
+packs, where the same ~180 altered customers are a large share. Detection is limited to
+packs that have a billing footprint.
+
+**Outputs.** `data/derived/fraud_model_customers.csv` (per customer: MSISDN, score, culprit
+packs, missing billing, billing-unchanged flag, Step 17 overlap), `fraud_model_packs.csv`
+(per pack); out-of-fold probabilities in `data/cache/proba_fraud_oof.npy`.
+
+**Decision.** Reported to the team; next step pending.
+
+---
+
+## Step 19 — CRM-only detector: learning on train, scoring test
+
+2026-10-07. Approved. Script: `scripts/sprint3/diag6_crm_only_detector.py` (~4.5 min).
+**Disclosure:** uses `test.csv` inputs only (no billing, no `solution.csv`).
+
+**Why.** Fraud is defined by CRM vs billing, and test has no billing. The question is
+whether an altered customer can be recognised from the CRM alone, so test can be scored.
+
+**Plan.** Labels from Steps 17–18 on train: positive = flagged by both methods (11,450),
+negative = flagged by neither (170,406), flagged by one only = ambiguous (5,586, not used for
+training). One LightGBM classifier on the 745 CRM columns + number of rare packs + number of
+packs; 5-fold GroupKFold on the CRM configuration; threshold = best F1 out-of-fold. Per
+customer, the active CRM pack with the largest positive contribution (`pred_contrib`) is
+reported as the suspected pack.
+
+**Results (train, out-of-fold).**
+
+| Rows | Positives | AUC | Average precision | Baseline: # rare packs (AP) |
+|---|---|---|---|---|
+| All labelled | 11,450 | 0.995 | **0.977** | 0.930 |
+| Kept rows (lightly altered) | 2,011 | 0.973 | **0.822** | 0.409 |
+| Kept rows with no rare pack | 173 | 0.760 | 0.053 | — |
+
+- Threshold 0.475: precision 0.95, recall 0.94 overall; on kept rows precision 0.86, recall
+  0.72; 74% of the ambiguous customers score above it.
+- The suspected pack matches a pack named by Steps 17–18 for 70% of positives.
+- **Limit:** an added *common* pack leaves no trace in the CRM (AP 0.05). Only unusual packs
+  or combinations can be seen without billing.
+
+**Results (test).** 77 of 97,100 customers above the threshold (**0.08%**, vs 8.27% of train
+and 1.68% of kept train rows); 99th percentile score 0.085 (train 0.999). This agrees with
+the brief: the test pairs are the correct ones. The flagged test customers are mostly
+legitimate holders of a rare product that the detector associates with alteration: e.g.
+`CRM_2205_PACK` (11 of the 77) is in 223 train rows, only 48 of them kept, so in train it
+is mostly seen on altered customers.
+
+**Outputs.** `data/derived/fraud_crm_only_test_scores.csv` (test: MSISDN, score, flag,
+suspected pack), `fraud_crm_only_train_oof.csv` (train: label, out-of-fold score, suspected pack).
+
+**Decision.** Reported to the team; next step pending.
+
+---
+
+## Step 20 — Consolidated fraud deliverable
+
+2026-10-07. Approved, to be written in English. Script: `scripts/sprint3/fraud_report.py`
+(~10 s; reads the outputs of Steps 17–19). Write-up: `docs/sprint3/FRAUD_DETECTION.md`.
+
+**Plan.** One customer list with confidence levels, one column table, one test list.
+- **High:** flagged by both methods (Steps 17 and 18).
+- **Medium:** one method, CRM status Active.
+- **Low:** one method, status not Active. The billing may depend on the status (Step 18,
+  `CRM_1553_PACK`).
+- **Altered packs:** the packs named by both methods when they overlap, otherwise the packs
+  named by the one method.
+
+**Results.**
+
+| Confidence | Customers | Kept for training | Dropped in Step 3 |
+|---|---|---|---|
+| High | 11,450 | 2,011 | 9,439 |
+| Medium | 3,359 | 1,676 | 1,683 |
+| Low | 2,227 | 879 | 1,348 |
+| **Total** | **17,036 (9.1%)** | 4,566 | 12,470 |
+
+- High confidence: 5,275 customers with one altered pack, 744 with six or more; 701 with
+  billing otherwise exactly unchanged.
+- Low-confidence statuses: Barring 690, Block 1-way 513, Block 2-way 280, Suspend 240.
+- **Columns:** 723 CRM packs have at least one suspected customer (median 15). By rate:
+  `CRM_1621_PACK` 69.7%, `CRM_1773_PACK` 48.8%, `CRM_1816_PACK` 48.2%, `CRM_1738_PACK` 47.1%,
+  `CRM_1700_PACK` 46.2%. By count: very common packs lead (`CRM_1529_PACK` 183 of 97,476).
+- **Test:** 77 customers flagged by the CRM-only detector (Step 19), not confirmed.
+
+**Outputs.** `data/derived/fraud_customers_train.csv`, `fraud_columns.csv`,
+`fraud_test_flagged.csv`.
+
+**Decision.** Deliverable ready. Adding a "Fraud detection" chapter to
+`notebooks/03_sprint3_final.ipynb` needs explicit approval (working rules).

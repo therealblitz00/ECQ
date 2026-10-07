@@ -1,0 +1,5 @@
+# Python 3.10 or newer. Install with: pip install -r requirements.txt
+# (or just double-click 1_setup_windows.bat / 1_setup_mac.command)
+pandas>=2.0
+pyarrow>=14
+pillow>=10

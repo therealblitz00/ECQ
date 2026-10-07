@@ -1,0 +1,12 @@
+# Keep line endings right for each OS's scripts
+*.bat      text eol=crlf
+*.command  text eol=lf
+*.sh       text eol=lf
+*.py       text eol=lf
+*.md       text eol=lf
+# Data and images are binary / not to be normalised
+*.csv      -text
+*.jpg      binary
+*.jpeg     binary
+*.png      binary
+*.parquet  binary

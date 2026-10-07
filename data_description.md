@@ -191,7 +191,7 @@ These columns are empty or constant and can be dropped:
 | Naming | `<last part of PROG_IMAGE>.<ext>`, e.g. `PROG_IMAGE = /241/52/218792_PM_1` → `218792_PM_1.jpg` |
 | Link to items | Take the file stem (name without extension) of `PROG_IMAGE` and match it to the file name, ignoring the extension. Do **not** build file names from `PROD_CLR`: some are irregular (`2089811OW_1`, `140428CT__1`, `225874_1`) |
 
-**Coverage (colourway level):** 9,449 of 10,555 colourways (89.5%) have an image file.
+**Coverage (colourway level):** 9,455 of 10,555 colourways (89.6%) have an image file.
 
 | Category | With image |
 |---|---|

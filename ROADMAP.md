@@ -2,9 +2,36 @@
 
 **Goal:** for each product colourway (`PROD_CLR_EQUIV`), return at least 4 similar products and explain why each one matches (visual and categorical reasons), so commercial buyers can check the result.
 
-**Working model:** AI coding agents do the work, in small tasks that each have a clear owner. A human reviews and merges every task. See [§ How agents should work](#how-agents-should-work).
+**Team:** 4 members plus AI coding agents. Agents do the work in small tasks, each with a clear owner, and a human reviews and merges every task. See [§ How agents should work](#how-agents-should-work).
 
-**Related docs:** `problem_description.md` (the brief) and `data_description.md` (data dictionary and data-quality notes).
+**Repository:** branch [`parfois`](https://github.com/therealblitz00/ECQ/tree/parfois) of `therealblitz00/ECQ`. Setup for Windows and Mac is in `README.md`.
+
+**Related docs:** `problem_description.md` (the brief), `data_description.md` (data dictionary and data-quality notes), `SPRINT1_GUIDE.md` (how to do the Sprint 1 review).
+
+---
+
+## Status (last updated 2026-10-07)
+
+| Sprint | Roadmap phases | Status |
+|---|---|---|
+| **Sprint 1: data cleaning and validation** | 0 (partly), 1 (partly), 1b (rule-based part and human review) | 🟡 **In progress**: automatic checks done, 4-way manual review under way |
+| Sprint 2: features | 1 (rest), 1b (CLIP pre-screen), 2a, 2b | ⚪ Not started |
+| Sprint 3: similarity and evaluation | 3, 4 | ⚪ Not started |
+| Sprint 4: explanations and delivery | 5, 6 | ⚪ Not started |
+
+**Done in Sprint 1 so far:**
+- `src/sprint1_preprocess.py` with three commands: `check` (automatic checks), `batch` (a deterministic, balanced 4-way review split with HTML review pages) and `merge` (applies the review decisions and logs every change).
+- Automatic check results (`outputs/sprint1/check_report.md`):
+  - no duplicate keys, and every sales row joins to a product;
+  - 4 high-priority issues (invalid image path, corrupt image, 2 type conflicts between description and family);
+  - 296 medium-priority items (252 generic images, 100 shared images, 25 descriptions without the colour, 3 images in another category's folder);
+  - 1,100 colourways without an image.
+- Repository, `requirements.txt` and double-click setup/review/merge scripts for Windows and Mac.
+
+**Next:**
+1. Team calibration: all 4 members review the same ~40 flagged items and compare decisions.
+2. Each member reviews their batch and commits their CSV. Then run `merge`, which produces `data/processed/items_clean.parquet`, the Sprint 1 deliverable.
+3. *(Recommended before or during the review)* CLIP pre-screen (Phase 1b) to rank images that probably show the wrong product type, which the rule-based checks cannot see.
 
 ---
 
@@ -35,8 +62,8 @@
 | Phase | Outcome | Depends on | Can run in parallel with |
 |---|---|---|---|
 | 0. Setup | Repo, environment, conventions, `CLAUDE.md` | – | – |
-| 1. Data foundation | Clean colourway-level table (`items.parquet`) | 0 | 2a |
-| 1b. Image audit | Image↔item link, mismatch flags (`image_audit.parquet`) | 1 | 2a |
+| 1. Data foundation | Clean colourway-level table (`items_clean.parquet`) | 0 | 2a |
+| 1b. Image audit | Image↔item link, mismatch flags, human review | 1 | 2a |
 | 2a. Tabular/text features | Categorical, numeric and text embeddings | 1 | 1b, 2b |
 | 2b. Visual features | Image embeddings and colour palettes | 1b | 2a |
 | 3. Similarity engine | Top-k retrieval combining the blocks, with candidate filtering | 2a (2b optional at first) | – |
@@ -51,49 +78,66 @@
 
 ## Phase 0: Setup
 
-- [ ] Project layout:
+- [x] Git repository: branch `parfois`, with data, docs and `.gitattributes` for Windows and Mac line endings.
+- [x] Python environment: `.venv` + `requirements.txt` (pandas, pyarrow, pillow), created by `1_setup_windows.bat` / `1_setup_mac.command`.
+- [x] `README.md` with a quick start for Windows and Mac.
+- [ ] Project layout for the next sprints:
   ```
   data/csv/          # original CSVs (read-only)
   data/images/       # product images, 9,496 files (read-only)
-  data/processed/    # parquet outputs of each phase
-  src/parfois_sim/   # package: data/, features/, retrieval/, explain/, eval/
+  data/processed/    # parquet outputs of each phase (not in git)
+  src/               # sprint1_preprocess.py now; later a package: features/, retrieval/, explain/, eval/
   notebooks/         # exploration only, never imported
   tests/
   outputs/
   ```
-- [ ] Python environment (`uv` or `venv` + `pyproject.toml`), pinned dependencies: pandas, pyarrow, scikit-learn, numpy, sentence-transformers / open_clip, faiss-cpu (optional), pytest.
+- [ ] Add packages as phases need them: scikit-learn, numpy, sentence-transformers / open_clip, faiss-cpu (optional), pytest.
 - [ ] `CLAUDE.md` with the project conventions agents must follow: data contracts, "never edit `data/csv` or `data/images`", how to run the tests, code style.
-- [ ] Git repository with CI that runs `pytest` and a linter.
+- [ ] CI that runs `pytest` and a linter.
 
 **Done when:** `pytest` passes on an empty test suite, and an agent can read `CLAUDE.md` and work out where to put new code.
 
 ## Phase 1: Data foundation
 
-- [ ] Loader with explicit encoding handling (fixes the `�` characters), date parsing for all three date formats, and whitespace stripping.
+- [x] Loader: UTF-8, whitespace and non-breaking-space (`\xa0`) cleanup, `COMPOSITION` split into `;`-separated materials (`sprint1_preprocess.py`). *The `�` characters reported earlier were a terminal display issue, not a data problem.*
+- [ ] Date parsing for all three date formats.
 - [ ] Drop the empty, constant and duplicate columns (list in `data_description.md` §3.3).
 - [ ] Treat placeholders (`UNDEFINED`, `Not Applicable`, `Without Block`, `Others`) as missing values.
 - [ ] Normalise casing (`THEME`, `L1_DES`…) and tokenise `COMPOSITION` into a list of materials.
-- [ ] **Collapse to colourway level** (`PROD_CLR_EQUIV`): check that the attributes are constant within each group, and keep the list of sizes as an attribute.
-- [ ] Left-join the sales data and add `log_sales_qty` and `realised_price` (guarding against division by zero).
-- [ ] Link each colourway to its image: take the stem of the last part of `PROG_IMAGE` and match it to a file stem in `data/images/` (89.5% coverage). Store `image_file` and `has_image`.
+- [x] **Collapse to colourway level** (`PROD_CLR_EQUIV`), with the list of sizes and a size-free description (`PROD_DES_BASE`).
+- [ ] Check that the attributes are constant within each colourway.
+- [x] Left-join the sales data.
+- [ ] Add `log_sales_qty` and `realised_price` (guarding against division by zero).
+- [x] Link each colourway to its image: take the stem of the last part of `PROG_IMAGE` and match it to a file stem in `data/images/` (9,455 / 10,555 = 89.6% coverage). Stored as `img_file` and `has_image`.
+- [x] Missing-value and duplicate reports (`outputs/sprint1/`).
+- [ ] Apply the Sprint 1 review decisions (`merge`): fixes, dropped images, discarded items.
 
-**Output:** `data/processed/items.parquet`, with one row per colourway (about 10,555 rows).
-**Done when:** tests check that the key is unique, all sales rows are joined, there are no `�` characters, and the row count is stable.
+**Output:** `data/processed/items_clean.parquet`, with one row per colourway (about 10,555 rows, minus discarded items).
+**Done when:** the review is merged, and tests check that the key is unique, all sales rows are joined and the row count is stable.
 
 ## Phase 1b: Image audit and label consistency
 
 Some images don't match their row (e.g. the row says necklace, the image shows earrings). This phase finds them **before** visual features are trusted. Details and first findings are in `data_description.md` §5.
 
+**Done in Sprint 1 (rule-based, `sprint1_preprocess.py check`):**
+- [x] Path validity, missing files and corrupt files.
+- [x] Image file name vs model (`PROD_REF`), colour code (`CLR_COD`) and category folder.
+- [x] Generic images (no colour in the file name).
+- [x] Images shared across colours or models (by path and by MD5 hash).
+- [x] Colour code ↔ colour name ↔ description, and description type ↔ family (`GFA_DES_EN`).
+- [ ] Human review of all images in 4 batches (`SPRINT1_GUIDE.md`) → merge.
+
+**Still to do (vision model):**
 - [ ] **Install the vision stack:** `torch` (CPU) and `open_clip_torch`, or `transformers`. There is no GPU, so CLIP ViT-B/32 on CPU will take roughly 10–30 minutes for 9.4k images. Cache the embeddings to disk once and reuse them in Phase 2b.
 - [ ] **Type check (zero-shot):** classify each image against text prompts for every `GFA_DES_EN` in its category, and also across categories (*"a photo of earrings"*, *"a photo of a necklace"*…). Flag the item when the label's probability is low **and** another class wins by a clear margin.
 - [ ] **Neighbourhood check:** in CLIP image space, flag items whose k nearest visual neighbours mostly have a different `GFA_DES_EN`. This catches mismatches that the prompts miss.
 - [ ] **Colour check:** compare the dominant colour (LAB k-means, background removed) with `CLR_DES`. Skip multicolour, gold and silver labels, which are too ambiguous.
-- [ ] **Duplicate check:** exact hashes (already found 20 groups / 40 files) plus near-duplicate perceptual hashes (pHash). Classify each group as same item re-coded (fine), same photo for different colours (colour unreliable) or different models (wrong item).
+- [ ] **Near-duplicate check:** perceptual hashes (pHash) on top of the exact hashes already done. Classify each group as same item re-coded (fine), same photo for different colours (colour unreliable) or different models (wrong item).
 - [ ] **Quality check:** not a white-background packshot, very small, or several items in one picture.
 - [ ] **Human validation:** review the top ~150 flags in a contact sheet (image + label) and record precision. Adjust the thresholds.
-- [ ] **Decision per item:** `ok` / `type_mismatch` / `colour_unreliable` / `wrong_item` / `low_quality` / `missing`, with a confidence score. Never relabel automatically.
+- [ ] **Decision per item:** made by the reviewers (`ok` / `fix` / `drop_image` / `discard` / `team_review`). Never relabel automatically.
 
-**Output:** `data/processed/image_audit.parquet` and `outputs/image_audit_report.md` (counts per type and category, plus a contact sheet of examples).
+**Output:** a CLIP mismatch score per item added to the review files, plus `outputs/image_audit_report.md`. The final status per item comes from the human review (`review_status` in `items_clean.parquet`).
 **Done when:** every colourway has an audit status, and the manual precision of the flags is at least 80% on the review sample.
 **Use downstream:** Phase 2b only embeds `ok` images (and `colour_unreliable` images, for shape only). Phase 3 falls back to tabular data for everything else. Phase 6 delivers the flag list to the business as a data-quality result in its own right.
 
@@ -163,6 +207,7 @@ There is no labelled ground truth, so combine several signals:
 
 We don't need a MAS framework to build this. The lead (a human or a main Claude session) sends off tasks and reviews the results.
 
+0. **Humans vs agents:** the 4 team members own decisions and the manual review. Agents write and test the code for each checklist item.
 1. **One task = one checklist item** above, with a clear input, an output file, and tests that define "done".
 2. **Data contracts:** phases only talk to each other through files in `data/processed/` whose schemas are documented. An agent working on Phase 3 should never need to read Phase 1 code.
 3. **Tasks that can run in parallel:** 1b ∥ 2a, 2a ∥ 2b, and 4 ∥ 5. Give each agent its own branch or worktree.

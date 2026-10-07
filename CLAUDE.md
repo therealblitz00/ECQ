@@ -129,4 +129,4 @@ grouping; the CRM→BIL pack mapping is many-to-one.
 |---|---|---|---|---|
 | 1 | Pre-processing (`notebooks/01_sprint1_preprocessing.ipynb`) | 40% | 22/09/2026 | done |
 | 2 | Modeling (`notebooks/02_sprint2_modeling.ipynb`) | 30% | 29/09/2026 | done (executed with outputs) |
-| 3 | Optimization & Explainability | 30% | 06/10/2026 | done — `notebooks/03_sprint3_final.ipynb`: Sprints 1–3, professor's CSVs only, ~25 min run, test 97.51% |
+| 3 | Optimization & Explainability | 30% | 06/10/2026 | done — `notebooks/03_sprint3_final.ipynb`: Sprints 1–3, professor's CSVs only, ~32 min run, test 97.51% |

@@ -51,13 +51,13 @@ The setup creates a private Python environment (`.venv/`) in the project folder,
 py -3 -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
 .venv\Scripts\python src\sprint1_preprocess.py check
-.venv\Scripts\python src\sprint1_preprocess.py batch --members 4 --id 1   # your number 1-4
+.venv\Scripts\python src\sprint1_preprocess.py batch --members 5 --id 1   # your number 1-5
 
 # Mac (Terminal)
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 .venv/bin/python src/sprint1_preprocess.py check
-.venv/bin/python src/sprint1_preprocess.py batch --members 4 --id 1       # your number 1-4
+.venv/bin/python src/sprint1_preprocess.py batch --members 5 --id 1       # your number 1-5
 ```
 </details>
 

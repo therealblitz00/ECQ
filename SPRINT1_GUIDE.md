@@ -15,13 +15,13 @@ Expected layout: `data/csv/df_product.csv`, `data/csv/df_sales.csv`, `data/image
 | Step | Who | Command | Output |
 |---|---|---|---|
 | 1. Automatic checks | anyone (takes about 15 s) | `python src/sprint1_preprocess.py check` | `outputs/sprint1/check_report.md`, `items_checked.csv`, `missing_values.csv` |
-| 2. Get my batch | each member | `python src/sprint1_preprocess.py batch --members 4 --id K` | `outputs/sprint1/batches/batch_K_of_N.csv` and `.html` |
+| 2. Get my batch | each member | `python src/sprint1_preprocess.py batch --members 5 --id K` | `outputs/sprint1/batches/batch_K_of_N.csv` and `.html` |
 | 3. Review | each member | open the `.html`, fill in the `.csv` | reviewed CSV |
 | 4. Merge | one person | put all reviewed CSVs in `outputs/sprint1/batches/`, run `python src/sprint1_preprocess.py merge` | `data/processed/items_clean.parquet`, `changes_log.csv`, `discarded.csv`, `team_review.csv` |
 
-The team has **5 members**: `K` = your number (1–5). Everyone must use `--members 4`, otherwise the batches will not line up at merge.
+The team has **5 members**: `K` = your number (1–5). Everyone must use `--members 5`, otherwise the batches will not line up at merge.
 
-**How the split works:** one row per colourway (model + colour, `PROD_CLR_EQUIV`), about 2,640 items each for 4 people. All colours of a model go to the same person, and each batch gets a similar mix of categories.
+**How the split works:** one row per colourway (model + colour, `PROD_CLR_EQUIV`), about 2,111 items each for 5 people. All colours of a model go to the same person, and each batch gets a similar mix of categories.
 
 ## How to review
 

@@ -29,7 +29,7 @@
 - Repository, `requirements.txt` and double-click setup/review/merge scripts for Windows and Mac.
 
 **Next:**
-1. Team calibration: all 4 members review the same ~40 flagged items and compare decisions.
+1. Team calibration: all 5 members review the same ~40 flagged items and compare decisions.
 2. Each member reviews their batch and commits their CSV. Then run `merge`, which produces `data/processed/items_clean.parquet`, the Sprint 1 deliverable.
 3. *(Recommended before or during the review)* CLIP pre-screen (Phase 1b) to rank images that probably show the wrong product type, which the rule-based checks cannot see.
 
@@ -125,7 +125,7 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 - [x] Generic images (no colour in the file name).
 - [x] Images shared across colours or models (by path and by MD5 hash).
 - [x] Colour code ↔ colour name ↔ description, and description type ↔ family (`GFA_DES_EN`).
-- [ ] Human review of all images in 4 batches (`SPRINT1_GUIDE.md`) → merge.
+- [ ] Human review of all images in 5 batches (`SPRINT1_GUIDE.md`) → merge.
 
 **Still to do (vision model):**
 - [ ] **Install the vision stack:** `torch` (CPU) and `open_clip_torch`, or `transformers`. There is no GPU, so CLIP ViT-B/32 on CPU will take roughly 10–30 minutes for 9.4k images. Cache the embeddings to disk once and reuse them in Phase 2b.
@@ -207,7 +207,7 @@ There is no labelled ground truth, so combine several signals:
 
 We don't need a MAS framework to build this. The lead (a human or a main Claude session) sends off tasks and reviews the results.
 
-0. **Humans vs agents:** the 4 team members own decisions and the manual review. Agents write and test the code for each checklist item.
+0. **Humans vs agents:** the 5 team members own decisions and the manual review. Agents write and test the code for each checklist item.
 1. **One task = one checklist item** above, with a clear input, an output file, and tests that define "done".
 2. **Data contracts:** phases only talk to each other through files in `data/processed/` whose schemas are documented. An agent working on Phase 3 should never need to read Phase 1 code.
 3. **Tasks that can run in parallel:** 1b ∥ 2a, 2a ∥ 2b, and 4 ∥ 5. Give each agent its own branch or worktree.

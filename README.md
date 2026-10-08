@@ -65,9 +65,9 @@ python3 -m venv .venv
 
 ## Current sprint: Sprint 1 (data cleaning and validation)
 
-We check that the **product data**, the **text description** and the **image** of each product all describe the same article. The work is split across the 4 team members:
+We check that the **product data**, the **text description** and the **image** of each product all describe the same article. The work is split across the 5 team members:
 
-1. Run `2_review_…` and enter your number (1–4). Your review page opens in the browser, with flagged items first.
+1. Run `2_review_…` and enter your number (1–5). Your review page opens in the browser, with flagged items first.
 2. Fill in your CSV, `outputs/sprint1/batches/batch_0K_of_04.csv`. The rules are in **[SPRINT1_GUIDE.md](SPRINT1_GUIDE.md)**.
 3. Commit and push **only your own CSV**:
    ```bash
@@ -75,7 +75,7 @@ We check that the **product data**, the **text description** and the **image** o
    git commit -m "Sprint 1 review: batch K"
    git pull --rebase && git push
    ```
-4. When all 4 are in, one person runs `3_merge_…`. This produces `data/processed/items_clean.parquet`, the cleaned dataset.
+4. When all 5 are in, one person runs `3_merge_…`. This produces `data/processed/items_clean.parquet`, the cleaned dataset.
 
 Your filled-in CSV is never overwritten if you run the review script again.
 

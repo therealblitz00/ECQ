@@ -5,8 +5,8 @@ deterministic, so everyone gets identical results without exchanging files.
 
 Usage (from the project root):
     python src/sprint1_preprocess.py check                       # full automatic checks + report
-    python src/sprint1_preprocess.py batch --members 4 --id 2    # my review batch (CSV + HTML sheet)
-    python src/sprint1_preprocess.py batch --members 4           # all batches
+    python src/sprint1_preprocess.py batch --members 5 --id 2    # my review batch (CSV + HTML sheet)
+    python src/sprint1_preprocess.py batch --members 5           # all batches
     python src/sprint1_preprocess.py merge                       # merge reviewed batches, apply fixes
 
 Unit of analysis: one colourway (PROD_CLR_EQUIV = model + colour). Sizes are collapsed,

@@ -28,7 +28,7 @@ Install **Python 3.10 or newer** from <https://www.python.org/downloads/>.
 | | Windows | Mac |
 |---|---|---|
 | **Setup (once)** | `1_setup_windows.bat` | `1_setup_mac.command` |
-| **My review batch** | `2_review_windows.bat` | `2_review_mac.command` |
+| **Review my batch** (opens the review app) | `2_review_windows.bat` | `2_review_mac.command` |
 | **Merge all reviews** (one person, at the end) | `3_merge_windows.bat` | `3_merge_mac.command` |
 
 The setup creates a private Python environment (`.venv/`) in the project folder, installs the packages from `requirements.txt` (pandas, pyarrow, pillow) and runs the automatic data checks. Nothing is installed system-wide.
@@ -69,37 +69,38 @@ We check that the **product data**, the **text description** and the **image** o
 
 ### Who reviews what
 
-| # | Member | Review page (open in browser) | File to fill in and push |
-|---|---|---|---|
-| **1** | André | `outputs/sprint1/batches/batch_01_of_05.html` | `outputs/sprint1/batches/batch_01_of_05.csv` |
-| **2** | Pedro Correia | `outputs/sprint1/batches/batch_02_of_05.html` | `outputs/sprint1/batches/batch_02_of_05.csv` |
-| **3** | Pedro Meireles | `outputs/sprint1/batches/batch_03_of_05.html` | `outputs/sprint1/batches/batch_03_of_05.csv` |
-| **4** | Manuel | `outputs/sprint1/batches/batch_04_of_05.html` | `outputs/sprint1/batches/batch_04_of_05.csv` |
-| **5** | Zé | `outputs/sprint1/batches/batch_05_of_05.html` | `outputs/sprint1/batches/batch_05_of_05.csv` |
+| Your number | Member | Your decisions are saved in |
+|---|---|---|
+| **1** | André | `outputs/sprint1/batches/batch_01_of_05.csv` |
+| **2** | Pedro Correia | `outputs/sprint1/batches/batch_02_of_05.csv` |
+| **3** | Pedro Meireles | `outputs/sprint1/batches/batch_03_of_05.csv` |
+| **4** | Manuel | `outputs/sprint1/batches/batch_04_of_05.csv` |
+| **5** | Zé | `outputs/sprint1/batches/batch_05_of_05.csv` |
 
-Each batch has 2,111 items with the same mix of categories.
+Each batch has 2,111 products with the same mix of categories.
 
-### Steps
+### Steps (no CSV editing needed)
 
-1. **Open your batch.** Double-click `2_review_windows.bat` (Windows) or `2_review_mac.command` (Mac) and type **your number** from the table. Your review page opens in the browser, with flagged items first. In the terminal, the equivalent is:
-   ```bash
-   # Windows (replace 1 with your number)
-   .venv\Scripts\python src\sprint1_preprocess.py batch --members 5 --id 1
-   # Mac (replace 1 with your number)
-   .venv/bin/python src/sprint1_preprocess.py batch --members 5 --id 1
-   ```
-2. **Review.** Fill in **your** CSV (see the table). The rules are in **[SPRINT1_GUIDE.md](SPRINT1_GUIDE.md)**.
-3. **Push only your own CSV.** Example for member 1 (André); change `01` to your number:
-   ```bash
-   git add outputs/sprint1/batches/batch_01_of_05.csv
-   git commit -m "Sprint 1 review: batch 1 (André)"
-   git pull --rebase && git push
-   ```
+1. **Open the review app.** Double-click `2_review_windows.bat` (Windows) or `2_review_mac.command` (Mac) and type **your number** from the table. The app opens in your browser. **Keep the black window open** while you review.
+2. **Review.** For each product, click **Looks right**, **Wrong photo**, **Fix data**, **Not sure** or **Discard**. Every click is saved automatically, and you can stop and continue later. Start with the flagged products (the default view), then skim the rest. Details are in **[SPRINT1_GUIDE.md](SPRINT1_GUIDE.md)**.
+3. **Submit.** Click **Submit my review** in the app. It sends only your file to GitHub.
 4. **Merge.** When all 5 are in, one person runs `3_merge_…`. This produces `data/processed/items_clean.parquet`, the cleaned dataset.
-   - Only resolved items go into the clean table.
-   - Flagged items nobody reviewed (`pending`) and items marked `team_review` are listed in `outputs/sprint1/team_review.csv` until the team decides.
+   - Only resolved products go into the clean table.
+   - Flagged products nobody reviewed (`pending`) and products marked **Not sure** are listed in `outputs/sprint1/team_review.csv` until the team decides.
 
-Your filled-in CSV is never overwritten if you run the review script again.
+<details><summary>Terminal equivalents</summary>
+
+```bash
+# Open the review app (replace 4 with your number)
+.venv\Scripts\python src\review_app.py --id 4      # Windows
+.venv/bin/python src/review_app.py --id 4          # Mac
+
+# Submit by hand instead of the button (example for member 4)
+git add outputs/sprint1/batches/batch_04_of_05.csv
+git commit -m "Sprint 1 review: batch 4 (Manuel)"
+git pull --rebase && git push
+```
+</details>
 
 **Automatic check results:** [outputs/sprint1/check_report.md](outputs/sprint1/check_report.md).
 
@@ -116,7 +117,8 @@ Your filled-in CSV is never overwritten if you run the review script again.
 ├── requirements.txt           Python packages
 ├── 1_/2_/3_*.bat|.command     double-click helpers (Windows / Mac)
 ├── src/
-│   └── sprint1_preprocess.py  checks, batch split and merge (check | batch | merge)
+│   ├── sprint1_preprocess.py  checks, batch split and merge (check | batch | merge)
+│   └── review_app.py          browser review app (python src/review_app.py --id K)
 ├── data/
 │   ├── csv/                   df_product.csv (17,125 SKUs), df_sales.csv (10,185 colourways)
 │   ├── images/                9,496 product images (<code>_<n>.jpg)

@@ -16,7 +16,7 @@ Expected layout: `data/csv/df_product.csv`, `data/csv/df_sales.csv`, `data/image
 |---|---|---|---|
 | 1. Automatic checks | anyone (takes about 15 s) | `python src/sprint1_preprocess.py check` | `outputs/sprint1/check_report.md`, `items_checked.csv`, `missing_values.csv` |
 | 2. Get my batch | each member | `python src/sprint1_preprocess.py batch --members 5 --id K` | `outputs/sprint1/batches/batch_K_of_N.csv` and `.html` |
-| 3. Review | each member | open the `.html`, fill in the `.csv` | reviewed CSV |
+| 3. Review | each member | double-click `2_review_…` (or `python src/review_app.py --id K`), then click through the products in the browser | your batch CSV, saved automatically |
 | 4. Merge | one person | put all reviewed CSVs in `outputs/sprint1/batches/`, run `python src/sprint1_preprocess.py merge` | `data/processed/items_clean.parquet`, `changes_log.csv`, `discarded.csv`, `team_review.csv` |
 
 The team has **5 members**. Everyone must use `--members 5`, otherwise the batches will not line up at merge.
@@ -31,26 +31,45 @@ The team has **5 members**. Everyone must use `--members 5`, otherwise the batch
 
 **How the split works:** one row per colourway (model + colour, `PROD_CLR_EQUIV`), about 2,111 items each for 5 people. All colours of a model go to the same person, and each batch gets a similar mix of categories.
 
-## How to review
+## How to review (review app, no CSV editing)
 
-The HTML sheet shows each item's image, description, category, family, colour and automatic flags. Flagged items come first and have a **red** (high) or **orange** (medium) border. Check that **image, tabular data and description describe the same article**, then fill in the CSV:
+1. Double-click `2_review_windows.bat` (Windows) or `2_review_mac.command` (Mac) and type your number.
+2. The review app opens in your browser. **Keep the black window open** while you review, and close it when you're done.
+3. Each product is a card with its photo (click it to enlarge), description, category › family › sub-family, colour, composition and the automatic flags in plain words. Flagged products have a **red** (high) or **orange** (medium) border.
+4. Ask yourself: do the **photo**, the **description** and the **data** describe the same article? Then click one of these buttons:
+
+| Button | When | Saved as |
+|---|---|---|
+| **Looks right** | Everything matches | `ok` |
+| **Wrong photo** | The photo shows a different article (e.g. the row says necklace, the photo shows earrings) | `drop_image` |
+| **Fix data** | The description or a data field is wrong. A small form opens: type only the corrected values (suggestions appear as you type), then click **Save fix** | `fix` + `fixes` |
+| **Not sure** | You can't decide. Add a note, and the team decides later | `team_review` |
+| **Discard** | Nothing matches and it can't be repaired | `discard` |
+
+   Click a selected button again to undo it. The **Note** box is optional.
+5. **Work order:** the app starts on *To check*: the flagged products you haven't decided on yet. When that list is empty, switch **Show → All products** and skim the rest. Unflagged products you don't touch count as correct. The **Mark untouched on this page as "Looks right"** button speeds this up.
+6. When you're done, click **Submit my review**. It sends only your file to GitHub. If that fails (e.g. git isn't installed), the app tells you which file to send to the team instead.
+
+Your name is filled in automatically, and every click is saved immediately to `outputs/sprint1/batches/batch_0K_of_05.csv`. You can close the app and continue later.
+
+<details><summary>Editing the CSV by hand instead (advanced)</summary>
 
 | `review_status` | When | Also fill in |
 |---|---|---|
 | *(empty)* | Item has no flag and looks fine. Treated as `ok` at merge | – |
 | `ok` | Checked a flagged item, it is fine | – |
 | `fix` | A **tabular** value or the **description** is wrong | `fixes` |
-| `drop_image` | The **image** shows a different article (e.g. the row says necklace, the photo shows earrings) | `notes` |
+| `drop_image` | The **image** shows a different article | `notes` |
 | `discard` | Nothing matches and it can't be repaired | `notes` |
 | `team_review` | Not sure | `notes` |
 
-Always fill in `reviewer` (your name) when you set a status.
+Always fill in `reviewer` (your name) when you set a status. Don't edit the CSV while the review app is running.
+</details>
 
-**`fixes` syntax:** `COLUMN=new value`, separated by `;`. Example: `GFA_DES_EN=Bracelets; COMPOSITION=Pearl; Zinc`. A `;` only starts a new fix when it is followed by `COLUMN=`, so values such as `COMPOSITION` can contain `;`. The column must exist (see `items_checked.csv`). Every fix is logged in `changes_log.csv` with its old value and the reviewer.
+**`fixes` syntax (for the CSV):** `COLUMN=new value`, separated by `;`. Example: `GFA_DES_EN=Bracelets; COMPOSITION=Pearl; Zinc`. A `;` only starts a new fix when it is followed by `COLUMN=`, so values such as `COMPOSITION` can contain `;`. The column must exist (see `items_checked.csv`). Every fix is logged in `changes_log.csv` with its old value and the reviewer.
 
 **Rules:**
-- Edit only the four review columns. All other columns are ignored at merge.
-- Keep the file as CSV (UTF-8). If you use Excel, use *Save As → CSV UTF-8*.
+- If you edit the CSV by hand: change only the four review columns (everything else is ignored at merge), and in Excel save with *Save As → CSV UTF-8*.
 - Flagged items that nobody reviewed (`pending`) and items marked `team_review` are **left out of the clean table** and listed in `team_review.csv` until the team decides. Use `merge --include-unresolved` only if you deliberately want to keep them.
 - Nothing is deleted from `data/`. `drop_image` only removes the image link from the clean table.
 
@@ -74,4 +93,4 @@ Always fill in `reviewer` (your name) when you set a status.
 | `SALES_ZERO_QTY` | low | Zero units sold |
 | `IMG_FILE_MISSING`, `SALES_MISSING` | info | No image or no sales. No action needed |
 
-**Limitation:** these checks compare codes and text. They cannot see that a photo shows earrings when the row says necklace. That is what the human review is for. Phase 1b of the roadmap adds a vision model (CLIP) to pre-screen images, so you can review its suspects first.
+**Limitation:** these checks compare codes and text. They cannot see that a photo shows earrings when the row says necklace. That is what the human review is for. Photos of a model wearing several items (e.g. earrings and a necklace) are fine to review by eye: judge only the item the row describes. Phase 1b of the roadmap adds a vision model (CLIP) with item masks to pre-screen images automatically.

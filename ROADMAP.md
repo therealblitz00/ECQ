@@ -28,6 +28,7 @@
   - 1,097 colourways without an image.
 - Fixed after Pedro Meireles's audit (`SPRINT1_REVIEW_AND_ROADMAP.md`): BUG-001 (size conflicts now resolved by majority value and flagged), BUG-002 (unresolved items left out of the clean table), BUG-003 (`;` inside fix values).
 - Repository, `requirements.txt` and double-click setup/review/merge scripts for Windows and Mac.
+- `src/review_app.py`: a browser review app for non-technical reviewers. Buttons instead of CSV editing, autosave to the batch CSV, plain-language flags, fix form with suggestions, one-click submit to GitHub.
 
 **Next:**
 1. Team calibration: all 5 members review the same ~40 flagged items and compare decisions.
@@ -126,11 +127,13 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 - [x] Generic images (no colour in the file name).
 - [x] Images shared across colours or models (by path and by MD5 hash).
 - [x] Colour code ↔ colour name ↔ description, and description type ↔ family (`GFA_DES_EN`).
+- [x] Review app (`2_review_…` → `src/review_app.py`).
 - [ ] Human review of all images in 5 batches (`SPRINT1_GUIDE.md`) → merge.
 
 **Still to do (vision model):**
 - [ ] **Install the vision stack:** `torch` (CPU) and `open_clip_torch`, or `transformers`. There is no GPU, so CLIP ViT-B/32 on CPU will take roughly 10–30 minutes for 9.4k images. Cache the embeddings to disk once and reuse them in Phase 2b.
-- [ ] **Type check (zero-shot):** classify each image against text prompts for every `GFA_DES_EN` in its category, and also across categories (*"a photo of earrings"*, *"a photo of a necklace"*…). Flag the item when the label's probability is low **and** another class wins by a clear margin.
+- [ ] **Item masks (do this before the type check and the embeddings):** the professor's suggestion for photos with a model wearing several items (e.g. necklace + earrings). Measured: 97% of images are white-background packshots, where the mask is simply "not white" (threshold, seconds for all). The other ~272 (≈3%, mostly jewellery on a model, bags on a person, amateur photos of samples) need a text-prompted detector (Grounding DINO / OWLv2) using the CSV type as prompt (*"earrings"*), then SAM for the outline (≈2–5 s per image on CPU). Store the mask, the bounding box and a `target_found` flag per item. Masks are **not** needed for the human review.
+- [ ] **Type check (zero-shot):** classify each image against text prompts for every `GFA_DES_EN` in its category, and also across categories (*"a photo of earrings"*, *"a photo of a necklace"*…). Flag the item when the label's probability is low **and** another class wins by a clear margin. Run it on the masked crop, and also flag it when the detector finds no item of the expected type.
 - [ ] **Neighbourhood check:** in CLIP image space, flag items whose k nearest visual neighbours mostly have a different `GFA_DES_EN`. This catches mismatches that the prompts miss.
 - [ ] **Colour check:** compare the dominant colour (LAB k-means, background removed) with `CLR_DES`. Skip multicolour, gold and silver labels, which are too ambiguous.
 - [ ] **Near-duplicate check:** perceptual hashes (pHash) on top of the exact hashes already done. Classify each group as same item re-coded (fine), same photo for different colours (colour unreliable) or different models (wrong item).
@@ -154,9 +157,9 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 
 ## Phase 2b: Visual features *(only images that pass the 1b audit)*
 
-- [ ] Image embeddings with a pretrained vision model (CLIP / SigLIP / DINOv2), reusing the Phase 1b cache. Start without fine-tuning.
+- [ ] Image embeddings with a pretrained vision model (CLIP / SigLIP / DINOv2), computed on the **masked crop of the target item** (from Phase 1b), so a model's face, clothes or other jewellery don't drive the similarity. Start without fine-tuning.
 - [ ] Optional: compare a DINOv2 embedding (closer to shape and texture) with CLIP (closer to meaning) in the Phase 4 ablations.
-- [ ] Dominant colour palette for each image (k-means in LAB colour space), so explanations can say things like *"same colour palette"*.
+- [ ] Dominant colour palette for each image (k-means in LAB colour space, on the masked pixels only), so explanations can say things like *"same colour palette"*.
 - [ ] Optional: zero-shot CLIP tags (shape, style, motif) to fill sparse attributes such as `SHAPE` and `PRODUCT_DETAILS`.
 
 **Output:** `features_visual.npy`, `palettes.parquet`, `image_tags.parquet`.

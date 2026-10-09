@@ -159,6 +159,7 @@ The script reproduces the champion exactly (validation EMR 87.8411%).
 | 18 | 2026-10-07 | `diag5_counterfactual.py` | Model-based check (Stage 1, 5-fold out-of-fold; each active CRM pack switched 1 → 0): 12,249 customers have a CRM pack whose removal explains missing billing without breaking anything; 70.5% of Step 17's customers confirmed, 11,450 found by both. Synthetic added packs that change the expected billing are found 99.4% of the time, but only 10% of uniformly random packs change it. Same high-rate packs as Step 17 (7 of top 15); no single targeted pack (`CRM_1553_PACK` outlier = Barring/Suspend status rule). | unchanged (OOF 95.18% vs raw billing on kept rows) | Reported; next step pending |
 | 19 | 2026-10-07 | `diag6_crm_only_detector.py` | CRM-only detector (LightGBM on CRM, labels = Steps 17–18 agreement) so test can be scored without billing. Train out-of-fold AUC 0.995 / AP 0.977 (rare-pack count alone: AP 0.930); kept rows AP 0.82 vs 0.41; kept rows with no rare pack AP 0.05 (undetectable from CRM). Test: 77 of 97,100 customers flagged (0.08%) vs 8.27% of train → test looks clean, as the brief says. | unchanged | Reported; next step pending |
 | 20 | 2026-10-07 | `fraud_report.py` | Steps 17–19 consolidated (English): 17,036 suspected train customers (9.1%): high 11,450 (both methods), medium 3,359, low 2,227 (one method, non-Active status). Column table by rate and count: `CRM_1621_PACK` 70% of its customers; counts flat (~150–180 for the most affected packs). 77 test customers flagged CRM-only. Write-up: `docs/sprint3/FRAUD_DETECTION.md`. | unchanged | Deliverable ready; notebook chapter pending approval |
+| 21 | 2026-10-09 | `notebooks/03_sprint3_final.ipynb` | Final notebook restructured at the team's request: one notebook showing only the final approach (11 chapters, appendices removed, all in English). Fraud detection added as Chapter 10 (data rule + CRM-only detector). Tuning kept as reported tables in Chapter 5. Writes three CSVs: `submission.csv`, `train_flags.csv`, `fraud_columns.csv`. Executed end to end without errors (66 min on this run). Test EMR unchanged at 97.51%. | 96.92% clean-like (final model) | Submission-ready |
 
 ---
 
@@ -1415,3 +1416,47 @@ suspected pack), `fraud_crm_only_train_oof.csv` (train: label, out-of-fold score
 
 **Decision.** Deliverable ready. Adding a "Fraud detection" chapter to
 `notebooks/03_sprint3_final.ipynb` needs explicit approval (working rules).
+
+---
+
+## Step 21 — One final notebook, best approach only
+
+2026-10-09. Requested by the team lead: deliver a single notebook that shows only the final
+approach (no rejected attempts), in English, writing as few CSV files as possible. The tuning
+of the final model must stay in.
+
+**Changes to `notebooks/03_sprint3_final.ipynb`**
+- **Structure:** 11 chapters — Setup, Data, Validation, Cleaning the training data, The model
+  (Stage 1 + Stage 2), Business use, Explainability, Final training and submission, Test
+  results, Fraud detection, Conclusions.
+- **Removed:**
+  - the SVD check and the Sprint 2 model-family comparison;
+  - Stage 1 vs Stage 2 "Does it help?" and the no-filter ablation;
+  - the milestone chart and the confidence-ranking anecdote;
+  - Appendices A–C.
+- **Validation metrics** now describe the final model (Stage 1 + Stage 2): clean-like 96.92%,
+  macro F1 0.548. 5-fold 96.99% ± 0.20 is stated in the text.
+- **Tuning:** a "How the settings were chosen" section in Chapter 5 reports the *k* cut-off
+  sweep, `min_child_samples` / `reg_lambda` / capacity, the rare-item threshold and Stage 2.
+  These are tables from the earlier scripts, with the paired intervals, and the text says they
+  were measured with the Sprint 1 rules on (+0.02).
+- **Fraud detection (Chapter 10):** the data rule (Step 17) and the CRM-only detector (Step 19,
+  labels = rule flags). The model counterfactual (Step 18) is not in the notebook: it needs
+  five extra refits.
+- **Files written:**
+  - `submission.csv`
+  - `train_flags.csv`: 17,233 training rows that were removed from training or are suspected
+    of fraud, with the reason, the unbilled CRM products and the missing billing items
+  - `fraud_columns.csv`: 293 billable CRM products with their share of suspected customers
+
+**Run.** End to end without errors. This run took 66 min, of which the final Stage 2 refit took
+50 min against ~9 min for the same work on the validation fold, so the extra time was the
+machine, not the code. Results:
+- test EMR 97.51%;
+- 16,237 suspected customers;
+- CRM-only detector out-of-fold AUC 0.992, AP 0.966;
+- 172 test customers (0.18%) above the threshold, against 8.83% of train.
+
+**Note.** The notebook's `fraud_columns.csv` (rule flags, share among all holders) overwrote the
+Step 20 file of the same name written by `scripts/sprint3/fraud_report.py`, which uses a
+different definition (high + medium confidence).

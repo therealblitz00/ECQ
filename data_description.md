@@ -226,6 +226,8 @@ The professor warned that **some images do not match their CSV row** (e.g. the r
 | Wrong item entirely | Image belongs to another model | Duplicate or near-duplicate hashes across different `PROD_REF`. The item's visual neighbours mostly belong to another family |
 | Not usable | Amateur photo, multiple items, missing | Background/whiteness heuristic, image size, missing file |
 
+**Results (2026-10-09):** the automatic version of these checks is in Phase 1b (`src/phase1b_image_audit.py`). It found 24 photos of another item type, 132 of another colour and 54 photos shared with another colour of the same model. See `outputs/phase1b/image_audit_report.md` and [PROGRESS.md](PROGRESS.md).
+
 **Handling rule:** never silently drop or relabel. Flag each item in an `image_audit.parquet` with the mismatch type and a confidence score. If an item's image is unreliable, compute its similarity **without the visual block** (tabular data only), and list the item in a data-quality report for the business.
 
 ## 6. Data-quality notes (CSV)

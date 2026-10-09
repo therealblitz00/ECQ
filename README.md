@@ -4,6 +4,14 @@ Case study for the MADSAD Master's (FEP, University of Porto). The goal is to fi
 
 > This is the `parfois` branch. It is independent from `main`, which holds a different project.
 
+**Where we are (2026-10-09):** Sprint 1 (data cleaning and validation).
+- ✅ Automatic checks.
+- ✅ AI image pre-screen.
+- ✅ Review app.
+- 🟡 Team review in progress.
+
+What has been done, with numbers and examples: **[PROGRESS.md](PROGRESS.md)**. The plan and checklist: **[ROADMAP.md](ROADMAP.md)**.
+
 ---
 
 ## Quick start (about 5 minutes)
@@ -102,7 +110,7 @@ git pull --rebase && git push
 ```
 </details>
 
-**Automatic check results:** [outputs/sprint1/check_report.md](outputs/sprint1/check_report.md).
+**Automatic check results:** [outputs/sprint1/check_report.md](outputs/sprint1/check_report.md). **AI image check results:** [outputs/phase1b/image_audit_report.md](outputs/phase1b/image_audit_report.md).
 
 ---
 
@@ -112,7 +120,8 @@ git pull --rebase && git push
 ├── README.md                  ← you are here
 ├── problem_description.md     the case brief
 ├── data_description.md        what every CSV column and the images mean, plus data-quality notes
-├── ROADMAP.md                 project phases and architecture decisions
+├── ROADMAP.md                 project phases, checklist and architecture decisions
+├── PROGRESS.md                what has been done so far, with evidence
 ├── SPRINT1_GUIDE.md           how to do the Sprint 1 review
 ├── requirements.txt           Python packages
 ├── 1_/2_/3_*.bat|.command     double-click helpers (Windows / Mac)

@@ -10,30 +10,44 @@
 
 ---
 
-## Status (last updated 2026-10-07)
+## Status (last updated 2026-10-09)
+
+Progress log with evidence: **[PROGRESS.md](PROGRESS.md)**.
 
 | Sprint | Roadmap phases | Status |
 |---|---|---|
-| **Sprint 1: data cleaning and validation** | 0 (partly), 1 (partly), 1b (rule-based part and human review) | 🟡 **In progress**: automatic checks done, 5-way manual review under way |
-| Sprint 2: features | 1 (rest), 2a, 2b (image embeddings already done in 1b) | ⚪ Not started |
+| **Sprint 1: data cleaning and validation** | 0, 1, 1b | 🟡 **In progress**: automatic checks ✅, image pre-screen ✅, review app ✅. Manual review by the 5 members under way, then merge |
+| Sprint 2: features | 1 (rest), 2a, 2b | ⚪ Not started (image embeddings already computed in 1b) |
 | Sprint 3: similarity and evaluation | 3, 4 | ⚪ Not started |
 | Sprint 4: explanations and delivery | 5, 6 | ⚪ Not started |
 
+| Phase | Status | Done | Still to do |
+|---|---|---|---|
+| 0. Setup | 🟡 | Repo, environments, README, double-click scripts | `CLAUDE.md`, tests/CI |
+| 1. Data foundation | 🟡 | Loader, colourway table, sales join, image link, size-conflict check, reports | Merge the review, dates, placeholders, casing, drop empty columns, sales features |
+| 1b. Image audit | 🟡 | Masks, CLIP embeddings, type/colour/duplicate/quality flags, review app | Human review; measure the flags' precision afterwards |
+| 2a. Tabular/text features | ⚪ | – | Everything |
+| 2b. Visual features | 🟡 | Image embeddings (`data/embeddings/image_clip.npy`) | Colour palettes, optional tags |
+| 3–6 | ⚪ | – | Everything |
+
 **Done in Sprint 1 so far:**
-- `src/sprint1_preprocess.py` with three commands: `check` (automatic checks), `batch` (a deterministic, balanced 5-way review split: 1 André, 2 Pedro Correia, 3 Pedro Meireles, 4 Manuel, 5 Zé with HTML review pages) and `merge` (applies the review decisions and logs every change).
-- Automatic check results (`outputs/sprint1/check_report.md`):
+- **Automatic checks** (`src/sprint1_preprocess.py check`, results in `outputs/sprint1/check_report.md`):
   - no duplicate keys, and every sales row joins to a product;
-  - 5 high-priority issues (invalid image path, corrupt image, 2 type conflicts between description and family, 1 re-coded item that merges two colours);
-  - 448 medium-priority items (249 generic images, 165 colourways whose sizes disagree on an attribute, 100 shared images, 25 descriptions without the colour, 3 images in another category's folder);
-  - 1,097 colourways without an image.
-- Fixed after Pedro Meireles's audit (`SPRINT1_REVIEW_AND_ROADMAP.md`): BUG-001 (size conflicts now resolved by majority value and flagged), BUG-002 (unresolved items left out of the clean table), BUG-003 (`;` inside fix values).
-- Repository, `requirements.txt` and double-click setup/review/merge scripts for Windows and Mac.
-- `src/review_app.py`: a browser review app for non-technical reviewers. Buttons instead of CSV editing, autosave to the batch CSV, plain-language flags, fix form with suggestions, one-click submit to GitHub.
+  - 10,555 colourways: 29 high, 578 medium and 351 low priority, the rest without issues.
+- **Image pre-screen (Phase 1b,** `src/phase1b_image_audit.py`, results in `outputs/phase1b/`**):**
+  - masks and CLIP embeddings for all 9,457 photos;
+  - 24 photos showing another item type, 132 another colour, 54 the same photo for another colour.
+- **Review workflow:**
+  - deterministic split into 5 batches: 1 André, 2 Pedro Correia, 3 Pedro Meireles, 4 Manuel, 5 Zé;
+  - browser review app (`src/review_app.py`) with buttons, autosave and one-click submit;
+  - `merge` applies the decisions and logs every change.
+- **Fixed after Pedro Meireles's audit** (`SPRINT1_REVIEW_AND_ROADMAP.md`): BUG-001, BUG-002, BUG-003.
+- **Repository** with data, docs and double-click scripts for Windows and Mac.
 
 **Next:**
-1. Team calibration: all 5 members review the same ~40 flagged items and compare decisions.
-2. Each member reviews their batch and commits their CSV. Then run `merge`, which produces `data/processed/items_clean.parquet`, the Sprint 1 deliverable.
-3. ✅ Image pre-screen (Phase 1b) done: its flags appear in the review app (`git pull` to get them).
+1. Team calibration: all 5 members review the same ~20 flagged products and agree on borderline cases.
+2. Each member reviews their batch in the app and clicks **Submit**. Then one person runs `merge`, which produces `data/processed/items_clean.parquet`, the Sprint 1 deliverable.
+3. Sprint 2: Phase 2a (tabular and text features), then Phase 3 (similarity engine).
 
 ---
 
@@ -128,7 +142,8 @@ description ──[text encoder, once]──► 384–512 numbers
   tests/
   outputs/
   ```
-- [ ] Add packages as phases need them: scikit-learn, numpy, sentence-transformers / open_clip, faiss-cpu (optional), pytest.
+- [x] Vision packages for the computing machine (`requirements-vision.txt`: torch CPU, transformers, scipy).
+- [ ] Add packages as later phases need them: scikit-learn, sentence-transformers, faiss-cpu (optional), pytest.
 - [ ] `CLAUDE.md` with the project conventions agents must follow: data contracts, "never edit `data/csv` or `data/images`", how to run the tests, code style.
 - [ ] CI that runs `pytest` and a linter.
 
@@ -140,7 +155,8 @@ description ──[text encoder, once]──► 384–512 numbers
 - [ ] Date parsing for all three date formats.
 - [ ] Drop the empty, constant and duplicate columns (list in `data_description.md` §3.3).
 - [ ] Treat placeholders (`UNDEFINED`, `Not Applicable`, `Without Block`, `Others`) as missing values.
-- [ ] Normalise casing (`THEME`, `L1_DES`…) and tokenise `COMPOSITION` into a list of materials.
+- [x] Tokenise `COMPOSITION` into a canonical, sorted list of materials.
+- [ ] Normalise casing (`THEME`, `L1_DES`…).
 - [x] **Collapse to colourway level** (`PROD_CLR_EQUIV`), with the list of sizes and a size-free description (`PROD_DES_BASE`).
 - [x] Check that the attributes are constant within each colourway (`SKU_ATTR_CONFLICT`, `sku_conflicts`). COMPOSITION is put in a canonical order first.
 - [x] Left-join the sales data.
@@ -205,7 +221,7 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 
 ## Phase 2b: Visual features *(only images that pass the 1b audit)*
 
-- [ ] Image embeddings with a pretrained vision model (CLIP / SigLIP / DINOv2), computed on the **masked crop of the target item** (from Phase 1b), so a model's face, clothes or other jewellery don't drive the similarity. Start without fine-tuning.
+- [x] Image embeddings with a pretrained vision model (CLIP ViT-B/32), computed on the **masked crop of the target item** (Phase 1b), so a model's face, clothes or other jewellery don't drive the similarity → `data/embeddings/image_clip.npy`.
 - [ ] Optional: compare a DINOv2 embedding (closer to shape and texture) with CLIP (closer to meaning) in the Phase 4 ablations.
 - [ ] Dominant colour palette for each image (k-means in LAB colour space, on the masked pixels only), so explanations can say things like *"same colour palette"*.
 - [ ] Optional: zero-shot CLIP tags (shape, style, motif) to fill sparse attributes such as `SHAPE` and `PRODUCT_DETAILS`.

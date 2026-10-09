@@ -91,6 +91,12 @@ Always fill in `reviewer` (your name) when you set a status. Don't edit the CSV 
 | `CLR_NOT_IN_DESC` | medium | Description doesn't mention the colour |
 | `SKU_ATTR_CONFLICT` | medium | Sizes of the same colourway disagree on an attribute (the `sku_conflicts` column lists which ones). The most common value is used; correct it with `fix` if it's wrong |
 | `SALES_ZERO_QTY` | low | Zero units sold |
+| `VIS_TYPE_MISMATCH` | high | *Image check:* the photo looks like another type of item (e.g. earrings for a necklace row), and the most similar photos agree |
+| `VIS_COLOUR_MISMATCH` | medium | *Image check:* the photo looks like another colour than `CLR_DES` |
+| `VIS_TARGET_NOT_FOUND` | low | *Image check:* the detector couldn't find the expected item (mostly photos of samples on cards, sketches or mannequins) |
+| `IMG_NEAR_DUPLICATE` | medium | *Image check:* the same photo is used for another colour of the same model, so for at least one colour it shows the wrong colour |
+| `VIS_TYPE_DOUBT` | low | *Image check:* only the image model doubts the item type (often fine: cuffs, charms, unusual shapes) |
+| `IMG_NOT_PACKSHOT` | low | *Image check:* model, lifestyle or amateur photo, not a studio shot |
 | `IMG_FILE_MISSING`, `SALES_MISSING` | info | No image or no sales. No action needed |
 
-**Limitation:** these checks compare codes and text. They cannot see that a photo shows earrings when the row says necklace. That is what the human review is for. Photos of a model wearing several items (e.g. earrings and a necklace) are fine to review by eye: judge only the item the row describes. Phase 1b of the roadmap adds a vision model (CLIP) with item masks to pre-screen images automatically.
+**About the image checks:** `VIS_*` and `IMG_NEAR_DUPLICATE`/`IMG_NOT_PACKSHOT` come from Phase 1b (`src/phase1b_image_audit.py`). An image model (CLIP) and an object detector (OWLv2) looked at every photo, after cutting out the target item. They were computed once and stored in `data/embeddings/`, so you don't need to run anything. They are **suggestions, not verdicts**: the model can be fooled by unusual shapes. You decide. Photos of a model wearing several items (e.g. earrings and a necklace) are fine to review by eye: judge only the item the row describes.

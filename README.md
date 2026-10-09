@@ -118,10 +118,12 @@ git pull --rebase && git push
 ├── 1_/2_/3_*.bat|.command     double-click helpers (Windows / Mac)
 ├── src/
 │   ├── sprint1_preprocess.py  checks, batch split and merge (check | batch | merge)
-│   └── review_app.py          browser review app (python src/review_app.py --id K)
+│   ├── review_app.py          browser review app (python src/review_app.py --id K)
+│   └── phase1b_image_audit.py image masks, CLIP embeddings and image checks (heavy: one machine only)
 ├── data/
 │   ├── csv/                   df_product.csv (17,125 SKUs), df_sales.csv (10,185 colourways)
 │   ├── images/                9,496 product images (<code>_<n>.jpg)
+│   ├── embeddings/            image embeddings, masks and image-check flags (computed once, in git)
 │   └── processed/             generated, not in git
 └── outputs/sprint1/
     ├── check_report.md        automatic check summary

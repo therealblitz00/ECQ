@@ -27,6 +27,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CSV_DIR = ROOT / "data" / "csv"
 IMG_DIR = ROOT / "data" / "images"
 PROCESSED_DIR = ROOT / "data" / "processed"
+EMB_DIR = ROOT / "data" / "embeddings"  # Phase 1b results (committed, computed on one machine)
 OUT_DIR = ROOT / "outputs" / "sprint1"
 BATCH_DIR = OUT_DIR / "batches"
 
@@ -55,6 +56,13 @@ ISSUES = {
     "SALES_MISSING": "info",           # no row in df_sales
     "SALES_ZERO_QTY": "low",           # SALES_QTY == 0
     "SKU_ATTR_CONFLICT": "medium",     # sizes of the same colourway disagree on an attribute (see sku_conflicts)
+    # Image checks from Phase 1b (src/phase1b_image_audit.py), added when data/embeddings/image_audit.parquet exists
+    "VIS_TYPE_MISMATCH": "high",       # CLIP and the most similar photos say another item type
+    "VIS_TYPE_DOUBT": "low",           # CLIP alone says another item type
+    "VIS_COLOUR_MISMATCH": "medium",   # CLIP says another colour than CLR_DES
+    "VIS_TARGET_NOT_FOUND": "low",     # detector cannot find the expected item (mostly sample/prototype photos)
+    "IMG_NEAR_DUPLICATE": "medium",    # same photo as another colour of the same model (shows the wrong colour)
+    "IMG_NOT_PACKSHOT": "low",         # model, lifestyle or amateur photo
 }
 # Attributes that must be identical for every size of a colourway (they feed the similarity model).
 SKU_INVARIANT_COLS = ["CLR_COD", "CLR_DES", "CLR_TYPE", "CAT_DES_EN", "GFA_DES_EN", "GFS_DES_EN",
@@ -289,6 +297,19 @@ def check_sales(items: pd.DataFrame) -> None:
     _add_issue(items, items["SALES_QTY"] == 0, "SALES_ZERO_QTY")
 
 
+def add_image_audit(items: pd.DataFrame) -> None:
+    """Merge the Phase 1b image flags (if computed) into the issues and keep their plain-language note."""
+    path = EMB_DIR / "image_audit.parquet"
+    items["vis_note"] = ""
+    if not path.exists():
+        return
+    audit = pd.read_parquet(path, columns=[KEY, "vis_issues", "vis_note"]).set_index(KEY)
+    vis = items[KEY].map(audit["vis_issues"]).fillna("")
+    items["vis_note"] = items[KEY].map(audit["vis_note"]).fillna("")
+    for code in [c for c in ISSUES if c.startswith(("VIS_", "IMG_NEAR", "IMG_NOT"))]:
+        _add_issue(items, vis.str.contains(code, regex=False), code)
+
+
 def run_checks(verify_files: bool = True) -> tuple[pd.DataFrame, dict]:
     prod, sales = load_data()
     items = build_items(prod, sales)
@@ -298,6 +319,7 @@ def run_checks(verify_files: bool = True) -> tuple[pd.DataFrame, dict]:
     check_type_consistency(items)
     check_sales(items)
     _add_issue(items, items["sku_conflicts"] != "", "SKU_ATTR_CONFLICT")
+    add_image_audit(items)
 
     items["issues"] = items["issues"].str.rstrip(";")
     sev = items["issues"].map(

@@ -1,0 +1,8 @@
+# Only for the ONE machine that computes masks and embeddings (Phase 1b / 2b).
+# Teammates don't need this: they load the results from data/embeddings/.
+# Install: pip install -r requirements-vision.txt --extra-index-url https://download.pytorch.org/whl/cpu
+-r requirements.txt
+torch>=2.9
+transformers>=4.45
+numpy>=1.26
+scipy>=1.11

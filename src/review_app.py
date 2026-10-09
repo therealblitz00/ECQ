@@ -24,8 +24,8 @@ from urllib.parse import unquote, urlparse
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from sprint1_preprocess import (BATCH_DIR, IMG_DIR, KEY, OUT_DIR, PROCESSED_DIR, REVIEW_COLS,  # noqa: E402
-                                REVIEW_STATUSES, ROOT, TEAM)
+from sprint1_preprocess import (BATCH_DIR, EMB_DIR, IMG_DIR, ISSUES, KEY, OUT_DIR, PROCESSED_DIR,  # noqa: E402
+                                REVIEW_COLS, REVIEW_STATUSES, ROOT, SEVERITY_RANK, TEAM)
 
 N_MEMBERS = len(TEAM)
 
@@ -74,7 +74,17 @@ class Batch:
         self.df = pd.read_csv(self.path, dtype=str, encoding="utf-8-sig", keep_default_na=False)
         self.lock = threading.Lock()
         self.extra = self._extra_context()
+        self.vision = self._vision_flags()
         self.suggestions = self._suggestions()
+
+    def _vision_flags(self) -> dict:
+        """Phase 1b image flags (committed in data/embeddings), so nobody has to rerun the checks."""
+        p = EMB_DIR / "image_audit.parquet"
+        if not p.exists():
+            return {}
+        d = pd.read_parquet(p, columns=[KEY, "vis_issues", "vis_note"])
+        d = d[d[KEY].isin(self.df[KEY]) & (d["vis_issues"] != "")]
+        return {r[KEY]: (r["vis_issues"], r["vis_note"]) for r in d.to_dict("records")}
 
     def _extra_context(self) -> dict:
         """Details from the full check output (shared-with list, sizes) if available."""
@@ -99,6 +109,11 @@ class Batch:
             codes = [c for c in r["issues"].split(";") if c]
             r["issue_labels"] = [ISSUE_LABELS.get(c, c) for c in codes]
             r.update(self.extra.get(r[KEY], {}))
+            if r[KEY] in self.vision:  # add image-check flags and raise the priority if needed
+                vis_codes, note = self.vision[r[KEY]]
+                r["issue_labels"] += [n[:1].upper() + n[1:] for n in note.split(" · ") if n]
+                ranks = [SEVERITY_RANK[ISSUES[c]] for c in codes + vis_codes.split(";") if c in ISSUES]
+                r["priority"] = {3: "high", 2: "medium", 1: "low", 0: "info"}.get(max(ranks, default=-1), "none")
             out.append(r)
         return out
 

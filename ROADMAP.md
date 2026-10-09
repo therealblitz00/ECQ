@@ -15,7 +15,7 @@
 | Sprint | Roadmap phases | Status |
 |---|---|---|
 | **Sprint 1: data cleaning and validation** | 0 (partly), 1 (partly), 1b (rule-based part and human review) | 🟡 **In progress**: automatic checks done, 5-way manual review under way |
-| Sprint 2: features | 1 (rest), 1b (CLIP pre-screen), 2a, 2b | ⚪ Not started |
+| Sprint 2: features | 1 (rest), 2a, 2b (image embeddings already done in 1b) | ⚪ Not started |
 | Sprint 3: similarity and evaluation | 3, 4 | ⚪ Not started |
 | Sprint 4: explanations and delivery | 5, 6 | ⚪ Not started |
 
@@ -33,7 +33,7 @@
 **Next:**
 1. Team calibration: all 5 members review the same ~40 flagged items and compare decisions.
 2. Each member reviews their batch and commits their CSV. Then run `merge`, which produces `data/processed/items_clean.parquet`, the Sprint 1 deliverable.
-3. *(Recommended before or during the review)* CLIP pre-screen (Phase 1b) to rank images that probably show the wrong product type, which the rule-based checks cannot see.
+3. ✅ Image pre-screen (Phase 1b) done: its flags appear in the review app (`git pull` to get them).
 
 ---
 
@@ -165,18 +165,31 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 - [x] Review app (`2_review_…` → `src/review_app.py`).
 - [ ] Human review of all images in 5 batches (`SPRINT1_GUIDE.md`) → merge.
 
-**Still to do (vision model):**
-- [ ] **Install the vision stack:** `torch` (CPU) and `open_clip_torch`, or `transformers`. There is no GPU, so CLIP ViT-B/32 on CPU will take roughly 10–30 minutes for 9.4k images. This runs **on one machine only**: the masks and embeddings are committed to `data/embeddings/` (see [Compute strategy](#compute-strategy-encode-once-reuse-everywhere)).
-- [ ] **Item masks (do this before the type check and the embeddings):** the professor's suggestion for photos with a model wearing several items (e.g. necklace + earrings). Measured: 97% of images are white-background packshots, where the mask is simply "not white" (threshold, seconds for all). The other ~272 (≈3%, mostly jewellery on a model, bags on a person, amateur photos of samples) need a text-prompted detector (Grounding DINO / OWLv2) using the CSV type as prompt (*"earrings"*), then SAM for the outline (≈2–5 s per image on CPU). Store the mask, the bounding box and a `target_found` flag per item. Masks are **not** needed for the human review.
-- [ ] **Type check (zero-shot):** classify each image against text prompts for every `GFA_DES_EN` in its category, and also across categories (*"a photo of earrings"*, *"a photo of a necklace"*…). Flag the item when the label's probability is low **and** another class wins by a clear margin. Run it on the masked crop, and also flag it when the detector finds no item of the expected type.
-- [ ] **Neighbourhood check:** in CLIP image space, flag items whose k nearest visual neighbours mostly have a different `GFA_DES_EN`. This catches mismatches that the prompts miss.
-- [ ] **Colour check:** compare the dominant colour (LAB k-means, background removed) with `CLR_DES`. Skip multicolour, gold and silver labels, which are too ambiguous.
-- [ ] **Near-duplicate check:** perceptual hashes (pHash) on top of the exact hashes already done. Classify each group as same item re-coded (fine), same photo for different colours (colour unreliable) or different models (wrong item).
-- [ ] **Quality check:** not a white-background packshot, very small, or several items in one picture.
-- [ ] **Human validation:** review the top ~150 flags in a contact sheet (image + label) and record precision. Adjust the thresholds.
-- [ ] **Decision per item:** made by the reviewers (`ok` / `fix` / `drop_image` / `discard` / `team_review`). Never relabel automatically.
+**Done 2026-10-09 (vision model, `src/phase1b_image_audit.py`, run on one machine in 86 min):**
+- [x] **Vision stack:** `torch` (CPU), `transformers`, `scipy` (`requirements-vision.txt`, only for the computing machine).
+- [x] **Item masks:** 9,096 packshots cropped by white-background threshold, 272 non-packshot photos and 89 white-background photos with a person (e.g. bag carried by a model) cropped with the OWLv2 detector, prompted with the CSV item type. SAM outlines were not needed for cropping, so they were left out.
+- [x] **Image embeddings:** CLIP ViT-B/32 on the masked crop, 512 numbers per image → `data/embeddings/image_clip.npy` (9,457 × 512, float16, ≈10 MB) + `.json` (model, settings, row order).
+- [x] **Type check:** zero-shot over 15 broad item types (earrings, necklace, ring, bracelet, keychain, phone case, bag, wallet, shoes, top, coat, dress, trousers, skirt, swimwear) plus agreement of the 10 nearest images. Confusions between small jewellery items (no sense of scale) are only doubts.
+- [x] **Colour check:** zero-shot over 16 basic colours, with neighbouring colours tolerated. Strong only when very confident or when the photo is shared with another colour.
+- [x] **Near-duplicates:** same model, other colour, same photo (perceptual hash + CLIP + product pixels).
+- [x] **Quality:** not-a-packshot photos (model, lifestyle, amateur sample photos).
+- [x] **Calibration on contact sheets** (`outputs/phase1b/*.jpg`): thresholds tuned after visual inspection. Flags went from 77 to 20 on a 300-item trial, and from 1,400 to about 700 on the full set.
+- [x] **Flags merged into Sprint 1:** `check` adds them to `issues`, and the review app reads `data/embeddings/image_audit.parquet` directly. No batch files changed.
 
-**Output:** a CLIP mismatch score per item added to the review files, plus `outputs/image_audit_report.md`. The final status per item comes from the human review (`review_status` in `items_clean.parquet`).
+| Flag | Items | Severity |
+|---|---|---|
+| `VIS_TYPE_MISMATCH` | 24 | high |
+| `VIS_COLOUR_MISMATCH` | 132 | medium |
+| `IMG_NEAR_DUPLICATE` | 54 | medium |
+| `VIS_TYPE_DOUBT` | 189 | low |
+| `VIS_TARGET_NOT_FOUND` | 46 | low |
+| `IMG_NOT_PACKSHOT` | 272 | low |
+
+**Still to do:**
+- [ ] Measure the precision of each flag from the reviewers' decisions after the merge (target ≥ 80% for high, ≥ 50% for medium), and adjust the thresholds with `python src/phase1b_image_audit.py --reflag` (seconds, no models needed).
+- [ ] Optional: SAM outlines, if the colour check needs product-only pixels on model photos.
+
+**Output:** `data/embeddings/{image_clip.npy, image_clip.json, masks.parquet, image_audit.parquet}` (committed) and `outputs/phase1b/image_audit_report.md` + contact sheets. The final status per item comes from the human review (`review_status` in `items_clean.parquet`).
 **Done when:** every colourway has an audit status, and the manual precision of the flags is at least 80% on the review sample.
 **Use downstream:** Phase 2b only embeds `ok` images (and `colour_unreliable` images, for shape only). Phase 3 falls back to tabular data for everything else. Phase 6 delivers the flag list to the business as a data-quality result in its own right.
 

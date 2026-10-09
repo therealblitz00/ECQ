@@ -1,7 +1,7 @@
 # Sprint 1: automatic check report
 
 - SKU rows: 17,125 · colourways: 10,555 · with image file: 9,458
-- Colourways needing review: high 5, medium 448
+- Colourways needing review: high 29, medium 578
 
 ## Duplicates and keys
 
@@ -22,10 +22,16 @@
 |---|---|---|---|
 | IMG_FILE_MISSING | info | 1097 | 10.39 |
 | SALES_MISSING | info | 370 | 3.51 |
+| IMG_NOT_PACKSHOT | low | 272 | 2.58 |
 | IMG_GENERIC | medium | 249 | 2.36 |
+| VIS_TYPE_DOUBT | low | 189 | 1.79 |
 | SKU_ATTR_CONFLICT | medium | 165 | 1.56 |
+| VIS_COLOUR_MISMATCH | medium | 132 | 1.25 |
 | IMG_SHARED | medium | 100 | 0.95 |
+| IMG_NEAR_DUPLICATE | medium | 54 | 0.51 |
+| VIS_TARGET_NOT_FOUND | low | 46 | 0.44 |
 | CLR_NOT_IN_DESC | medium | 25 | 0.24 |
+| VIS_TYPE_MISMATCH | high | 24 | 0.23 |
 | SALES_ZERO_QTY | low | 9 | 0.09 |
 | IMG_CAT_MISMATCH | medium | 3 | 0.03 |
 | TYPE_CONFLICT_DESC | high | 2 | 0.02 |
@@ -39,11 +45,11 @@
 
 | CAT_DES_EN | high | info | low | medium | none |
 |---|---|---|---|---|---|
-| Apparel | 1 | 314 | 7 | 217 | 1720 |
-| Footwear | 0 | 12 | 0 | 16 | 407 |
-| Hand Bag | 1 | 156 | 0 | 45 | 1769 |
-| Jewellery | 2 | 454 | 0 | 135 | 4048 |
-| Wallet | 1 | 39 | 0 | 35 | 1176 |
+| Apparel | 7 | 313 | 25 | 234 | 1680 |
+| Footwear | 2 | 12 | 0 | 19 | 402 |
+| Hand Bag | 1 | 156 | 44 | 55 | 1715 |
+| Jewellery | 16 | 454 | 224 | 221 | 3724 |
+| Wallet | 3 | 39 | 58 | 49 | 1102 |
 
 ## Missing values
 
@@ -71,6 +77,16 @@ Full table: `missing_values.csv`. Empty or constant columns (33): INFO_TXT, DIME
 | 209638_BN | Dress ESSENTIALS T DISPLAY 1 Brown | Brown | Dress | /232/64/209638_BN_1 |
 | 209638_FU | Dress ESSENTIALS T DISPLAY 1 Fuchsia | Fuchsia | Dress | /232/64/209638_FU_1 |
 
+**VIS_COLOUR_MISMATCH**
+
+| PROD_CLR_EQUIV | PROD_DES_BASE | CLR_DES | GFA_DES_EN | PROG_IMAGE |
+|---|---|---|---|---|
+| 158685_MT | Earring SUNSET JUNCTION Mint | Mint | Earrings | /241/52/158685_MT_1 |
+| 163517_BK | Earring ECLIPSE Black | Black | Earrings | /232/52/163517_BK_1 |
+| 166730_AU | Earring GLEAM COLOR | Aubergine | Earrings | /191/52/166730_1 |
+| 166730_BR | Earring FLORABUNDANCE Brick Red | Brick Red | Earrings | /232/52/166730_BR_1 |
+| 166730_FG | Earring FLEURSDUMER Forest Green | Forest Green | Earrings | /241/52/166730_FG_1 |
+
 **IMG_SHARED**
 
 | PROD_CLR_EQUIV | PROD_DES_BASE | CLR_DES | GFA_DES_EN | PROG_IMAGE |
@@ -81,6 +97,16 @@ Full table: `missing_values.csv`. Empty or constant columns (33): INFO_TXT, DIME
 | 208038_PU | Dress ESSENTIALS T DISPLAY 1 Purple | Purple | Dress | /232/64/208038_PU_1 |
 | 208071_EC | Wallet SAMANTHA Ecru | Ecru | Wallet | /232/62/208071_1 |
 
+**IMG_NEAR_DUPLICATE**
+
+| PROD_CLR_EQUIV | PROD_DES_BASE | CLR_DES | GFA_DES_EN | PROG_IMAGE |
+|---|---|---|---|---|
+| 195269_LK | Earring TREND Light Pink | Light Pink | Earrings | /221/52/195269_LK_1 |
+| 195269_WT | Earring TREND White | White | Earrings | /222/52/195269_WT_1 |
+| 206914_GD | Necklace GLDN DEL Gold | Gold | Necklaces | /231/52/206914_GD_1 |
+| 206914_SV | Necklace SILVER D Silver | Silver | Necklaces | /231/52/206914_SV_1 |
+| 208038_BL | Dress ESSENTIALS T DISPLAY 1 Blue | Blue | Dress | /231/64/208038_BL_1 |
+
 **CLR_NOT_IN_DESC**
 
 | PROD_CLR_EQUIV | PROD_DES_BASE | CLR_DES | GFA_DES_EN | PROG_IMAGE |
@@ -90,6 +116,16 @@ Full table: `missing_values.csv`. Empty or constant columns (33): INFO_TXT, DIME
 | 169622_PK | Earring WHITE FIELDS | Pink | Earrings | /192/52/169622_1 |
 | 172276_PP | Earring FANCY PEARLS | Papaya | Earrings | /242/52/172276_PP_1 |
 | 176549_BK | Earring WILD COLOR | Black | Earrings | /201/52/176549_1 |
+
+**VIS_TYPE_MISMATCH**
+
+| PROD_CLR_EQUIV | PROD_DES_BASE | CLR_DES | GFA_DES_EN | PROG_IMAGE |
+|---|---|---|---|---|
+| 196653_MA | Earring TREND | Magenta | Earrings | /221/52/196653_1 |
+| 207972_PK | Ballerinas ELASTIC BALLERINA Pink | Pink | Ballerinas | /232/53/207972_PK_1y |
+| 209690_BM | Mobile Holder FASHION SUPPLEMENTS Bright Multicolor | Bright Multicolor | Mobile Accessories | /232/52/209690_BM_1 |
+| 209709_BM | Mobile Holder FASHION SUPPLEMENTS Bright Multicolor | Bright Multicolor | Mobile Accessories | /232/52/209709_1 |
+| 210450_GD | Flat Sandals GOLD TUBULAR SANDAL Gold | Gold | Flat Sandals | /232/53/210450_GD_1 |
 
 **IMG_CAT_MISMATCH**
 

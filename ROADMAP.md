@@ -23,7 +23,7 @@ Progress log with evidence: **[PROGRESS.md](PROGRESS.md)**.
 
 | Phase | Status | Done | Still to do |
 |---|---|---|---|
-| 0. Setup | 🟡 | Repo, environments, README, double-click scripts | `CLAUDE.md`, tests/CI |
+| 0. Setup | 🟡 | Repo, environments, README, double-click scripts, `CLAUDE.md` | Tests/CI |
 | 1. Data foundation | 🟡 | Loader, colourway table, sales join, image link, size-conflict check, reports | Merge the review, dates, placeholders, casing, drop empty columns, sales features |
 | 1b. Image audit | 🟡 | Masks, CLIP embeddings, type/colour/duplicate/quality flags, review app | Human review; measure the flags' precision afterwards |
 | 2a. Tabular/text features | ⚪ | – | Everything |
@@ -144,7 +144,7 @@ description ──[text encoder, once]──► 384–512 numbers
   ```
 - [x] Vision packages for the computing machine (`requirements-vision.txt`: torch CPU, transformers, scipy).
 - [ ] Add packages as later phases need them: scikit-learn, sentence-transformers, faiss-cpu (optional), pytest.
-- [ ] `CLAUDE.md` with the project conventions agents must follow: data contracts, "never edit `data/csv` or `data/images`", how to run the tests, code style.
+- [x] `CLAUDE.md` with the project conventions agents must follow: data contracts, "never edit `data/csv` or `data/images`", how to run the tests, code style.
 - [ ] CI that runs `pytest` and a linter.
 
 **Done when:** `pytest` passes on an empty test suite, and an agent can read `CLAUDE.md` and work out where to put new code.

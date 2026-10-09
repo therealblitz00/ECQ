@@ -18,3 +18,7 @@ data/processed/
 data/embeddings/*_sample.*
 outputs/phase1b/*_sample.*
 outputs/phase1b/*.log
+
+# Test and lint caches
+.pytest_cache/
+.ruff_cache/

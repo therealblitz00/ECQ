@@ -1,0 +1,21 @@
+# Tool settings only (the project is run as scripts, not installed as a package).
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
+markers = [
+    "data: reads the committed dataset (data/csv, data/embeddings); skipped when the files are missing",
+]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+extend-exclude = ["notebooks"]
+
+[tool.ruff.lint]
+# pycodestyle, pyflakes, bugbear (no import sorting: it would rewrite the compact import style)
+select = ["E", "W", "F", "B"]
+# E501: long lines are allowed (embedded HTML/JS in review_app.py); the 120 limit is a guideline.
+# B905: zip() without strict= is fine for columns of the same DataFrame.
+ignore = ["E501", "B905"]

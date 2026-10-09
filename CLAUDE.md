@@ -42,7 +42,7 @@ data/processed/    parquet outputs of each phase     regenerated, not in git
 data/embeddings/   masks + image/text embeddings     computed once, committed
 src/               pipeline scripts (see below)
 outputs/           reports, review batches, contact sheets
-tests/             pytest suite (to be created)
+tests/             pytest suite (toy fixtures + data contracts)
 notebooks/         exploration only, never imported
 ```
 
@@ -102,9 +102,25 @@ python -m venv .venv
 
 `data/processed/` is not in git: run `check` after cloning before anything that reads it.
 
-Tests: there is no test suite yet. New code should come with `pytest` tests in `tests/` that run
-on small fixtures (not the full dataset) and need no vision packages. Run them with
-`python -m pytest`.
+## Tests and CI
+
+```bash
+.venv/Scripts/python -m pip install -r requirements-dev.txt   # pytest + ruff
+.venv/Scripts/python -m pytest                                # ~2 s
+.venv/Scripts/python -m pytest -m "not data"                  # skip the tests on the real data files
+.venv/Scripts/ruff check src tests                            # lint (config in pyproject.toml)
+```
+
+- `tests/conftest.py` builds a **toy dataset** in a temporary folder and redirects every path
+  constant of `sprint1_preprocess` to it, so tests never touch the real `data/` or `outputs/`.
+  Reuse the `toy_dirs`, `toy_data` and `checked_items` fixtures.
+- `tests/test_data_contracts.py` (marker `data`) checks the committed files later phases rely
+  on: embeddings vs their `.json` sidecar, keys of `masks`/`image_audit`, and the review batch
+  CSVs (valid statuses, every colourway in exactly one batch). When you add a file to
+  `data/embeddings/` or `data/processed/`, add its contract here.
+- New code comes with tests that run on small fixtures and need no vision packages.
+- **CI** (`.github/workflows/ci.yml`) runs `ruff` and `pytest` on Python 3.10 and 3.14 for every
+  push and pull request to `parfois`. Keep it green: don't merge with a red CI.
 
 ## Code style
 

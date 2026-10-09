@@ -24,8 +24,8 @@ from urllib.parse import unquote, urlparse
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from sprint1_preprocess import (BATCH_DIR, EMB_DIR, IMG_DIR, ISSUES, KEY, OUT_DIR, PROCESSED_DIR,  # noqa: E402
-                                REVIEW_COLS, REVIEW_STATUSES, ROOT, SEVERITY_RANK, TEAM)
+from sprint1_preprocess import (BATCH_DIR, EMB_DIR, IMG_DIR, ISSUES, KEY, PROCESSED_DIR,  # noqa: E402
+                                REVIEW_STATUSES, ROOT, SEVERITY_RANK, TEAM)
 
 N_MEMBERS = len(TEAM)
 
@@ -136,9 +136,9 @@ class Batch:
         self.df.to_csv(tmp, index=False, encoding="utf-8-sig")
         try:
             os.replace(tmp, self.path)
-        except PermissionError:
+        except PermissionError as err:
             tmp.unlink(missing_ok=True)
-            raise PermissionError(f"Can't save: {self.path.name} is open in another program (Excel?). Close it.")
+            raise PermissionError(f"Can't save: {self.path.name} is open in another program (Excel?). Close it.") from err
 
     def submit(self) -> tuple[bool, str]:
         """git add/commit/push this member's CSV only."""

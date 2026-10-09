@@ -107,6 +107,15 @@ These are **suggestions for the reviewers**, not verdicts. After the review, the
 
 Details: [ROADMAP.md § Compute strategy](ROADMAP.md#compute-strategy-encode-once-reuse-everywhere).
 
+## 6. Tests and CI (Phase 0, 2026-10-10)
+
+- **`CLAUDE.md`:** conventions for AI agents (data rules, layout, commands, code style).
+- **42 tests** in `tests/`, about 2 s, no vision packages needed:
+  - **automatic checks** on a toy dataset (6 SKUs, 4 colourways): size collapsing, image, colour, type and sales flags, priorities;
+  - **review workflow:** the batch split, never overwriting a reviewer's decisions, `merge` (fixes, discard, drop image, pending), and the review app's save rules;
+  - **data contracts** on the committed files: embeddings vs their sidecar, keys of `masks`/`image_audit`, and the 5 review batches (valid decisions, every colourway in exactly one batch).
+- **CI:** GitHub Actions runs `ruff` and `pytest` on Python 3.10 and 3.14 for every push to `parfois`. A teammate's batch with an invalid decision now turns the CI red before the merge.
+
 ---
 
 ## Next

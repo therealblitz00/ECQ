@@ -23,7 +23,7 @@ Progress log with evidence: **[PROGRESS.md](PROGRESS.md)**.
 
 | Phase | Status | Done | Still to do |
 |---|---|---|---|
-| 0. Setup | 🟡 | Repo, environments, README, double-click scripts, `CLAUDE.md` | Tests/CI |
+| 0. Setup | ✅ | Repo, environments, README, double-click scripts, `CLAUDE.md`, tests and CI | – |
 | 1. Data foundation | 🟡 | Loader, colourway table, sales join, image link, size-conflict check, reports | Merge the review, dates, placeholders, casing, drop empty columns, sales features |
 | 1b. Image audit | 🟡 | Masks, CLIP embeddings, type/colour/duplicate/quality flags, review app | Human review; measure the flags' precision afterwards |
 | 2a. Tabular/text features | ⚪ | – | Everything |
@@ -143,9 +143,9 @@ description ──[text encoder, once]──► 384–512 numbers
   outputs/
   ```
 - [x] Vision packages for the computing machine (`requirements-vision.txt`: torch CPU, transformers, scipy).
-- [ ] Add packages as later phases need them: scikit-learn, sentence-transformers, faiss-cpu (optional), pytest.
+- [ ] Add packages as later phases need them: scikit-learn, sentence-transformers, faiss-cpu (optional). (`pytest` and `ruff` are in `requirements-dev.txt`.)
 - [x] `CLAUDE.md` with the project conventions agents must follow: data contracts, "never edit `data/csv` or `data/images`", how to run the tests, code style.
-- [ ] CI that runs `pytest` and a linter.
+- [x] CI that runs `pytest` and a linter: `.github/workflows/ci.yml` (ruff + pytest on Python 3.10 and 3.14), 42 tests in `tests/`.
 
 **Done when:** `pytest` passes on an empty test suite, and an agent can read `CLAUDE.md` and work out where to put new code.
 

@@ -1,0 +1,4 @@
+# Tests and linting (CI and anyone writing code). Install: pip install -r requirements-dev.txt
+-r requirements.txt
+pytest>=8
+ruff>=0.17,<0.18

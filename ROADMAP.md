@@ -59,6 +59,40 @@
 
 ---
 
+## Compute strategy: encode once, reuse everywhere
+
+**Problem:** the team has laptops without GPUs, and vision models are heavy. A 640×640 photo is about 1.2 million numbers, and comparing photos pixel by pixel is slow and doesn't capture similarity anyway.
+
+**Decision:** every image (and every product description) is converted **once** into an **embedding**, a short vector of about 512 numbers that summarises what it shows. A vision transformer splits the image into patch *tokens* and summarises them into this vector, which is what "converting an image into a token" refers to. Everything after that works on these small vectors.
+
+```
+photo ──[mask: keep only the target item]──[CLIP/SigLIP, once, ~0.1 s per image]──► 512 numbers
+description ──[text encoder, once]──► 384–512 numbers
+```
+
+| | Without embeddings | With embeddings |
+|---|---|---|
+| Heavy model on the processor | every comparison | **once per image** (≈10–20 min for all 9.5k on a laptop) |
+| Size | 278 MB of photos | ≈**20 MB** (9.5k × 512 × float32) |
+| Top-k similar items for one product | slow | **milliseconds** |
+| All-pairs similarity (≈90 M pairs) | not feasible | ≈**1 s** with NumPy |
+
+**Rules:**
+1. **One machine computes, everyone reuses.** The heavy steps (masks, image and text embeddings) run once on one computer. The results are committed to `data/embeddings/` (tracked in git, unlike `data/processed/`). Teammates only load the files: they need no `torch` and no waiting.
+2. **Order:** mask first (Phase 1b), then embed the masked crop (Phase 2b). The same embeddings serve the CLIP pre-screen, similarity, clustering and evaluation, so they are never recomputed per task.
+3. **Reproducible:** every embedding file gets a sidecar `.json` with the model name and version, the input size, mask settings, date, and the row order (`PROD_CLR_EQUIV` list). Recompute only when the model or the masks change.
+4. **Keep it light:** a base-size model (e.g. CLIP ViT-B/32 or SigLIP base), 224 px input, processed in batches. Store float16 if size matters (≈10 MB).
+
+**Files:**
+
+| File | Content | Produced in |
+|---|---|---|
+| `data/embeddings/masks.parquet` | bounding box, mask method (threshold / detector) and `target_found` per item | Phase 1b |
+| `data/embeddings/image_clip.npy` + `.json` | one image vector per colourway (masked crop) | Phase 1b/2b |
+| `data/embeddings/text.npy` + `.json` | one text vector per colourway (description built from attributes) | Phase 2a |
+
+---
+
 ## Phases overview
 
 | Phase | Outcome | Depends on | Can run in parallel with |
@@ -88,6 +122,7 @@
   data/csv/          # original CSVs (read-only)
   data/images/       # product images, 9,496 files (read-only)
   data/processed/    # parquet outputs of each phase (not in git)
+  data/embeddings/   # masks + image/text embeddings, computed once, committed to git
   src/               # sprint1_preprocess.py now; later a package: features/, retrieval/, explain/, eval/
   notebooks/         # exploration only, never imported
   tests/
@@ -131,7 +166,7 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 - [ ] Human review of all images in 5 batches (`SPRINT1_GUIDE.md`) → merge.
 
 **Still to do (vision model):**
-- [ ] **Install the vision stack:** `torch` (CPU) and `open_clip_torch`, or `transformers`. There is no GPU, so CLIP ViT-B/32 on CPU will take roughly 10–30 minutes for 9.4k images. Cache the embeddings to disk once and reuse them in Phase 2b.
+- [ ] **Install the vision stack:** `torch` (CPU) and `open_clip_torch`, or `transformers`. There is no GPU, so CLIP ViT-B/32 on CPU will take roughly 10–30 minutes for 9.4k images. This runs **on one machine only**: the masks and embeddings are committed to `data/embeddings/` (see [Compute strategy](#compute-strategy-encode-once-reuse-everywhere)).
 - [ ] **Item masks (do this before the type check and the embeddings):** the professor's suggestion for photos with a model wearing several items (e.g. necklace + earrings). Measured: 97% of images are white-background packshots, where the mask is simply "not white" (threshold, seconds for all). The other ~272 (≈3%, mostly jewellery on a model, bags on a person, amateur photos of samples) need a text-prompted detector (Grounding DINO / OWLv2) using the CSV type as prompt (*"earrings"*), then SAM for the outline (≈2–5 s per image on CPU). Store the mask, the bounding box and a `target_found` flag per item. Masks are **not** needed for the human review.
 - [ ] **Type check (zero-shot):** classify each image against text prompts for every `GFA_DES_EN` in its category, and also across categories (*"a photo of earrings"*, *"a photo of a necklace"*…). Flag the item when the label's probability is low **and** another class wins by a clear margin. Run it on the masked crop, and also flag it when the detector finds no item of the expected type.
 - [ ] **Neighbourhood check:** in CLIP image space, flag items whose k nearest visual neighbours mostly have a different `GFA_DES_EN`. This catches mismatches that the prompts miss.
@@ -153,7 +188,7 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 - [ ] **Text block:** sentence embedding of a description assembled from the attributes, e.g. *"Hoop earring, golden finish, pearl and zinc, Golden Delicates theme"*.
 - [ ] Keep each block as a separate matrix with the same row order, so the score can later be broken down by block.
 
-**Output:** `data/processed/features_{block}.npy` and `feature_meta.json`.
+**Output:** `data/processed/features_{block}.npy` and `feature_meta.json`. The text embedding goes to `data/embeddings/text.npy` (committed, computed once).
 
 ## Phase 2b: Visual features *(only images that pass the 1b audit)*
 
@@ -162,7 +197,7 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 - [ ] Dominant colour palette for each image (k-means in LAB colour space, on the masked pixels only), so explanations can say things like *"same colour palette"*.
 - [ ] Optional: zero-shot CLIP tags (shape, style, motif) to fill sparse attributes such as `SHAPE` and `PRODUCT_DETAILS`.
 
-**Output:** `features_visual.npy`, `palettes.parquet`, `image_tags.parquet`.
+**Output:** `data/embeddings/image_clip.npy` + `.json` (committed), `palettes.parquet`, `image_tags.parquet`.
 
 ## Phase 3: Similarity engine
 

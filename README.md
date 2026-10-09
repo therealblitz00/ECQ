@@ -51,13 +51,13 @@ The setup creates a private Python environment (`.venv/`) in the project folder,
 py -3 -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
 .venv\Scripts\python src\sprint1_preprocess.py check
-.venv\Scripts\python src\sprint1_preprocess.py batch --members 5 --id 1   # your number 1-5
+.venv\Scripts\python src\sprint1_preprocess.py batch --members 5 --id 1   # your number, see "Who reviews what"
 
 # Mac (Terminal)
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 .venv/bin/python src/sprint1_preprocess.py check
-.venv/bin/python src/sprint1_preprocess.py batch --members 5 --id 1       # your number 1-5
+.venv/bin/python src/sprint1_preprocess.py batch --members 5 --id 1       # your number, see "Who reviews what"
 ```
 </details>
 
@@ -65,17 +65,39 @@ python3 -m venv .venv
 
 ## Current sprint: Sprint 1 (data cleaning and validation)
 
-We check that the **product data**, the **text description** and the **image** of each product all describe the same article. The work is split across the 5 team members:
+We check that the **product data**, the **text description** and the **image** of each product all describe the same article. The work is split across the 5 team members.
 
-1. Run `2_review_…` and enter your number (1–5). Your review page opens in the browser, with flagged items first.
-2. Fill in your CSV, `outputs/sprint1/batches/batch_0K_of_04.csv`. The rules are in **[SPRINT1_GUIDE.md](SPRINT1_GUIDE.md)**.
-3. Commit and push **only your own CSV**:
+### Who reviews what
+
+| # | Member | Review page (open in browser) | File to fill in and push |
+|---|---|---|---|
+| **1** | André | `outputs/sprint1/batches/batch_01_of_05.html` | `outputs/sprint1/batches/batch_01_of_05.csv` |
+| **2** | Pedro Correia | `outputs/sprint1/batches/batch_02_of_05.html` | `outputs/sprint1/batches/batch_02_of_05.csv` |
+| **3** | Pedro Meireles | `outputs/sprint1/batches/batch_03_of_05.html` | `outputs/sprint1/batches/batch_03_of_05.csv` |
+| **4** | Manuel | `outputs/sprint1/batches/batch_04_of_05.html` | `outputs/sprint1/batches/batch_04_of_05.csv` |
+| **5** | Zé | `outputs/sprint1/batches/batch_05_of_05.html` | `outputs/sprint1/batches/batch_05_of_05.csv` |
+
+Each batch has 2,111 items with the same mix of categories.
+
+### Steps
+
+1. **Open your batch.** Double-click `2_review_windows.bat` (Windows) or `2_review_mac.command` (Mac) and type **your number** from the table. Your review page opens in the browser, with flagged items first. In the terminal, the equivalent is:
    ```bash
-   git add outputs/sprint1/batches/batch_0K_of_04.csv
-   git commit -m "Sprint 1 review: batch K"
+   # Windows (replace 1 with your number)
+   .venv\Scripts\python src\sprint1_preprocess.py batch --members 5 --id 1
+   # Mac (replace 1 with your number)
+   .venv/bin/python src/sprint1_preprocess.py batch --members 5 --id 1
+   ```
+2. **Review.** Fill in **your** CSV (see the table). The rules are in **[SPRINT1_GUIDE.md](SPRINT1_GUIDE.md)**.
+3. **Push only your own CSV.** Example for member 1 (André); change `01` to your number:
+   ```bash
+   git add outputs/sprint1/batches/batch_01_of_05.csv
+   git commit -m "Sprint 1 review: batch 1 (André)"
    git pull --rebase && git push
    ```
-4. When all 5 are in, one person runs `3_merge_…`. This produces `data/processed/items_clean.parquet`, the cleaned dataset.
+4. **Merge.** When all 5 are in, one person runs `3_merge_…`. This produces `data/processed/items_clean.parquet`, the cleaned dataset.
+   - Only resolved items go into the clean table.
+   - Flagged items nobody reviewed (`pending`) and items marked `team_review` are listed in `outputs/sprint1/team_review.csv` until the team decides.
 
 Your filled-in CSV is never overwritten if you run the review script again.
 

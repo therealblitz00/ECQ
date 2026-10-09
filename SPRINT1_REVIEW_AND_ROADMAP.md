@@ -1,5 +1,7 @@
 # Sprint 1 Preprocessing: Review & Actionable Improvement Roadmap
 
+> **Status update (2026-10-09):** **BUG-001**, **BUG-002** and **BUG-003** are fixed in `src/sprint1_preprocess.py`. The batches were regenerated. The other findings are still open.
+
 > **Document Purpose:** This document provides a complete technical audit of the current Sprint 1 preprocessing pipeline (`src/sprint1_preprocess.py`) and serves as an actionable specification for team members and subsequent AI coding agents to implement corrections.
 
 ---

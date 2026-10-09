@@ -31,6 +31,8 @@ OUT_DIR = ROOT / "outputs" / "sprint1"
 BATCH_DIR = OUT_DIR / "batches"
 
 KEY = "PROD_CLR_EQUIV"
+# Sprint 1 review: batch number -> team member (used with --members 5).
+TEAM = {1: "André", 2: "Pedro Correia", 3: "Pedro Meireles", 4: "Manuel", 5: "Zé"}
 # Codes must stay strings (leading zeros, no float conversion).
 STR_DTYPES = {c: str for c in ["PROD_REF", "PROD_REF_EQUIV", "BAR_COD", "SEA_COD", "CAT_COD",
                                "GFA_COD", "GFS_COD", "SUP_COD", "TARIFF_COD"]}
@@ -52,14 +54,20 @@ ISSUES = {
     "TYPE_CONFLICT_DESC": "high",      # PROD_DES item type disagrees with GFA_DES_EN
     "SALES_MISSING": "info",           # no row in df_sales
     "SALES_ZERO_QTY": "low",           # SALES_QTY == 0
+    "SKU_ATTR_CONFLICT": "medium",     # sizes of the same colourway disagree on an attribute (see sku_conflicts)
 }
+# Attributes that must be identical for every size of a colourway (they feed the similarity model).
+SKU_INVARIANT_COLS = ["CLR_COD", "CLR_DES", "CLR_TYPE", "CAT_DES_EN", "GFA_DES_EN", "GFS_DES_EN",
+                      "CATEGORY_MATRIX", "COMPOSITION", "MATERIAL", "FINISHING", "PRINT_TYPE", "OUTFIT",
+                      "DIMENSION", "NUMBER_OF_UNITS", "THEME", "FASHIONTYPE", "PROD_SEG",
+                      "PRICE_BASE_W_VAT", "PROG_IMAGE"]
 SEVERITY_RANK = {"high": 3, "medium": 2, "low": 1, "info": 0}
 
 REVIEW_STATUSES = {"ok", "fix", "drop_image", "discard", "team_review"}
 REVIEW_COLS = ["review_status", "fixes", "reviewer", "notes"]
 BATCH_COLS = [KEY, "PROD_REF", "PROD_DES_BASE", "CLR_COD", "CLR_DES", "CAT_DES_EN", "GFA_DES_EN",
               "GFS_DES_EN", "COMPOSITION", "FINISHING", "MATERIAL", "PRICE_BASE_W_VAT", "PROG_IMAGE",
-              "img_file", "priority", "issues"]
+              "img_file", "priority", "issues", "sku_conflicts"]
 
 
 # --------------------------------------------------------------------------- loading
@@ -69,7 +77,7 @@ def _normalise_text(s: pd.Series) -> pd.Series:
 
 
 def load_data() -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Load both CSVs and normalise whitespace (no values are changed otherwise)."""
+    """Load both CSVs, normalise whitespace and put COMPOSITION in a canonical form."""
     prod = pd.read_csv(CSV_DIR / "df_product.csv", dtype=STR_DTYPES, encoding="utf-8", low_memory=False)
     sales = pd.read_csv(CSV_DIR / "df_sales.csv", encoding="utf-8")
 
@@ -78,6 +86,9 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     for col in prod.columns:
         if pd.api.types.is_string_dtype(prod[col]):
             prod[col] = _normalise_text(prod[col])
+    # Sizes list the same materials in different orders ("Zinc; Enamel" vs "Enamel; Zinc"): sort them.
+    prod["COMPOSITION"] = prod["COMPOSITION"].map(
+        lambda s: "; ".join(sorted(set(s.split("; ")))) if isinstance(s, str) else s)
     sales[KEY] = sales[KEY].str.strip()
     return prod, sales
 
@@ -122,6 +133,21 @@ def build_items(prod: pd.DataFrame, sales: pd.DataFrame) -> pd.DataFrame:
     ]
     grouped = prod.groupby(KEY, sort=True)
     items = grouped.first()
+
+    # Sizes must agree on the attributes the model uses. Where they don't, keep the most
+    # common value (instead of whichever size comes first) and record the conflict for review.
+    attrs = [c for c in SKU_INVARIANT_COLS if c in prod.columns]
+    varies = grouped[attrs].nunique(dropna=False) > 1
+    items["sku_conflicts"] = varies.apply(lambda r: "|".join(r.index[r]), axis=1)
+    conflicted = varies.index[varies.any(axis=1)]
+    if len(conflicted):
+        modes = (prod[prod[KEY].isin(conflicted)].groupby(KEY)[attrs]
+                 .agg(lambda s: s.mode(dropna=False).iat[0]))
+        items.loc[modes.index, attrs] = modes
+
+    # Re-coded items merge SKUs of an old and a new model code: keep every code the colourway owns.
+    refs = pd.concat([prod[[KEY, c]].set_axis([KEY, "ref"], axis=1) for c in ["PROD_REF", "PROD_REF_EQUIV"]])
+    items["refs_all"] = refs.dropna().drop_duplicates().groupby(KEY)["ref"].agg(lambda s: "|".join(sorted(s)))
     items["n_skus"] = grouped.size()
     items["sizes"] = grouped["SZ_DES"].agg(lambda s: "|".join(s.dropna().unique()))
     items["n_images_listed"] = grouped["PROG_IMAGE"].nunique()
@@ -149,8 +175,8 @@ def check_images(items: pd.DataFrame, verify_files: bool = True) -> None:
     _add_issue(items, ~items["has_image"], "IMG_FILE_MISSING")
 
     _add_issue(items, parts["cat"].notna() & (parts["cat"] != items["CAT_COD"]), "IMG_CAT_MISMATCH")
-    ref_ok = pd.Series([isinstance(s, str) and s.startswith(r) for s, r in zip(items["img_stem"], items["PROD_REF"])],
-                       index=items.index)
+    ref_ok = pd.Series([isinstance(s, str) and any(s.startswith(r) for r in refs.split("|"))
+                        for s, refs in zip(items["img_stem"], items["refs_all"])], index=items.index)
     _add_issue(items, items["img_stem"].notna() & ~ref_ok, "IMG_REF_MISMATCH")
 
     # File name pattern: <ref:6 digits><colour code: "_BK", "1BK", "DNC" or "CT">_<n>; generic images have no colour.
@@ -271,6 +297,7 @@ def run_checks(verify_files: bool = True) -> tuple[pd.DataFrame, dict]:
     check_colour_consistency(items)
     check_type_consistency(items)
     check_sales(items)
+    _add_issue(items, items["sku_conflicts"] != "", "SKU_ATTR_CONFLICT")
 
     items["issues"] = items["issues"].str.rstrip(";")
     sev = items["issues"].map(
@@ -415,23 +442,30 @@ def write_batches(items: pd.DataFrame, n_members: int, only_id: int | None) -> N
             print(f"{name}.csv already contains review decisions: kept as is (only the HTML sheet was rebuilt).")
         else:
             batch.to_csv(csv_path, index=False, encoding="utf-8-sig")
-        _review_sheet(batch, f"Sprint 1 review – {name}", BATCH_DIR / f"{name}.html")
-        print(f"{name}: {len(batch)} items ({int((batch['priority'] == 'high').sum())} high priority) "
+        owner = f" ({TEAM[b]})" if n_members == len(TEAM) else ""
+        _review_sheet(batch, f"Sprint 1 review – {name}{owner}", BATCH_DIR / f"{name}.html")
+        print(f"{name}{owner}: {len(batch)} items ({int((batch['priority'] == 'high').sum())} high priority) "
               f"-> {BATCH_DIR / name}.csv / .html")
 
 
 # --------------------------------------------------------------------------- merge
+_FIX_SEPARATOR = re.compile(r";\s*(?=[A-Za-z_][A-Za-z0-9_]*\s*=)")
+
+
 def _parse_fixes(text: str) -> list[tuple[str, str]]:
-    """'CLR_DES=Black; GFA_DES_EN=Rings' -> [('CLR_DES', 'Black'), ('GFA_DES_EN', 'Rings')]"""
+    """'CLR_DES=Black; COMPOSITION=Pearl; Zinc' -> [('CLR_DES', 'Black'), ('COMPOSITION', 'Pearl; Zinc')]
+
+    A ';' only starts a new fix when it is followed by 'COLUMN=', so values may contain ';'.
+    """
     out = []
-    for part in str(text).split(";"):
+    for part in _FIX_SEPARATOR.split(str(text)):
         if "=" in part:
             col, val = part.split("=", 1)
             out.append((col.strip(), val.strip()))
     return out
 
 
-def merge_batches(input_dir: Path) -> None:
+def merge_batches(input_dir: Path, include_unresolved: bool = False) -> None:
     items = pd.read_parquet(PROCESSED_DIR / "items_checked.parquet")
     files = sorted(input_dir.glob("batch_*_of_*.csv"))
     if not files:
@@ -482,7 +516,10 @@ def merge_batches(input_dir: Path) -> None:
 
     discarded = items[items["review_status"] == "discard"]
     team = items[items["review_status"].isin(["team_review", "pending"])]
-    clean = items[items["review_status"] != "discard"].drop(columns=["source_file"])
+    # Unresolved items (flagged but not reviewed, or sent to team review) stay out of the clean
+    # table unless explicitly requested, so nothing doubtful reaches the features.
+    excluded = ["discard"] if include_unresolved else ["discard", "team_review", "pending"]
+    clean = items[~items["review_status"].isin(excluded)].drop(columns=["source_file"])
 
     clean.to_parquet(PROCESSED_DIR / "items_clean.parquet", index=False)
     clean.to_csv(OUT_DIR / "items_clean.csv", index=False, encoding="utf-8-sig")
@@ -497,6 +534,9 @@ def merge_batches(input_dir: Path) -> None:
         print(f"WARNING: {int(not_in_batches.sum())} items were not in any batch file.")
     print(f"Fixes applied: {len(log)} -> {OUT_DIR / 'changes_log.csv'}")
     print(f"Clean table: {PROCESSED_DIR / 'items_clean.parquet'} ({len(clean)} items)")
+    if len(team) and not include_unresolved:
+        print(f"Left out of the clean table until resolved: {len(team)} items (pending / team_review) "
+              f"-> {OUT_DIR / 'team_review.csv'}. Use --include-unresolved to keep them.")
 
 
 # --------------------------------------------------------------------------- CLI
@@ -511,10 +551,12 @@ def main() -> None:
     b.add_argument("--skip-image-verify", action="store_true")
     m = sub.add_parser("merge", help="merge reviewed batches and apply fixes")
     m.add_argument("--input-dir", type=Path, default=BATCH_DIR)
+    m.add_argument("--include-unresolved", action="store_true",
+                   help="keep pending / team_review items in the clean table")
     args = ap.parse_args()
 
     if args.cmd == "merge":
-        merge_batches(args.input_dir)
+        merge_batches(args.input_dir, args.include_unresolved)
         return
     if args.cmd == "batch" and args.id and not 1 <= args.id <= args.members:
         raise SystemExit("--id must be between 1 and --members")

@@ -19,7 +19,15 @@ Expected layout: `data/csv/df_product.csv`, `data/csv/df_sales.csv`, `data/image
 | 3. Review | each member | open the `.html`, fill in the `.csv` | reviewed CSV |
 | 4. Merge | one person | put all reviewed CSVs in `outputs/sprint1/batches/`, run `python src/sprint1_preprocess.py merge` | `data/processed/items_clean.parquet`, `changes_log.csv`, `discarded.csv`, `team_review.csv` |
 
-The team has **5 members**: `K` = your number (1–5). Everyone must use `--members 5`, otherwise the batches will not line up at merge.
+The team has **5 members**. Everyone must use `--members 5`, otherwise the batches will not line up at merge.
+
+| `K` | Member |
+|---|---|
+| 1 | André |
+| 2 | Pedro Correia |
+| 3 | Pedro Meireles |
+| 4 | Manuel |
+| 5 | Zé |
 
 **How the split works:** one row per colourway (model + colour, `PROD_CLR_EQUIV`), about 2,111 items each for 5 people. All colours of a model go to the same person, and each batch gets a similar mix of categories.
 
@@ -38,12 +46,12 @@ The HTML sheet shows each item's image, description, category, family, colour an
 
 Always fill in `reviewer` (your name) when you set a status.
 
-**`fixes` syntax:** `COLUMN=new value`, separated by `;`. Example: `GFA_DES_EN=Bracelets; PROD_DES_BASE=Bracelet NILE Gold`. The column must exist (see `items_checked.csv`). Every fix is logged in `changes_log.csv` with its old value and the reviewer.
+**`fixes` syntax:** `COLUMN=new value`, separated by `;`. Example: `GFA_DES_EN=Bracelets; COMPOSITION=Pearl; Zinc`. A `;` only starts a new fix when it is followed by `COLUMN=`, so values such as `COMPOSITION` can contain `;`. The column must exist (see `items_checked.csv`). Every fix is logged in `changes_log.csv` with its old value and the reviewer.
 
 **Rules:**
 - Edit only the four review columns. All other columns are ignored at merge.
 - Keep the file as CSV (UTF-8). If you use Excel, use *Save As → CSV UTF-8*.
-- Flagged items that nobody reviewed are reported as `pending` in `team_review.csv`.
+- Flagged items that nobody reviewed (`pending`) and items marked `team_review` are **left out of the clean table** and listed in `team_review.csv` until the team decides. Use `merge --include-unresolved` only if you deliberately want to keep them.
 - Nothing is deleted from `data/`. `drop_image` only removes the image link from the clean table.
 
 ## What the automatic checks flag
@@ -62,6 +70,7 @@ Always fill in `reviewer` (your name) when you set a status.
 | `IMG_GENERIC` | medium | Image is not specific to the colour, so check that the colour matches |
 | `IMG_SHARED` | medium | The same image is used by another colour or model (see `img_shared_with`) |
 | `CLR_NOT_IN_DESC` | medium | Description doesn't mention the colour |
+| `SKU_ATTR_CONFLICT` | medium | Sizes of the same colourway disagree on an attribute (the `sku_conflicts` column lists which ones). The most common value is used; correct it with `fix` if it's wrong |
 | `SALES_ZERO_QTY` | low | Zero units sold |
 | `IMG_FILE_MISSING`, `SALES_MISSING` | info | No image or no sales. No action needed |
 

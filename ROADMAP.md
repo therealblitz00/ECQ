@@ -14,18 +14,19 @@
 
 | Sprint | Roadmap phases | Status |
 |---|---|---|
-| **Sprint 1: data cleaning and validation** | 0 (partly), 1 (partly), 1b (rule-based part and human review) | 🟡 **In progress**: automatic checks done, 4-way manual review under way |
+| **Sprint 1: data cleaning and validation** | 0 (partly), 1 (partly), 1b (rule-based part and human review) | 🟡 **In progress**: automatic checks done, 5-way manual review under way |
 | Sprint 2: features | 1 (rest), 1b (CLIP pre-screen), 2a, 2b | ⚪ Not started |
 | Sprint 3: similarity and evaluation | 3, 4 | ⚪ Not started |
 | Sprint 4: explanations and delivery | 5, 6 | ⚪ Not started |
 
 **Done in Sprint 1 so far:**
-- `src/sprint1_preprocess.py` with three commands: `check` (automatic checks), `batch` (a deterministic, balanced 4-way review split with HTML review pages) and `merge` (applies the review decisions and logs every change).
+- `src/sprint1_preprocess.py` with three commands: `check` (automatic checks), `batch` (a deterministic, balanced 5-way review split: 1 André, 2 Pedro Correia, 3 Pedro Meireles, 4 Manuel, 5 Zé with HTML review pages) and `merge` (applies the review decisions and logs every change).
 - Automatic check results (`outputs/sprint1/check_report.md`):
   - no duplicate keys, and every sales row joins to a product;
-  - 4 high-priority issues (invalid image path, corrupt image, 2 type conflicts between description and family);
-  - 296 medium-priority items (252 generic images, 100 shared images, 25 descriptions without the colour, 3 images in another category's folder);
-  - 1,100 colourways without an image.
+  - 5 high-priority issues (invalid image path, corrupt image, 2 type conflicts between description and family, 1 re-coded item that merges two colours);
+  - 448 medium-priority items (249 generic images, 165 colourways whose sizes disagree on an attribute, 100 shared images, 25 descriptions without the colour, 3 images in another category's folder);
+  - 1,097 colourways without an image.
+- Fixed after Pedro Meireles's audit (`SPRINT1_REVIEW_AND_ROADMAP.md`): BUG-001 (size conflicts now resolved by majority value and flagged), BUG-002 (unresolved items left out of the clean table), BUG-003 (`;` inside fix values).
 - Repository, `requirements.txt` and double-click setup/review/merge scripts for Windows and Mac.
 
 **Next:**
@@ -105,7 +106,7 @@
 - [ ] Treat placeholders (`UNDEFINED`, `Not Applicable`, `Without Block`, `Others`) as missing values.
 - [ ] Normalise casing (`THEME`, `L1_DES`…) and tokenise `COMPOSITION` into a list of materials.
 - [x] **Collapse to colourway level** (`PROD_CLR_EQUIV`), with the list of sizes and a size-free description (`PROD_DES_BASE`).
-- [ ] Check that the attributes are constant within each colourway.
+- [x] Check that the attributes are constant within each colourway (`SKU_ATTR_CONFLICT`, `sku_conflicts`). COMPOSITION is put in a canonical order first.
 - [x] Left-join the sales data.
 - [ ] Add `log_sales_qty` and `realised_price` (guarding against division by zero).
 - [x] Link each colourway to its image: take the stem of the last part of `PROG_IMAGE` and match it to a file stem in `data/images/` (9,455 / 10,555 = 89.6% coverage). Stored as `img_file` and `has_image`.

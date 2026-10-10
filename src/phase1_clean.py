@@ -34,7 +34,7 @@ PREVIEW_FILE = "items_preview.parquet"
 CONTRACT_COLUMNS = [
     KEY, "PROD_REF", "PROD_DES_BASE", "CAT_DES_EN", "GFA_DES_EN", "GFS_DES_EN", "CATEGORY_MATRIX",
     "CLR_COD", "CLR_DES", "CLR_TYPE", "COMPOSITION", "MATERIAL", "FINISHING", "OUTFIT", "DIMENSION",
-    "PRINT_TYPE", "THEME", "FASHIONTYPE", "PROD_SEG", "PRICE_BASE_W_VAT", "STORE_DATE_FINAL", "SEA_COD",
+    "PRINT_TYPE", "THEME", "FASHIONTYPE", "PROD_SEG", "NUMBER_OF_UNITS", "PRICE_BASE_W_VAT", "STORE_DATE_FINAL", "SEA_COD",
     "sizes", "n_skus", "SALES_QTY", "SALES_AMT_FX_RATE", "has_sales", "log_sales_qty", "realised_price",
     "sales_pct_in_cat", "img_file", "has_image", "img_trusted", "img_colour_trusted", "issues", "priority",
     "review_status",

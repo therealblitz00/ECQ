@@ -63,6 +63,7 @@ Current scripts in `src/`:
 | `review_app.py` | Browser app for the manual review (standard library + pandas only) |
 | `phase1_vocab.py` | Allowed values for review fixes (`build_vocabulary`, `normalise_fixes`). Used by the review app and `merge`; never accept a fix value that isn't in it |
 | `phase1_clean.py` | Final cleaning (`finalise_items`), the preview table and `load_items()`. Its `CONTRACT_COLUMNS` are the columns later phases may rely on |
+| `phase2a_features.py` | Feature blocks (`features_<block>.npy` + `feature_meta.json`, same row order). So far: categorical (weighted one-hot, rows L2-normalised) |
 
 New code goes into `src/phase<N>_<topic>.py`, one module per roadmap phase (move to a package
 only when a phase outgrows one file). Import paths and constants from `config.py` instead of
@@ -105,6 +106,9 @@ python -m venv .venv
 .venv/Scripts/python src/phase1_checks.py batch --members 5 --id 4  # one review batch
 .venv/Scripts/python src/review_app.py --id 4                       # review app on http://localhost:8765
 .venv/Scripts/python src/phase1_checks.py merge                     # -> data/processed/items_clean.parquet
+
+# Phase 2a (rerun after merge)
+.venv/Scripts/python src/phase2a_features.py                       # -> data/processed/features_*.npy + outputs/phase2a/features_report.md
 
 # Phase 1b (vision environment only)
 .venv/Scripts/python src/phase1b_image_audit.py --limit 300   # quick trial

@@ -19,7 +19,7 @@ This is the only place that tracks the status. The evidence for each item is in 
 | Sprint | Roadmap phases | Status |
 |---|---|---|
 | **Sprint 1: data cleaning and validation** | 0, 1, 1b | 🟡 **In progress**: setup ✅, automatic checks ✅, image pre-screen ✅, review app ✅, cleaning + preview table ✅. Waiting for the manual review by the 5 members, then merge |
-| Sprint 2: features | 1 (rest), 2a, 2b | ⚪ Can start now on the Phase 1 preview table (image embeddings already computed in 1b) |
+| Sprint 2: features | 1 (rest), 2a, 2b | 🟡 **Started** on the Phase 1 preview table: categorical block ✅ (image embeddings already computed in 1b). Rerun Phase 2a after the review merge |
 | Sprint 3: similarity and evaluation | 3, 4 | ⚪ Not started |
 | Sprint 4: explanations and delivery | 5, 6 | ⚪ Not started |
 
@@ -28,7 +28,7 @@ This is the only place that tracks the status. The evidence for each item is in 
 | 0. Setup | ✅ | Repo, environments, README, double-click scripts, `CLAUDE.md`, tests and CI | – |
 | 1. Data foundation | 🟡 | Loader, colourway table, sales join, image link, size-conflict check, reports, final cleaning (`phase1_clean.py`), preview table, photo trust | Merge the review (waiting for the team) |
 | 1b. Image audit | 🟡 | Masks, CLIP embeddings, type/colour/duplicate/quality flags, review app | Human review; measure the flags' precision afterwards |
-| 2a. Tabular/text features | ⚪ | – | Everything |
+| 2a. Tabular/text features | 🟡 | Categorical block (`phase2a_features.py`) | Composition, numeric and text blocks; rerun after the merge |
 | 2b. Visual features | 🟡 | Image embeddings (`data/embeddings/image_clip.npy`) | Colour palettes, optional tags |
 | 3–6 | ⚪ | – | Everything |
 
@@ -204,7 +204,7 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 
 ## Phase 2a: Tabular and text features
 
-- [ ] **Categorical block:** hierarchy (CAT › GFA › GFS, `CATEGORY_MATRIX`), colour (`CLR_DES`, `CLR_TYPE`), `FINISHING`, `MATERIAL`, `PRINT_TYPE`, `DIMENSION`, `OUTFIT`, `THEME`, `FASHIONTYPE`, `PROD_SEG`, `NUMBER_OF_UNITS`. Use one-hot or weighted encodings, and give the hierarchy levels larger weights.
+- [x] **Categorical block:** hierarchy (CAT › GFA › GFS, `CATEGORY_MATRIX`), colour (`CLR_DES`, `CLR_TYPE`), `FINISHING`, `MATERIAL`, `PRINT_TYPE`, `DIMENSION`, `OUTFIT`, `THEME`, `FASHIONTYPE`, `PROD_SEG`, `NUMBER_OF_UNITS`. Use one-hot or weighted encodings, and give the hierarchy levels larger weights. *(2026-10-10: weighted one-hot, 10,555 × 1,620, rows L2-normalised; family and sub-family are encoded as paths under their category; report in `outputs/phase2a/features_report.md`.)*
 - [ ] **Composition block:** multi-hot vector of material tokens.
 - [ ] **Numeric block:** price band, launch season and date.
 - [ ] **Text block:** sentence embedding of a description assembled from the attributes, e.g. *"Hoop earring, golden finish, pearl and zinc, Golden Delicates theme"*.

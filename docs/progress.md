@@ -14,6 +14,7 @@ What has been done so far, with evidence, in date order. **Status and next steps
 | Image AI | 9,490 photos masked and embedded (512 numbers each): 9,457 in 86 min on one laptop CPU, plus 33 repaired paths in 98 s |
 | Image flags | **24** photos of another item type, **135** of another colour, **54** same photo for another colour |
 | Review | 5 balanced batches (2,111 products each), browser app, autosave, one-click submit |
+| Features (Phase 2a) | Categorical block: 15 attributes, 1,620 columns, built in about 1 s |
 
 ---
 
@@ -156,3 +157,16 @@ The project was hard to follow: two numberings (sprints and phases) mixed in fil
 - the allowed values are in `outputs/phase1/review_vocabulary.csv`.
 - The review batches were regenerated (no decisions had been recorded): same products per member, now with the repaired photos and the Phase 1b flags written in.
 - Tests: 79 (17 new).
+
+## 10. Phase 2a started: categorical block (2026-10-10)
+
+Phase 2a starts on the preview table, without waiting for the photo review: it uses the CSV attributes, not the photos. `phase1_clean.load_items()` will return the reviewed table after `merge`, so the same script is simply rerun then.
+
+- **`src/phase2a_features.py`** → `data/processed/features_categorical.npy` (10,555 × 1,620, float32) and `feature_meta.json` (row order, columns, weight and position of each attribute).
+- **15 attributes**, one-hot with a weight each: family and sub-family 3, colour 2, category matrix, finishing and theme 1.5, category, material, print, dimension and outfit 1, colour type, fashion type, segment and units 0.5. These are starting values; Phase 4 tunes them.
+- **Family and sub-family are encoded under their category** (`Jewellery › Others` ≠ `Apparel › Others`): 416 sub-family paths, the same list the review uses.
+- **A missing value never counts as a match** (finishing is 48% filled, material 13%).
+- **Explainable by construction:** rows are normalised, so the dot product of two rows is their cosine similarity, and each attribute's slice gives its share of the score (`shared_attributes`). Phase 5 can say "same sub-family, same colour, same theme" with the exact contribution of each.
+- Sanity check in `outputs/phase2a/features_report.md`: the neighbours of 3 random items share sub-family and mostly colour and theme (e.g. silver pendant `217529_SV` → 4 silver pendants of the same theme, score 0.83–0.87).
+- `NUMBER_OF_UNITS` added to the Phase 1 contract columns (it is used here).
+- Tests: 86 (7 new).

@@ -10,14 +10,14 @@
 212124_EC,212124,Trousers TUSCA Ecru,_EC,Ecru,Apparel,Trousers,Woven,Lyocell,,Lyocell,25.99,/232/64/212124_ECXS-S_2,212124_ECXS-S_2.jpg,medium,IMG_GENERIC;IMG_NOT_PACKSHOT,,ok,,André,"It's trousers and it is ecru, but the photo is low-resolution"
 212201_BM,212201,Dress LAB JUNHO Bright Multicolor,_BM,Bright Multicolor,Apparel,Dress,Woven,Cotton; Ramie,,Linen,49.99,/232/64/212201_BM_1,212201_BM_1.jpg,medium,SKU_ATTR_CONFLICT,CATEGORY_MATRIX,ok,,André,
 212347_BM,212347,Sweater TWINS Bright Multicolor,_BM,Bright Multicolor,Apparel,Sweater,Knit,Acrylic; Polyamide; Polyester; Wool,,Polyester,25.99,/232/64/212347_1,212347_1.jpg,medium,IMG_GENERIC,,ok,,André,
-212384_EC,212384,Dress TAOR Ecru,_EC,Ecru,Apparel,Dress,Acessories,Polyester; Polyethylene Terephthalate,,Polyester,49.99,/232/64/212384_1,212384_1.jpg,medium,IMG_GENERIC;SALES_MISSING;IMG_NOT_PACKSHOT,,ok,,André,"ow-res photo, not colour-specific, dress looks grey"
+212384_EC,212384,Dress TAOR Ecru,_EC,Ecru,Apparel,Dress,Acessories,Polyester; Polyethylene Terephthalate,,Polyester,49.99,/232/64/212384_1,212384_1.jpg,medium,IMG_GENERIC;SALES_MISSING;IMG_NOT_PACKSHOT,,drop_image,,André,"ow-res photo, not colour-specific, dress looks grey"
 212798_GN,212798,Top MOTOMAMI CAPSULE Green,_GN,Green,Apparel,Top,Circular,Cotton,,Cotton,12.99,/232/64/212798_GN_1,212798_GN_1.jpg,medium,SKU_ATTR_CONFLICT,CATEGORY_MATRIX,ok,,André,
 213967_BM,213967,Sweater HOLT 2 Bright Multicolor,_BM,Bright Multicolor,Apparel,Sweater,Knit,Alpaca; Polyamide; Polyester; Wool,,Polyester,35.99,/232/64/213967_BM_1,213967_BM_1.jpg,medium,SKU_ATTR_CONFLICT,CATEGORY_MATRIX,ok,,André,
 215047_GN,215047,Sweater MERCURY Green,_GN,Green,Apparel,Sweater,Knit,Acrylic; Polyamide; Polyester; Wool,,Acrylic,32.99,/241/64/215047_GN_1,215047_GN_1.jpg,medium,SKU_ATTR_CONFLICT,CATEGORY_MATRIX|MATERIAL,ok,,André,
 215398_DG,215398,Shirt MAXI AGOSTO Dark Grey,_DG,Dark Grey,Apparel,Shirt,Woven,Viscose,,Viscose,32.99,/232/64/215398_1,215398_DG_1.jpg,medium,IMG_PATH_REPAIRED,,ok,,André,
 215398_GY,215398,Shirt MAXI AGOSTO Grey,_GY,Grey,Apparel,Shirt,Woven,Viscose,,Viscose,32.99,/232/64/215398_1,215398_GY_1.jpg,medium,IMG_PATH_REPAIRED,,ok,,André,i
 215514_AN,215514,Trousers MAXI 27/09 Anthracite,_AN,Anthracite,Apparel,Trousers,Circular,Elastane; Modal; Polyester,,Modal,27.99,/232/64/215514_AN_1,215514_AN_1.jpg,medium,SKU_ATTR_CONFLICT,THEME,ok,,André,
-215514_PK,215514,Trousers ESSENTIALS T DISPLAY 1 Pink,_PK,Pink,Apparel,Trousers,Circular,Elastane; Modal; Polyester,,Modal,27.99,/232/64/215514_1,215514_1.jpg,medium,IMG_GENERIC;VIS_COLOUR_MISMATCH;IMG_NOT_PACKSHOT,,ok,,André,"low-res photo not studio grade, the rest is right"
+215514_PK,215514,Trousers ESSENTIALS T DISPLAY 1 Pink,_PK,Pink,Apparel,Trousers,Circular,Elastane; Modal; Polyester,,Modal,27.99,/232/64/215514_1,215514_1.jpg,medium,IMG_GENERIC;VIS_COLOUR_MISMATCH;IMG_NOT_PACKSHOT,,drop_image,,André,"low-res photo not studio grade, the rest is right"
 215674_AN,215674,Sweater ESSENTIALS T DISPLAY 1 Anthracite,_AN,Anthracite,Apparel,Sweater,Knit,Acrylic; Polyamide; Wool,,,35.99,/241/64/215674_AN_1,215674_AN_1.jpg,medium,SKU_ATTR_CONFLICT,CATEGORY_MATRIX|MATERIAL,ok,,André,
 215674_EC,215674,Sweater ESSENTIALS T DISPLAY 1 Ecru,_EC,Ecru,Apparel,Sweater,Knit,Acrylic; Polyamide; Wool,,,35.99,/241/64/215674_EC_1,215674_EC_1.jpg,medium,SKU_ATTR_CONFLICT,CATEGORY_MATRIX|MATERIAL,ok,,André,
 217238_BU,217238,Trousers T1 ESSENTIALS Burgundy,_BU,Burgundy,Apparel,Trousers,Woven,Lyocell,,Lyocell,29.99,/242/64/217238_BU_1,217238_BU_1.jpg,medium,SKU_ATTR_CONFLICT,CATEGORY_MATRIX|MATERIAL|FASHIONTYPE,ok,,André,
@@ -31,7 +31,7 @@
 219039_BL,219039,Top MAXI Blue,_BL,Blue,Apparel,Top,Woven,Cotton; Elastane,,,29.99,/241/64/219039_2,219039_2.jpg,medium,IMG_GENERIC;IMG_SHARED;SALES_MISSING;VIS_COLOUR_MISMATCH;VIS_TARGET_NOT_FOUND;IMG_NEAR_DUPLICATE;IMG_NOT_PACKSHOT,,drop_image,,André,its pink and yellow
 219039_YL,219039,Top MAXI Yellow,_YL,Yellow,Apparel,Top,Woven,Cotton; Elastane,,,29.99,/241/64/219039_2,219039_2.jpg,medium,IMG_GENERIC;IMG_SHARED;SALES_MISSING;VIS_COLOUR_MISMATCH;VIS_TARGET_NOT_FOUND;IMG_NEAR_DUPLICATE;IMG_NOT_PACKSHOT,,drop_image,,André,pink and yelow
 222303_BM,222303,Kaftan C3 Bright Multicolor,_BM,Bright Multicolor,Apparel,Kaftan,Woven,Cotton,,Cotton,29.99,/242/64/222303_BM_1,222303_BM_1.jpg,medium,SKU_ATTR_CONFLICT,MATERIAL,ok,,André,
-222696_BM,222696,Dress CC Bright Multicolor,_BM,Bright Multicolor,Apparel,Dress,Woven,Linen; Lyocell,,,39.99,/242/64/222696_BM_1,222696_BM_1.jpg,medium,SKU_ATTR_CONFLICT,MATERIAL,drop_image,,André,dress but white with blue dots
+222696_BM,222696,Dress CC Bright Multicolor,_BM,Bright Multicolor,Apparel,Dress,Woven,Linen; Lyocell,,,39.99,/242/64/222696_BM_1,222696_BM_1.jpg,medium,SKU_ATTR_CONFLICT,MATERIAL,drop_image,,André,blue dot
 222830_PK,222830,Dress BETS Pink,_PK,Pink,Apparel,Dress,Knit,Elastodieno; Viscose,,,32.99,/241/64/222830_PK_1,222830_PK_1.jpg,medium,IMG_NEAR_DUPLICATE,,ok,,André,
 222830_SV,222830,Dress BETS Silver,_SV,Silver,Apparel,Dress,Knit,Elastodieno; Viscose,,,32.99,/241/64/222830_SV_1,222830_SV_1.jpg,medium,IMG_NEAR_DUPLICATE,,ok,,André,
 223389_BU,223389,Skirt M1S Burgundy,_BU,Burgundy,Apparel,Skirt,Woven,Lyocell,,Lyocell,32.99,/242/64/223389_BU_1,223389_BU_1.jpg,medium,SKU_ATTR_CONFLICT,CATEGORY_MATRIX|FASHIONTYPE,ok,,André,
@@ -61,7 +61,7 @@
 2127221PK,212722,Trainer Shoes PINK BEIGE TRAINER Pink,1PK,Pink,Footwear,Trainers,Textile,Polyester; Polyurethane; Rubber,,,35.99,/232/53/212722_3,212722_3.jpg,medium,IMG_GENERIC;SALES_MISSING,,ok,,André,
 224135_KK,224135,Boots RUBBER BOOT Khaki,_KK,Khaki,Footwear,Boots,PU,Polyester; Polyurethane; Rubber,,,55.99,/242/53/224135_2,224135_2.jpg,medium,IMG_GENERIC;SALES_MISSING;VIS_TARGET_NOT_FOUND;IMG_NOT_PACKSHOT,,ok,,André,
 209763_LL,209763,Shoulder Bag NET2 Lilac,_LL,Lilac,Hand Bag,Shoulder Bag,Nylon,Polyester; Polyurethane,,,23.99,/232/54/209763_LL_1,209763_LL_1.jpg,medium,SKU_ATTR_CONFLICT,THEME|FASHIONTYPE|PROG_IMAGE,ok,,André,
-211853_LL,211853,Shoulder Bag NINA Lilac,_LL,Lilac,Hand Bag,Shoulder Bag,Patchwork,Cow Suede Leather; Iron; Polyester; Polyurethane,,,32.99,/232/54/211853_LL_1,211853_LL_1.jpg,medium,VIS_COLOUR_MISMATCH,,fix,CLR_DES=Beige,André,beige
+211853_LL,211853,Shoulder Bag NINA Lilac,_LL,Lilac,Hand Bag,Shoulder Bag,Patchwork,Cow Suede Leather; Iron; Polyester; Polyurethane,,,32.99,/232/54/211853_LL_1,211853_LL_1.jpg,medium,VIS_COLOUR_MISMATCH,,ok,,André,beige
 212405_GY,212405,Sac CRUELLA1 Grey,_GY,Grey,Hand Bag,Sac,Fantasy Fabric,Polyester; Polyurethane,,,25.99,/232/54/212405_1,212405_GY_1.jpg,medium,IMG_PATH_REPAIRED,,drop_image,,André,
 214067_CA,214067,Shoulder Bag CANICHE CAMPAIGN Camel,_CA,Camel,Hand Bag,Shoulder Bag,Real Suede,Cow Suede Leather; Polyester,,,49.99,/232/54/214067_CA_1,214067_CA_1.jpg,medium,IMG_NEAR_DUPLICATE,,ok,,André,
 214067_KK,214067,Shoulder Bag CANICHE CAMPAIGN Khaki,_KK,Khaki,Hand Bag,Shoulder Bag,Real Suede,Cow Suede Leather; Polyester,,,49.99,/232/54/214067_KK_1,214067_KK_1.jpg,medium,IMG_NEAR_DUPLICATE,,ok,,André,
@@ -79,12 +79,12 @@
 220697_CA,220697,Tote Bag WOODY1 Camel,_CA,Camel,Hand Bag,Tote,Plain PU,Polyurethane,Light Golden,,25.99,/241/54/220697_CA_1,220697_CA_1.jpg,medium,SKU_ATTR_CONFLICT,FASHIONTYPE,ok,,André,
 220697_EC,220697,Tote Bag WOODY1 Ecru,_EC,Ecru,Hand Bag,Tote,Plain PU,Polyurethane,Light Golden,,25.99,/241/54/220697_EC_1,220697_EC_1.jpg,medium,SKU_ATTR_CONFLICT,FASHIONTYPE,ok,,André,
 220697_KK,220697,Tote Bag WOODY1 Khaki,_KK,Khaki,Hand Bag,Tote,Plain PU,Polyurethane,Light Golden,,25.99,/241/54/220697_KK_1,220697_KK_1.jpg,medium,SKU_ATTR_CONFLICT,FASHIONTYPE,ok,,André,
-221982_BK,221982,Shopper Bag NEVERA HBPROVISION Black,_BK,Black,Hand Bag,Shopper,Plain PU,Polyurethane,Silver,,25.99,/242/54/221982_1,221982_1.jpg,medium,IMG_GENERIC;IMG_SHARED;VIS_COLOUR_MISMATCH;IMG_NEAR_DUPLICATE,,fix,CLR_DES=White,André,
-221982_EC,221982,Shopper Bag NEVERA HBPROVISION Ecru,_EC,Ecru,Hand Bag,Shopper,Plain PU,Polyurethane,Silver,,25.99,/242/54/221982_1,221982_1.jpg,medium,IMG_GENERIC;IMG_SHARED;IMG_NEAR_DUPLICATE,,fix,CLR_DES=White,André,
-221982_TU,221982,Shopper Bag NEVERA HBPROVISION Taupe,_TU,Taupe,Hand Bag,Shopper,Plain PU,Polyurethane,Silver,,25.99,/242/54/221982_1,221982_1.jpg,medium,IMG_GENERIC;IMG_SHARED;IMG_NEAR_DUPLICATE,,fix,CLR_DES=White,André,
+221982_BK,221982,Shopper Bag NEVERA HBPROVISION Black,_BK,Black,Hand Bag,Shopper,Plain PU,Polyurethane,Silver,,25.99,/242/54/221982_1,221982_1.jpg,medium,IMG_GENERIC;IMG_SHARED;VIS_COLOUR_MISMATCH;IMG_NEAR_DUPLICATE,,drop_image,,André,
+221982_EC,221982,Shopper Bag NEVERA HBPROVISION Ecru,_EC,Ecru,Hand Bag,Shopper,Plain PU,Polyurethane,Silver,,25.99,/242/54/221982_1,221982_1.jpg,medium,IMG_GENERIC;IMG_SHARED;IMG_NEAR_DUPLICATE,,ok,,André,
+221982_TU,221982,Shopper Bag NEVERA HBPROVISION Taupe,_TU,Taupe,Hand Bag,Shopper,Plain PU,Polyurethane,Silver,,25.99,/242/54/221982_1,221982_1.jpg,medium,IMG_GENERIC;IMG_SHARED;IMG_NEAR_DUPLICATE,,drop_image,,André,
 222632_BK,222632,Shoulder Bag JUNGLE2 Black,_BK,Black,Hand Bag,Shoulder Bag,Leather,Cotton; Cow Leather,Silver,,49.99,/242/54/222632_BK_1,222632_BK_1.jpg,medium,IMG_NEAR_DUPLICATE,,ok,,André,
 222632_BN,222632,Shoulder Bag JUNGLE2 Brown,_BN,Brown,Hand Bag,Shoulder Bag,Leather,Cotton; Cow Leather,Silver,,49.99,/242/54/222632_BN_1,222632_BN_1.jpg,medium,IMG_NEAR_DUPLICATE,,ok,,André,
-172276_PP,172276,Earring FANCY PEARLS,_PP,Papaya,Jewellery,Earrings,Dangle,Iron; Stone; Zinc,Golden,,5.99,/242/52/172276_PP_1,172276_PP_1.jpg,medium,CLR_NOT_IN_DESC,,drop_image,,André,
+172276_PP,172276,Earring FANCY PEARLS,_PP,Papaya,Jewellery,Earrings,Dangle,Iron; Stone; Zinc,Golden,,5.99,/242/52/172276_PP_1,172276_PP_1.jpg,medium,CLR_NOT_IN_DESC,,ok,,André,
 176549_BK,176549,Earring WILD COLOR,_BK,Black,Jewellery,Earrings,Hoop Earrings,Enamel; Zinc,Golden,,5.99,/201/52/176549_1,176549_1.jpg,medium,IMG_GENERIC;CLR_NOT_IN_DESC;VIS_TYPE_DOUBT;IMG_NOT_PACKSHOT,,ok,,André,
 181831_BL,181831,Earring GOLDEN BASICS,_BL,Blue,Jewellery,Earrings,Dangle,Glass; Iron; Zinc,Golden,,7.99,/211/52/181831_1,181831_1.jpg,medium,IMG_GENERIC;CLR_NOT_IN_DESC;VIS_TYPE_DOUBT;VIS_COLOUR_MISMATCH;VIS_TARGET_NOT_FOUND;IMG_NOT_PACKSHOT,,drop_image,,André,
 181831_GN,181831,Earring GUMMY PARTY Green,_GN,Green,Jewellery,Earrings,Dangle,Glass; Iron; Zinc,Golden,,7.99,/232/52/181831_GN_1,181831_GN_1.jpg,medium,VIS_COLOUR_MISMATCH,,ok,,André,
@@ -100,9 +100,9 @@
 2097121LL,209712,Phone case FASHION SUPPLEMENTS Lilac,1LL,Lilac,Jewellery,Mobile Accessories,Mobile Cases,Iron; Thermoplastic Polyurethane,Golden,,8.99,/232/52/2097121LL_1,2097121LL_1.jpg,medium,IMG_SHARED,,ok,,André,
 209712_LL,209712,Phone case FASHION SUPPLEMENTS Lilac,_LL,Lilac,Jewellery,Mobile Accessories,Mobile Cases,Iron; Thermoplastic Polyurethane,Golden,,8.99,/232/52/209712_LL_1,209712_LL_1.jpg,medium,IMG_SHARED,,ok,,André,
 211413_OX,211413,Earring Gipsy Garden Oxford Blue,_OX,Oxford Blue,Jewellery,Earrings,Dangle,Brass; Resin,,,9.99,/241/52/211413_OX_1,211413_OX_1.jpg,medium,VIS_COLOUR_MISMATCH,,drop_image,,André,
-211880_LM,211880,Earring TREND Lime,_LM,Lime,Jewellery,Earrings,Stud,Cork,Golden,,9.99,/232/52/211880_1,211880_1.png,medium,IMG_GENERIC;VIS_TYPE_DOUBT;VIS_TARGET_NOT_FOUND;IMG_NOT_PACKSHOT,,ok,,André,
+211880_LM,211880,Earring TREND Lime,_LM,Lime,Jewellery,Earrings,Stud,Cork,Golden,,9.99,/232/52/211880_1,211880_1.png,medium,IMG_GENERIC;VIS_TYPE_DOUBT;VIS_TARGET_NOT_FOUND;IMG_NOT_PACKSHOT,,drop_image,,André,
 211965_GN,211965,Ring BHLOTUS Green,_GN,Green,Jewellery,Rings,Band Ring,Enamel; Zinc,Golden,,6.99,/232/52/211965_GN_1,211965_GN_1.jpg,medium,VIS_COLOUR_MISMATCH,,drop_image,,André,
-211994_TG,211994,Earring BHLOTUS,_TG,Pastel Green,Jewellery,Earrings,Stud,Iron; Stone,Brushed Golden,,4.99,/242/52/211994_TG_1,211994_TG_1.jpg,medium,CLR_NOT_IN_DESC;VIS_COLOUR_MISMATCH,,ok,,André,
+211994_TG,211994,Earring BHLOTUS,_TG,Pastel Green,Jewellery,Earrings,Stud,Iron; Stone,Brushed Golden,,4.99,/242/52/211994_TG_1,211994_TG_1.jpg,medium,CLR_NOT_IN_DESC;VIS_COLOUR_MISMATCH,,drop_image,,André,peach
 212257_BL,212257,Earring GUARANI VIBES Blue,_BL,Blue,Jewellery,Earrings,Dangle,Iron; Resin,Brushed Golden,,5.99,/232/52/212257_BL_1,212257_BL_1.jpg,medium,VIS_COLOUR_MISMATCH,,drop_image,,André,
 212494_HM,212494,Bracelet ORPHIC Halftone Multicolor,_HM,Halftone Multicolor,Jewellery,Bracelets,Elastic Bracelet,Acrylic; Iron; Resin,Golden,,7.99,/232/52/212494_1,212494_1.jpg,medium,IMG_GENERIC;IMG_NOT_PACKSHOT,,ok,,André,
 212971_PK,212971,Ring mulstone Pink,_PK,Pink,Jewellery,Rings,Band Ring,Enamel; Zinc,Golden,,5.99,/232/52/212971_1,212971_PK_1.jpg,medium,IMG_PATH_REPAIRED;VIS_COLOUR_MISMATCH,,drop_image,,André,gold  and blue
@@ -125,7 +125,7 @@
 218866_BL,218866,Earring NILE Blue,_BL,Blue,Jewellery,Earrings,Hoop Earrings,Resin; Zinc,Golden,,5.99,/241/52/218866_BL_1,218866_BL_1.jpg,medium,VIS_COLOUR_MISMATCH,,drop_image,,André,light green
 218947_GN,218947,Necklace NILE Green,_GN,Green,Jewellery,Necklaces,Y-Necklace,Acrylic; Brass; Zinc,,,10.99,/241/52/218947_GN_1,218947_GN_1.jpg,medium,VIS_COLOUR_MISMATCH,,drop_image,,André,gold
 220040_BL,220040,Ring DOMINICA Blue,_BL,Blue,Jewellery,Rings,Fantasy,Brass,Golden,,5.99,/241/52/220040_BL_1,220040_BL_1.jpg,medium,VIS_COLOUR_MISMATCH,,drop_image,,André,gold and red
-221814_TG,221814,Earring WATERMELON PARTY Pastel Green,_TG,Pastel Green,Jewellery,Earrings,Dangle,Iron; Shell,Brushed Golden,,7.99,/242/52/221814_TG_1,221814_TG_1.jpg,medium,VIS_COLOUR_MISMATCH,,drop_image,,André,beige
+221814_TG,221814,Earring WATERMELON PARTY Pastel Green,_TG,Pastel Green,Jewellery,Earrings,Dangle,Iron; Shell,Brushed Golden,,7.99,/242/52/221814_TG_1,221814_TG_1.jpg,medium,VIS_COLOUR_MISMATCH,,ok,,André,beige
 223758_LB,223758,Earring MUSTANG Light Blue,_LB,Light Blue,Jewellery,Earrings,Stud,Brass; Cork; Resin; Stainless Steel,Antik Golden,,5.99,/242/52/223758_LB_1,223758_LB_1.jpg,medium,VIS_COLOUR_MISMATCH,,drop_image,,André,white
 225264_PE,225264,Bracelet NEW CLASSIC Pearl,_PE,Pearl,Jewellery,Bracelets,Elastic Bracelet,Acrylic; Cork; Elastane,Other,,5.99,/242/52/225264_1.,,medium,IMG_FILE_MISSING;IMG_GENERIC;SALES_MISSING,,drop_image,,André,No photo data consistent
 226354_BU,226354,Earring WESTERNP Burgundy,_BU,Burgundy,Jewellery,Earrings,Hoop Earrings,Cork; Enamel; Zinc,,,7.99,/242/52/226354_2,,medium,IMG_FILE_MISSING;IMG_GENERIC;SALES_MISSING,,drop_image,,André,No photo data consistent
@@ -140,7 +140,7 @@
 227194_BM,227194,Ring NEOPOP Bright Multicolor,_BM,Bright Multicolor,Jewellery,Rings,Fantasy,Acrylic; Glass; Resin,,,8.99,/242/52/227194_BM_1,,medium,IMG_FILE_MISSING;SKU_ATTR_CONFLICT,COMPOSITION,drop_image,,André,No photo data consistent
 208071_EC,208071,Wallet SAMANTHA Ecru,_EC,Ecru,Wallet,Wallet,Plain PU,Polyester; Polyurethane,,,12.99,/232/62/208071_1,208071_1.jpg,medium,IMG_GENERIC;IMG_SHARED;VIS_COLOUR_MISMATCH;IMG_NEAR_DUPLICATE;IMG_NOT_PACKSHOT,,drop_image,,André,yellow non studio
 208071_MD,208071,Wallet SAMANTHA Mustard,_MD,Mustard,Wallet,Wallet,Plain PU,Polyester; Polyurethane,,,12.99,/232/62/208071_1,208071_1.jpg,medium,IMG_GENERIC;IMG_SHARED;IMG_NEAR_DUPLICATE;IMG_NOT_PACKSHOT,,ok,,André,
-211857_LL,211857,Wallet NINA Lilac,_LL,Lilac,Wallet,Wallet,Patchwork,Cow Suede Leather; Iron; Polyester; Polyurethane; Thermoplastic Polyurethane,,,17.99,/232/62/211857_LL_1,211857_LL_1.jpg,medium,VIS_COLOUR_MISMATCH,,drop_image,,André,beige
+211857_LL,211857,Wallet NINA Lilac,_LL,Lilac,Wallet,Wallet,Patchwork,Cow Suede Leather; Iron; Polyester; Polyurethane; Thermoplastic Polyurethane,,,17.99,/232/62/211857_LL_1,211857_LL_1.jpg,medium,VIS_COLOUR_MISMATCH,,ok,,André,beige
 213436_BG,213436,Wallet Basic Mia Beige,_BG,Beige,Wallet,Wallet,Plain PU,Polyester; Polyurethane,,,15.99,/232/62/213436_BG_1,213436_BG_1.jpg,medium,SKU_ATTR_CONFLICT,CATEGORY_MATRIX,ok,,André,
 213436_BL,213436,Wallet Basic Mia Blue,_BL,Blue,Wallet,Wallet,Plain PU,Polyester; Polyurethane,,,15.99,/232/62/213436_BL_1,213436_BL_1.jpg,medium,SKU_ATTR_CONFLICT,CATEGORY_MATRIX,ok,,André,
 214201_HM,214201,Card Holder Avril Halftone Multicolor,_HM,Halftone Multicolor,Wallet,Card Holder,Color Block,Polyester; Polyurethane,,,9.99,/232/62/214201_1,214201_1.jpg,medium,IMG_GENERIC;SALES_MISSING;VIS_TARGET_NOT_FOUND;IMG_NOT_PACKSHOT,,drop_image,,André,"green walled, genereated image not real"
@@ -154,7 +154,7 @@
 227511_BK,227511,Wallet DOLLY Black,_BK,Black,Wallet,Wallet,Peach PU,Polyester; Polyurethane,,,15.99,/242/62/227511_1,,medium,IMG_FILE_MISSING;IMG_GENERIC;IMG_SHARED,,drop_image,,André,No photo data consistent
 227511_GN,227511,Wallet DOLLY Green,_GN,Green,Wallet,Wallet,Peach PU,Polyester; Polyurethane,,,15.99,/242/62/227511_1,,medium,IMG_FILE_MISSING;IMG_GENERIC;IMG_SHARED;SALES_MISSING,,drop_image,,André,No photo data consistent
 227512_DM,227512,Wallet DOLLY Dark Multicolor,_DM,Dark Multicolor,Wallet,Wallet,Printed PU,Polyester; Polyurethane; Thermoplastic Polyurethane,,,15.99,/242/62/227512_1,,medium,IMG_FILE_MISSING;IMG_GENERIC;SALES_MISSING,,drop_image,,André,No photo data consistent
-212179_BK,212179,Top LAB JUNHO Black,_BK,Black,Apparel,Top,Woven,Polyester,,Polyester,25.99,/232/64/212179_BK_1,212179_BK_1.jpg,low,VIS_TYPE_DOUBT,,drop_image,,André,skirt
+212179_BK,212179,Top LAB JUNHO Black,_BK,Black,Apparel,Top,Woven,Polyester,,Polyester,25.99,/232/64/212179_BK_1,212179_BK_1.jpg,low,VIS_TYPE_DOUBT,,drop_image,,André,
 224890_KK,224890,Coat gg Khaki,_KK,Khaki,Apparel,Coat,Woven,Cotton; Polyamide; Polyester,,Polyester,49.99,/242/64/224890_KK_2y,224890_KK_2y.jpg,low,SALES_MISSING;IMG_NOT_PACKSHOT,,ok,,André,
 213591_OS,213591,Shoulder Bag ROCK1 Old Silver,_OS,Old Silver,Hand Bag,Shoulder Bag,Fantasy PU,Crystal Glass; Iron; Polyester; Polyurethane,,,25.99,/232/54/213591_OS_1y,213591_OS_1y.jpg,low,IMG_NOT_PACKSHOT,,ok,,André,
 213601_OS,213601,Tote Bag ROCK2 Old Silver,_OS,Old Silver,Hand Bag,Tote,Fantasy PU,Crystal Glass; Iron; Polyester; Polyurethane,,,25.99,/232/54/213601_OS_2y,213601_OS_2y.jpg,low,IMG_NOT_PACKSHOT,,ok,,André,
@@ -164,17 +164,17 @@
 206414_HM,206414,Earring SPARKLING EARRINGS Halftone Multicolor,_HM,Halftone Multicolor,Jewellery,Earrings,Dangle,Brass; Glass; Zirconium,Black Nikel,,25.99,/231/52/206414_HM_1y,206414_HM_1y.jpg,low,VIS_TYPE_DOUBT;IMG_NOT_PACKSHOT,,ok,,André,
 206908_GD,206908,Necklace GLDN DEL Gold,_GD,Gold,Jewellery,Necklaces,Beaded Necklace,Brass; Pearl,Golden,,9.99,/231/52/206908_GD_2y,206908_GD_2y.jpg,low,IMG_NOT_PACKSHOT,,ok,,André,
 206908_SV,206908,Necklace SILVER D Silver,_SV,Silver,Jewellery,Necklaces,Beaded Necklace,Brass; Pearl,,,9.99,/231/52/206908_SV_2y,206908_SV_2y.jpg,low,IMG_NOT_PACKSHOT,,ok,,André,
-207820_DM,207820,Ring FLORABUNDANCE Dark Multicolor,_DM,Dark Multicolor,Jewellery,Rings,Fantasy,Enamel; Zinc,Golden,,5.99,/232/52/207820_DM_1,207820_DM_1.jpg,low,VIS_TYPE_DOUBT,,drop_image,,André,No photo data consistent
-207820_HM,207820,Ring EXPEDITION Halftone Multicolor,_HM,Halftone Multicolor,Jewellery,Rings,Fantasy,Enamel; Zinc,Golden,,5.99,/232/52/207820_HM_1,207820_HM_1.jpg,low,VIS_TYPE_DOUBT,,drop_image,,André,No photo data consistent
-211160_GD,211160,Earring KISS54 Gold,_GD,Gold,Jewellery,Earrings,Ear Cuff,Brass,Golden,,4.99,/232/52/211160_GD_1,211160_GD_1.jpg,low,VIS_TYPE_DOUBT,,ok,,André,No photo data consistent
+207820_DM,207820,Ring FLORABUNDANCE Dark Multicolor,_DM,Dark Multicolor,Jewellery,Rings,Fantasy,Enamel; Zinc,Golden,,5.99,/232/52/207820_DM_1,207820_DM_1.jpg,low,VIS_TYPE_DOUBT,,ok,,André,No photo data consistent
+207820_HM,207820,Ring EXPEDITION Halftone Multicolor,_HM,Halftone Multicolor,Jewellery,Rings,Fantasy,Enamel; Zinc,Golden,,5.99,/232/52/207820_HM_1,207820_HM_1.jpg,low,VIS_TYPE_DOUBT,,ok,,André,No photo data consistent
+211160_GD,211160,Earring KISS54 Gold,_GD,Gold,Jewellery,Earrings,Ear Cuff,Brass,Golden,,4.99,/232/52/211160_GD_1,211160_GD_1.jpg,low,VIS_TYPE_DOUBT,,ok,,André,
 211270_HM,211270,Earring KISS54 Halftone Multicolor,_HM,Halftone Multicolor,Jewellery,Earrings,Ear Cuff,Brass; Zirconium,Golden,,5.99,/232/52/211270_HM_1,211270_HM_1.jpg,low,VIS_TYPE_DOUBT,,ok,,André,
-211772_SV,211772,Bracelet SHADES OF COOL Silver,_SV,Silver,Jewellery,Bracelets,Bangle,Zinc,,,10.99,/232/52/211772_SV_1y,211772_SV_1y.jpg,low,IMG_NOT_PACKSHOT,,drop_image,,André,purple
-212250_BL,212250,Ring GUARANI VIBES Blue,_BL,Blue,Jewellery,Rings,Fantasy,Iron; Thermoplastic Polyurethane,Brushed Golden,,5.99,/232/52/212250_BL_1,212250_BL_1.jpg,low,VIS_TYPE_DOUBT,,drop_image,,André,gold 
+211772_SV,211772,Bracelet SHADES OF COOL Silver,_SV,Silver,Jewellery,Bracelets,Bangle,Zinc,,,10.99,/232/52/211772_SV_1y,211772_SV_1y.jpg,low,IMG_NOT_PACKSHOT,,ok,,André,purple
+212250_BL,212250,Ring GUARANI VIBES Blue,_BL,Blue,Jewellery,Rings,Fantasy,Iron; Thermoplastic Polyurethane,Brushed Golden,,5.99,/232/52/212250_BL_1,212250_BL_1.jpg,low,VIS_TYPE_DOUBT,,ok,,André,
 212394_GD,212394,Earring GOLD PLATED COLLECTION Gold,_GD,Gold,Jewellery,Earrings,Dangle,Brass,Gold Plated,,32.99,/232/52/212394_GD_1y,212394_GD_1y.jpg,low,IMG_NOT_PACKSHOT,,ok,,André,
 212401_GD,212401,Ring GOLD PLATED COLLECTION Gold,_GD,Gold,Jewellery,Rings,Band Ring,Brass,Gold Plated,,27.99,/232/52/212401_GD_1y,212401_GD_1y.jpg,low,VIS_TYPE_DOUBT;IMG_NOT_PACKSHOT,,ok,,André,
 213112_BK,213112,Ring ECLIPSE Black,_BK,Black,Jewellery,Rings,Stone/Gem,Glass; Zinc,Golden,,5.99,/232/52/213112_BK_1,213112_BK_1.jpg,low,VIS_TYPE_DOUBT,,ok,,André,
 213148_BK,213148,Ring ECLIPSE Black,_BK,Black,Jewellery,Rings,Stone/Gem,Brass; Resin,Golden,,5.99,/232/52/213148_BK_1,213148_BK_1.jpg,low,IMG_NOT_PACKSHOT,,ok,,André,
-213887_GD,213887,Earring KISS MIX&MATCH Gold,_GD,Gold,Jewellery,Earrings,Ear Cuff,Brass,Golden,,4.99,/232/52/213887_GD_1,213887_GD_1.jpg,low,VIS_TYPE_DOUBT,,fix,GFA_DES_EN=Rings; GFS_DES_EN=Other Rings,André,ring
+213887_GD,213887,Earring KISS MIX&MATCH Gold,_GD,Gold,Jewellery,Earrings,Ear Cuff,Brass,Golden,,4.99,/232/52/213887_GD_1,213887_GD_1.jpg,low,VIS_TYPE_DOUBT,,ok,,André,ring
 213899_BM,213899,Earring KISSSJAM Bright Multicolor,_BM,Bright Multicolor,Jewellery,Earrings,Ear Cuff,Copper; Zirconium,Golden,,5.99,/241/52/213899_BM_1,213899_BM_1.jpg,low,VIS_TYPE_DOUBT,,ok,,André,
 213899_HM,213899,Earring KISS MIX&MATCH Halftone Multicolor,_HM,Halftone Multicolor,Jewellery,Earrings,Ear Cuff,Brass; Zirconium,Silver,,5.99,/232/52/213899_HM_1,213899_HM_1.jpg,low,VIS_TYPE_DOUBT,,ok,,André,
 215824_BM,215824,Earring CANICHE CAMPAIGN Bright Multicolor,_BM,Bright Multicolor,Jewellery,Earrings,Stud,Glass; Iron,Golden,,25.99,/232/52/215824_BM_1,215824_BM_1.jpg,low,VIS_TYPE_DOUBT,,ok,,André,
@@ -188,18 +188,18 @@
 217152_GD,217152,Bracelet Golden Basics Gold,_GD,Gold,Jewellery,Bracelets,Cuff,Zinc,Golden,,12.99,/232/52/217152_GD_1,217152_GD_1.jpg,low,VIS_TYPE_DOUBT,,ok,,André,
 217530_SV,217530,Necklace SHADES OF COOL Silver,_SV,Silver,Jewellery,Necklaces,Pendant,Brass; Iron; Zinc,Rodhium,,15.99,/241/52/217530_SV_2y,217530_SV_2y.jpg,low,IMG_NOT_PACKSHOT,,ok,,André,
 218577_GD,218577,Ring GLDN DEL Gold,_GD,Gold,Jewellery,Rings,Cocktail,Acrylic; Zinc,Golden,,5.99,/241/52/218577_GD_1,218577_GD_1.jpg,low,VIS_TYPE_DOUBT,,ok,,André,
-219236_SV,219236,Bracelet Classy Field Silver,_SV,Silver,Jewellery,Bracelets,Non-Adjustable Bracelet,Zinc,Rodhium,,8.99,/241/52/219236_SV_1,219236_SV_1.jpg,low,VIS_TYPE_DOUBT,,fix,GFA_DES_EN=Rings; GFS_DES_EN=Other Rings,André,ring
+219236_SV,219236,Bracelet Classy Field Silver,_SV,Silver,Jewellery,Bracelets,Non-Adjustable Bracelet,Zinc,Rodhium,,8.99,/241/52/219236_SV_1,219236_SV_1.jpg,low,VIS_TYPE_DOUBT,,ok,,André,ring
 219276_DM,219276,Bracelet IDENTITY Dark Multicolor,_DM,Dark Multicolor,Jewellery,Bracelets,Elastic Bracelet,Clay; Polyester; Thermoplastic Polyurethane,Golden,,5.99,/241/52/219276_DM_2y,219276_DM_2y.jpg,low,IMG_NOT_PACKSHOT,,ok,,André,
 219342_BU,219342,Ring MADEIRA Burgundy,_BU,Burgundy,Jewellery,Rings,Fantasy,Resin,,,9.99,/241/52/219342_BU_1,219342_BU_1.jpg,low,VIS_TYPE_DOUBT,,ok,,André,
 219401_SV,219401,Earring KISSSJAM Silver,_SV,Silver,Jewellery,Earrings,Ear Cuff,Brass; Glass,Silver,,5.99,/241/52/219401_SV_1,219401_SV_1.jpg,low,VIS_TYPE_DOUBT,,ok,,André,
 219763_GD,219763,Bracelet Golden Basics Gold,_GD,Gold,Jewellery,Bracelets,Cuff,Zinc,Golden,,8.99,/242/52/219763_GD_1,219763_GD_1.jpg,low,VIS_TYPE_DOUBT,,fix,GFA_DES_EN=Rings; GFS_DES_EN=Other Rings,André,
-219763_SV,219763,Bracelet SILVER BASICS Silver,_SV,Silver,Jewellery,Bracelets,Cuff,Zinc,Rodhium,,8.99,/242/52/219763_SV_1,219763_SV_1.jpg,low,VIS_TYPE_DOUBT,,fix,GFA_DES_EN=Rings; GFS_DES_EN=Other Rings,André,
+219763_SV,219763,Bracelet SILVER BASICS Silver,_SV,Silver,Jewellery,Bracelets,Cuff,Zinc,Rodhium,,8.99,/242/52/219763_SV_1,219763_SV_1.jpg,low,VIS_TYPE_DOUBT,,ok,,André,
 220318_BL,220318,Ring DOMINICA Blue,_BL,Blue,Jewellery,Rings,Fantasy,Resin; Zinc,Brushed Golden,,5.99,/241/52/220318_BL_1,220318_BL_1.jpg,low,VIS_TYPE_DOUBT,,ok,,André,
 2206170BM,220617,Necklace FORMENTERA Bright Multicolor,0BM,Bright Multicolor,Jewellery,Necklaces,Collar,Acrylic; Ceramic; Copper; Iron; Zamac,Golden,,12.99,/241/52/2206170BM_1y,2206170BM_1y.jpg,low,IMG_NOT_PACKSHOT,,ok,,André,
 221114_SV,221114,Earring SILVER D Silver,_SV,Silver,Jewellery,Earrings,Dangle,Acrylic; Brass; Iron; Pearl; Thermoplastic Polyurethane,Golden,,5.99,/242/52/221114_SV_2y,221114_SV_2y.jpg,low,IMG_NOT_PACKSHOT,,ok,,André,
 223001_TG,223001,Ring SPIRIT Pastel Green,_TG,Pastel Green,Jewellery,Rings,Cocktail,Brass; Glass,Matte Golden,,6.99,/242/52/223001_TG_1,223001_TG_1.jpg,low,VIS_TYPE_DOUBT,,ok,,André,
-223274_HM,223274,Earring TREND Halftone Multicolor,_HM,Halftone Multicolor,Jewellery,Earrings,Dangle,Thermoplastic Polyurethane,,,9.99,/242/52/223274_HM_2y,223274_HM_2y.jpg,low,IMG_NOT_PACKSHOT,,fix,CLR_DES=Red,André,
-223326_BM,223326,Ring MARBLEMANIA Bright Multicolor,_BM,Bright Multicolor,Jewellery,Rings,Band Ring,Resin,Other,,7.99,/242/52/223326_BM_1,223326_BM_1.jpg,low,VIS_TYPE_DOUBT,,drop_image,,André,
+223274_HM,223274,Earring TREND Halftone Multicolor,_HM,Halftone Multicolor,Jewellery,Earrings,Dangle,Thermoplastic Polyurethane,,,9.99,/242/52/223274_HM_2y,223274_HM_2y.jpg,low,IMG_NOT_PACKSHOT,,ok,,André,
+223326_BM,223326,Ring MARBLEMANIA Bright Multicolor,_BM,Bright Multicolor,Jewellery,Rings,Band Ring,Resin,Other,,7.99,/242/52/223326_BM_1,223326_BM_1.jpg,low,VIS_TYPE_DOUBT,,ok,,André,square ring
 223355_WT,223355,Earring TREND White,_WT,White,Jewellery,Earrings,Clip Earrings,Cork; Shell; Straw; Thermoplastic Polyurethane; Wood; Zinc,Worn Gold,,15.99,/242/52/223355_WT_1y,223355_WT_1y.jpg,low,IMG_NOT_PACKSHOT,,ok,,André,
 223420_WT,223420,Earring TREND White,_WT,White,Jewellery,Earrings,Dangle,Cork; Cotton; Iron; Raffia,,,9.99,/242/52/223420_WT_2y,223420_WT_2y.jpg,low,IMG_NOT_PACKSHOT,,ok,,André,
 224585_BK,224585,Earring Milagro Black,_BK,Black,Jewellery,Earrings,Hoop Earrings,Cork; Enamel; Thermoplastic Polyurethane,Golden,,5.99,/242/52/224585_BK_1,224585_BK_1.jpg,low,VIS_TYPE_DOUBT,,ok,,André,

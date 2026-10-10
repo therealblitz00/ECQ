@@ -1,14 +1,14 @@
 # Phase 1b: image audit
 
-- Items with an image: 9,457
-- Masks: 9,096 by white-background threshold, 272 by the detector (OWLv2)
+- Items with an image: 9,490
+- Masks: 9,129 by white-background threshold, 272 by the detector (OWLv2)
 - Embeddings: `data/embeddings/image_clip.npy` (openai/clip-vit-base-patch32, 512 numbers per image)
 
 | Flag | Items |
 |---|---|
 | `IMG_NOT_PACKSHOT` | 272 |
 | `VIS_TYPE_DOUBT` | 189 |
-| `VIS_COLOUR_MISMATCH` | 132 |
+| `VIS_COLOUR_MISMATCH` | 135 |
 | `IMG_NEAR_DUPLICATE` | 54 |
 | `VIS_TARGET_NOT_FOUND` | 46 |
 | `VIS_TYPE_MISMATCH` | 24 |

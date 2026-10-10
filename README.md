@@ -91,6 +91,7 @@ python -m venv .venv
 │   ├── config.py              shared settings: paths, item key, issue codes, team
 │   ├── phase1_checks.py       automatic checks, review batches, merge (check | batch | merge)
 │   ├── phase1_clean.py        final cleaning, load_items() for the next phases
+│   ├── phase1_vocab.py        allowed values for review fixes (fixed lists)
 │   ├── phase1b_image_audit.py image masks, CLIP embeddings, image checks (heavy: one machine only)
 │   └── review_app.py          browser review app
 ├── tests/                     pytest suite
@@ -100,7 +101,7 @@ python -m venv .venv
 │   ├── embeddings/            masks, image embeddings, image-check flags (computed once, in git)
 │   └── processed/             generated tables, not in git (items_checked, items_preview, items_clean)
 └── outputs/
-    ├── phase1/                check report, cleaning report, review batches (batches/)
+    ├── phase1/                check report, cleaning report, review_vocabulary.csv, review batches (batches/)
     └── phase1b/               image-check report and contact sheets
 ```
 

@@ -26,6 +26,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from config import (BATCH_DIR, EMB_DIR, IMG_DIR, ISSUES, KEY, PROCESSED_DIR,  # noqa: E402
                                 REVIEW_STATUSES, ROOT, SEVERITY_RANK, TEAM)
+from phase1_vocab import EDITABLE, format_fixes, load_vocabulary, normalise_fixes, parse_fixes  # noqa: E402
 
 N_MEMBERS = len(TEAM)
 
@@ -33,6 +34,7 @@ N_MEMBERS = len(TEAM)
 ISSUE_LABELS = {
     "IMG_PATH_INVALID": "The image path is broken",
     "IMG_FILE_MISSING": "No photo for this product",
+    "IMG_PATH_REPAIRED": "The photo path in the data was wrong: this photo was found by its file name. Check it shows this product",
     "IMG_UNREADABLE": "The photo file is damaged",
     "IMG_REF_MISMATCH": "The photo file belongs to another product",
     "IMG_CAT_MISMATCH": "The photo is filed under another category",
@@ -47,17 +49,6 @@ ISSUE_LABELS = {
     "SALES_MISSING": "No sales data",
     "SALES_ZERO_QTY": "Zero units sold",
     "SKU_ATTR_CONFLICT": "Different sizes have different values",
-}
-# Fields a reviewer may correct (column -> label shown in the form).
-EDITABLE = {
-    "PROD_DES_BASE": "Description",
-    "CAT_DES_EN": "Category",
-    "GFA_DES_EN": "Family",
-    "GFS_DES_EN": "Sub-family",
-    "CLR_DES": "Colour",
-    "COMPOSITION": "Composition",
-    "FINISHING": "Finishing",
-    "MATERIAL": "Material",
 }
 
 
@@ -75,7 +66,7 @@ class Batch:
         self.lock = threading.Lock()
         self.extra = self._extra_context()
         self.vision = self._vision_flags()
-        self.suggestions = self._suggestions()
+        self.vocab = load_vocabulary()  # the only values a fix may use
 
     def _vision_flags(self) -> dict:
         """Phase 1b image flags (committed in data/embeddings), so nobody has to rerun the checks."""
@@ -97,12 +88,6 @@ class Batch:
         return {r[KEY]: {c: ("" if pd.isna(r[c]) else str(r[c])) for c in cols if c != KEY}
                 for r in d.to_dict("records")}
 
-    def _suggestions(self) -> dict:
-        p = PROCESSED_DIR / "items_checked.parquet"
-        src = pd.read_parquet(p, columns=list(EDITABLE)) if p.exists() else self.df
-        return {c: sorted(src[c].dropna().astype(str).unique().tolist())[:2000]
-                for c in EDITABLE if c in src.columns and c != "PROD_DES_BASE"}
-
     def items(self) -> list[dict]:
         out = []
         for r in self.df.to_dict("records"):
@@ -118,7 +103,8 @@ class Batch:
             out.append(r)
         return out
 
-    def save(self, key: str, status: str, fixes: str, notes: str) -> None:
+    def save(self, key: str, status: str, fixes: str, notes: str) -> str:
+        """Record a decision. Returns the fixes as stored (canonical spelling)."""
         if status not in REVIEW_STATUSES | {""}:
             raise ValueError(f"invalid status {status!r}")
         with self.lock:
@@ -126,11 +112,18 @@ class Batch:
             if len(idx) != 1:
                 raise ValueError(f"unknown product {key!r}")
             i = idx[0]
+            stored = ""
+            if status == "fix":
+                clean, errors = normalise_fixes(parse_fixes(fixes), self.df.loc[i], self.vocab)
+                if errors or not clean:
+                    raise ValueError("; ".join(errors) or "choose at least one corrected value")
+                stored = format_fixes(clean)
             self.df.at[i, "review_status"] = status
-            self.df.at[i, "fixes"] = fixes if status == "fix" else ""
+            self.df.at[i, "fixes"] = stored
             self.df.at[i, "notes"] = notes
             self.df.at[i, "reviewer"] = self.name if (status or notes) else ""
             self._write()
+            return stored
 
     def _write(self) -> None:
         tmp = self.path.with_suffix(".tmp")
@@ -183,7 +176,7 @@ def make_handler(batch: Batch):
                 self._send(200, PAGE.encode("utf-8"), "text/html; charset=utf-8")
             elif path == "/api/items":
                 self._json({"member": batch.member, "name": batch.name, "file": batch.path.name,
-                            "editable": EDITABLE, "suggestions": batch.suggestions, "items": batch.items()})
+                            "editable": EDITABLE, "vocab": batch.vocab, "items": batch.items()})
             elif path.startswith("/img/"):
                 name = Path(unquote(path[5:])).name  # file name only: no directory traversal
                 f = IMG_DIR / name
@@ -199,8 +192,9 @@ def make_handler(batch: Batch):
             try:
                 body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
                 if path == "/api/save":
-                    batch.save(body["key"], body.get("status", ""), body.get("fixes", ""), body.get("notes", ""))
-                    self._json({"ok": True})
+                    stored = batch.save(body["key"], body.get("status", ""), body.get("fixes", ""),
+                                        body.get("notes", ""))
+                    self._json({"ok": True, "fixes": stored})
                 elif path == "/api/submit":
                     ok, log = batch.submit()
                     self._json({"ok": ok, "log": log})
@@ -268,7 +262,7 @@ main{padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(270
 .actions button.sel{color:#fff}.b-ok.sel{background:var(--ok);border-color:var(--ok)}.b-drop_image.sel,.b-discard.sel{background:var(--bad);border-color:var(--bad)}
 .b-fix.sel{background:var(--accent);border-color:var(--accent)}.b-team_review.sel{background:var(--info);border-color:var(--info)}
 .status{font-size:12px;font-weight:600}.fixbox{display:none;padding:0 10px 10px;gap:6px;flex-direction:column}.fixbox.open{display:flex}
-.fixrow{display:grid;grid-template-columns:90px 1fr;gap:6px;align-items:center;font-size:12px}
+.fixrow{display:grid;grid-template-columns:90px 1fr;gap:6px;align-items:center;font-size:12px}.fixrow select{width:100%;font:inherit}
 .pager{grid-column:1/-1;display:flex;gap:8px;justify-content:center;align-items:center}
 #lightbox{position:fixed;inset:0;background:rgba(0,0,0,.8);display:none;place-items:center;z-index:10;cursor:zoom-out}
 #lightbox img{max-width:94vw;max-height:94vh;background:#fff}
@@ -312,7 +306,6 @@ async function load(){
   D=await (await fetch("/api/items")).json();
   $("#title").textContent=`Batch ${D.member}: ${D.name}`; document.title=`Review: ${D.name}`;
   [...new Set(D.items.map(i=>i.CAT_DES_EN))].sort().forEach(c=>$("#cat").insertAdjacentHTML("beforeend",`<option>${esc(c)}</option>`));
-  for(const [col,vals] of Object.entries(D.suggestions)){const dl=document.createElement("datalist");dl.id="dl_"+col;dl.innerHTML=vals.map(v=>`<option value="${esc(v)}">`).join("");document.body.appendChild(dl)}
   render();
 }
 function visible(){
@@ -331,14 +324,35 @@ function progress(){
   $("#bar").style.width=(fl.length?100*fd/fl.length:100)+"%";
   $("#progressText").textContent=`Flagged products checked: ${fd} / ${fl.length} · decisions on all products: ${done} / ${D.items.length}`;
 }
+// Fix form: only values that already exist in the data (phase1_vocab.py), filtered by the hierarchy.
+const famOpts=cat=>[...new Set(D.vocab.hierarchy.filter(h=>h[0]===cat).map(h=>h[1]))].sort();
+const subOpts=(cat,fam)=>D.vocab.hierarchy.filter(h=>h[0]===cat&&h[1]===fam).map(h=>h[2]).sort();
+function optionsFor(col,cat,fam){
+  if(col==="GFA_DES_EN")return famOpts(cat);
+  if(col==="GFS_DES_EN")return subOpts(cat,fam);
+  if(col==="FINISHING"||col==="MATERIAL")return (D.vocab[col]||{})[cat]||[];
+  return D.vocab[col]||[];
+}
+const optList=(opts,chosen)=>opts.map(o=>`<option ${o===chosen?"selected":""}>${esc(o)}</option>`).join("");
+const keepOpt=cur=>`<option value="">— keep: ${esc(cur||"(empty)")} —</option>`;
+const mats=s=>(s||"").split(/;\s*/).filter(Boolean).sort();
+function fixRows(it){
+  const fx=parseFixes(it.fixes),cat=fx.CAT_DES_EN||it.CAT_DES_EN,fam=fx.GFA_DES_EN||it.GFA_DES_EN;
+  return Object.entries(D.editable).map(([col,label])=>{
+    let ctl;
+    if(col==="COMPOSITION"){const sel=new Set(mats(fx.COMPOSITION||it.COMPOSITION));
+      ctl=`<select data-col="COMPOSITION" multiple size="5" title="Ctrl/Cmd+click to select several">${D.vocab.COMPOSITION.map(m=>`<option ${sel.has(m)?"selected":""}>${esc(m)}</option>`).join("")}</select>`}
+    else{const opts=optionsFor(col,cat,fam);
+      ctl=`<select data-col="${col}" ${opts.length?"":"disabled"}>${keepOpt(it[col])}${optList(opts,fx[col]??"")}</select>`}
+    return `<div class="fixrow"><span>${label}</span>${ctl}</div>`}).join("");
+}
 function card(it){
   const img=it.img_file?`<div class="imgbox" data-img="/img/${encodeURIComponent(it.img_file)}"><img loading="lazy" src="/img/${encodeURIComponent(it.img_file)}" alt=""></div>`:`<div class="imgbox"><span class="noimg">No photo</span></div>`;
   const flags=it.issue_labels.filter(l=>l!=="No sales data").map(l=>{
     if(l.startsWith("This photo is also used")&&it.img_shared_with)return `${esc(l)}: ${esc(it.img_shared_with.split("|").filter(k=>k!==it.PROD_CLR_EQUIV).join(", "))}`;
     if(l.startsWith("Different sizes")&&it.sku_conflicts)return `${esc(l)}: ${esc(it.sku_conflicts.split("|").map(c=>FIELD[c]||c).join(", "))}`;
     return esc(l)}).map(l=>`<li>${l}</li>`).join("");
-  const fx=parseFixes(it.fixes);
-  const rows=Object.entries(D.editable).map(([col,label])=>`<div class="fixrow"><span>${label}</span><input data-col="${col}" list="dl_${col}" value="${esc(fx[col]??"")}" placeholder="${esc(it[col]||"(empty)")}"></div>`).join("");
+  const rows=fixRows(it);
   const st=it.review_status;
   return `<div class="card ${flagged(it)?"flag-"+it.priority:""} ${st?"done":""}" data-key="${esc(it.PROD_CLR_EQUIV)}">
   ${img}<div class="body"><div class="code">${esc(it.PROD_CLR_EQUIV)} <span class="small">· €${esc(it.PRICE_BASE_W_VAT)}</span></div>
@@ -348,7 +362,7 @@ function card(it){
   <div class="status">${st?"✓ "+STATUS[st]:""}</div></div>
   <div class="actions">${Object.entries(STATUS).map(([k,v])=>`<button class="b-${k} ${st===k?"sel":""}" data-status="${k}">${v}</button>`).join("")}
   <input class="note" placeholder="Note (optional)" value="${esc(it.notes)}" style="grid-column:span 1"></div>
-  <div class="fixbox ${st==="fix"?"open":""}"><div class="small">Type only the values that are wrong (suggestions appear as you type):</div>${rows}<button class="primary saveFix">Save fix</button></div></div>`;
+  <div class="fixbox ${st==="fix"?"open":""}"><div class="small">Choose only the values that are wrong. Only values that already exist in the data can be chosen; if the right one isn't listed, use <b>Not sure</b> and write it in the note.</div>${rows}<button class="primary saveFix">Save fix</button></div></div>`;
 }
 function render(){
   const v=visible(),pages=Math.max(1,Math.ceil(v.length/PAGE));page=Math.min(page,pages-1);
@@ -361,7 +375,7 @@ function render(){
 async function save(it,status,fixes,notes){
   const r=await (await fetch("/api/save",{method:"POST",body:JSON.stringify({key:it.PROD_CLR_EQUIV,status,fixes,notes})})).json();
   if(!r.ok){alert(r.error);return false}
-  Object.assign(it,{review_status:status,fixes:status==="fix"?fixes:"",notes});toast("Saved");return true;
+  Object.assign(it,{review_status:status,fixes:r.fixes||"",notes});toast("Saved");return true;
 }
 const byKey=k=>D.items.find(i=>i.PROD_CLR_EQUIV===k);
 document.addEventListener("click",async e=>{
@@ -376,8 +390,10 @@ document.addEventListener("click",async e=>{
     const newS=it.review_status===s?"":s;  // click again to undo
     if(await save(it,newS,"",note))c.outerHTML=card(it),progress();return}
   if(t.classList.contains("saveFix")&&it){
-    const o={};c.querySelectorAll(".fixbox input").forEach(i=>{if(i.value.trim())o[i.dataset.col]=i.value.trim()});
-    if(!Object.keys(o).length){alert("Type at least one corrected value.");return}
+    const o={};c.querySelectorAll(".fixbox select").forEach(s=>{const col=s.dataset.col;
+      if(col==="COMPOSITION"){const v=[...s.selectedOptions].map(x=>x.value).sort().join("; ");if(v&&v!==mats(it.COMPOSITION).join("; "))o[col]=v}
+      else if(s.value&&s.value!==it[col])o[col]=s.value});
+    if(!Object.keys(o).length){alert("Choose at least one corrected value.");return}
     if(await save(it,"fix",fixString(o),c.querySelector(".note").value))c.outerHTML=card(it),progress();return}
   if(t.id==="submitBtn"){
     const fl=D.items.filter(flagged),left=fl.filter(i=>!i.review_status).length;
@@ -390,6 +406,12 @@ document.addEventListener("click",async e=>{
 document.addEventListener("change",async e=>{
   const t=e.target;
   if(t.classList.contains("note")){const c=t.closest(".card"),it=byKey(c.dataset.key);await save(it,it.review_status||"",it.fixes,t.value);return}
+  if(t.matches('.fixbox select[data-col="CAT_DES_EN"], .fixbox select[data-col="GFA_DES_EN"]')){
+    const box=t.closest(".fixbox"),it=byKey(t.closest(".card").dataset.key),get=c=>box.querySelector(`select[data-col="${c}"]`);
+    const cat=get("CAT_DES_EN").value||it.CAT_DES_EN;
+    const rebuild=(col,opts)=>{const s=get(col),v=s.value;s.innerHTML=keepOpt(it[col])+optList(opts,v);s.disabled=!opts.length};
+    if(t.dataset.col==="CAT_DES_EN"){rebuild("GFA_DES_EN",famOpts(cat));rebuild("FINISHING",optionsFor("FINISHING",cat));rebuild("MATERIAL",optionsFor("MATERIAL",cat))}
+    rebuild("GFS_DES_EN",subOpts(cat,get("GFA_DES_EN").value||it.GFA_DES_EN));return}
   if(["filter","cat"].includes(t.id)){page=0;render()}
 });
 $("#search").addEventListener("input",()=>{page=0;render()});

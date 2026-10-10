@@ -102,7 +102,7 @@ def test_preview_cli_writes_table_and_report(checked_items, monkeypatch):
     monkeypatch.setattr("sys.argv", ["phase1_clean.py"])
     p1.main()
     out = pd.read_parquet(checks.PROCESSED_DIR / p1.PREVIEW_FILE)
-    assert len(out) == 4 and set(out["review_status"]) == {"unreviewed"}
+    assert len(out) == 5 and set(out["review_status"]) == {"unreviewed"}
     assert "Photos the visual block may use" in (p1.REPORT_DIR / "clean_report.md").read_text(encoding="utf-8")
 
 

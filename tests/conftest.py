@@ -11,8 +11,9 @@ import pandas as pd
 import pytest
 from PIL import Image
 
-import phase1_clean as p1
 import phase1_checks as checks
+import phase1_clean as p1
+import phase1_vocab
 
 
 def sku(ref: str, clr_cod: str, clr_des: str, size: str, spk: int, *, desc: str | None = None,
@@ -33,6 +34,7 @@ def sku(ref: str, clr_cod: str, clr_des: str, size: str, spk: int, *, desc: str 
 # B: corrupt image file and zero sales.
 # C: description names another colour, no image file, no sales row.
 # D: image file name belongs to another model.
+# E: PROG_IMAGE has no colour and doesn't exist; the unused file "100005_GN_1.jpg" is its photo.
 TOY_PRODUCTS = [
     sku("100001", "_BK", "Black", "S", 1, comp=" Zinc  Enamel", gfa="Earrings\xa0"),
     sku("100001", "_BK", "Black", "M", 2, comp="Enamel  Zinc"),
@@ -40,9 +42,12 @@ TOY_PRODUCTS = [
     sku("100002", "_GD", "Gold", "U", 4, desc="Necklace ESSENTIALS Gold", gfa="Necklaces"),
     sku("100003", "_SV", "Silver", "U", 5, desc="Ring ESSENTIALS Gold", gfa="Rings"),
     sku("100004", "_BK", "Black", "U", 6, img="/241/52/100009_BK_1"),
+    sku("100005", "_GN", "Green", "U", 7, img="/241/52/100005_1"),
 ]
-TOY_SALES = [("100001_BK", 100.0, 999.0), ("100002_GD", 0.0, 10.0), ("100004_BK", 50.0, 499.5)]
-TOY_IMAGES = {"100001_BK_1.jpg": (20, 20, 20), "100004_BK_1.jpg": (200, 30, 30), "100009_BK_1.jpg": (30, 30, 200)}
+TOY_SALES = [("100001_BK", 100.0, 999.0), ("100002_GD", 0.0, 10.0), ("100004_BK", 50.0, 499.5),
+             ("100005_GN", 10.0, 99.9)]
+TOY_IMAGES = {"100001_BK_1.jpg": (20, 20, 20), "100004_BK_1.jpg": (200, 30, 30), "100009_BK_1.jpg": (30, 30, 200),
+              "100005_GN_1.jpg": (30, 160, 30)}
 
 
 @pytest.fixture
@@ -61,6 +66,7 @@ def toy_dirs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
         monkeypatch.setattr(checks, name, path)
     monkeypatch.setattr(p1, "PROCESSED_DIR", dirs["PROCESSED_DIR"])
     monkeypatch.setattr(p1, "REPORT_DIR", dirs["OUT_DIR"])
+    monkeypatch.setattr(phase1_vocab, "PROCESSED_DIR", dirs["PROCESSED_DIR"])
     return tmp_path
 
 
@@ -78,5 +84,7 @@ def toy_data(toy_dirs: Path) -> Path:
 
 @pytest.fixture
 def checked_items(toy_data: Path) -> pd.DataFrame:
+    """Automatic checks on the toy data; also saved as items_checked.parquet (as `check` does)."""
     items, _ = checks.run_checks(verify_files=True)
+    items.to_parquet(checks.PROCESSED_DIR / "items_checked.parquet", index=False)
     return items.set_index(checks.KEY)

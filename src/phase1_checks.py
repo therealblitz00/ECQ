@@ -18,13 +18,13 @@ import argparse
 import hashlib
 import html
 import os
-import re
 from pathlib import Path
 
 import pandas as pd
 
 from config import (BATCH_DIR, CSV_DIR, EMB_DIR, IMG_DIR, ISSUES, KEY, OUT_DIR, PROCESSED_DIR,
                     REVIEW_COLS, REVIEW_STATUSES, SEVERITY_RANK, STR_DTYPES, TEAM)
+from phase1_vocab import build_vocabulary, format_fixes, normalise_fixes, parse_fixes, vocabulary_table
 
 # Attributes that must be identical for every size of a colourway (they feed the similarity model).
 SKU_INVARIANT_COLS = ["CLR_COD", "CLR_DES", "CLR_TYPE", "CAT_DES_EN", "GFA_DES_EN", "GFS_DES_EN",
@@ -137,8 +137,12 @@ def check_images(items: pd.DataFrame, verify_files: bool = True) -> None:
 
     files = {os.path.splitext(f)[0]: f for f in os.listdir(IMG_DIR)} if IMG_DIR.exists() else {}
     items["img_file"] = items["img_stem"].map(files)
+    repaired = _repair_image_links(items, files)
     items["has_image"] = items["img_file"].notna()
     _add_issue(items, ~items["has_image"], "IMG_FILE_MISSING")
+    _add_issue(items, repaired, "IMG_PATH_REPAIRED")
+    # Later checks (model, colour code in the file name) look at the file actually used.
+    items.loc[repaired, "img_stem"] = items.loc[repaired, "img_file"].map(lambda f: os.path.splitext(f)[0])
 
     _add_issue(items, parts["cat"].notna() & (parts["cat"] != items["CAT_COD"]), "IMG_CAT_MISMATCH")
     ref_ok = pd.Series([isinstance(s, str) and any(s.startswith(r) for r in refs.split("|"))
@@ -178,6 +182,30 @@ def check_images(items: pd.DataFrame, verify_files: bool = True) -> None:
     n_ref = items.groupby(img_key)["PROD_REF"].transform("nunique")
     items["img_shared_with"] = items.groupby(img_key)[KEY].transform(lambda s: "|".join(s) if len(s) > 1 else "")
     _add_issue(items, img_key.notna() & ((n_clr > 1) | (n_ref > 1)), "IMG_SHARED")
+
+
+def _repair_image_links(items: pd.DataFrame, files: dict[str, str]) -> pd.Series:
+    """Link items whose PROG_IMAGE file does not exist to the one unused file named after them.
+
+    Some paths drop the colour ("/242/52/212983_2") while the file has it ("212983_HM_1.jpg"). A file
+    is used only if it starts with the item's code + "_", no item points to it, it is the only such
+    file for the item and the item is its only claimant. The item is flagged IMG_PATH_REPAIRED.
+    """
+    used = set(items["img_stem"].dropna()) & set(files)
+    orphans = [s for s in files if s not in used]
+    claims: dict = {}
+    for idx, r in items[items["img_file"].isna()].iterrows():
+        codes = {c for c in (r.get(KEY), r.get("PROD_CLR")) if isinstance(c, str)}
+        cands = [o for o in orphans if any(o.startswith(c + "_") for c in codes)]
+        if len(cands) == 1:
+            claims[idx] = cands[0]
+    owners = pd.Series(list(claims.values()), dtype="object").value_counts()
+    repaired = pd.Series(False, index=items.index)
+    for idx, stem in claims.items():
+        if owners[stem] == 1:
+            items.at[idx, "img_file"] = files[stem]
+            repaired[idx] = True
+    return repaired
 
 
 def _colour_vocabulary(items: pd.DataFrame) -> list[str]:
@@ -302,6 +330,8 @@ def write_check_outputs(items: pd.DataFrame, ctx: dict) -> None:
     items.to_parquet(PROCESSED_DIR / "items_checked.parquet", index=False)
     items.to_csv(OUT_DIR / "items_checked.csv", index=False, encoding="utf-8-sig")
     ctx["missing"].to_csv(OUT_DIR / "missing_values.csv", encoding="utf-8-sig")
+    vocabulary_table(build_vocabulary(items)).to_csv(OUT_DIR / "review_vocabulary.csv", index=False,
+                                                     encoding="utf-8-sig")
 
     issue_counts = (items["issues"].str.split(";").explode().loc[lambda s: s != ""]
                     .value_counts().rename_axis("issue").reset_index(name="n_items"))
@@ -429,22 +459,6 @@ def write_batches(items: pd.DataFrame, n_members: int, only_id: int | None) -> N
 
 
 # --------------------------------------------------------------------------- merge
-_FIX_SEPARATOR = re.compile(r";\s*(?=[A-Za-z_][A-Za-z0-9_]*\s*=)")
-
-
-def _parse_fixes(text: str) -> list[tuple[str, str]]:
-    """'CLR_DES=Black; COMPOSITION=Pearl; Zinc' -> [('CLR_DES', 'Black'), ('COMPOSITION', 'Pearl; Zinc')]
-
-    A ';' only starts a new fix when it is followed by 'COLUMN=', so values may contain ';'.
-    """
-    out = []
-    for part in _FIX_SEPARATOR.split(str(text)):
-        if "=" in part:
-            col, val = part.split("=", 1)
-            out.append((col.strip(), val.strip()))
-    return out
-
-
 def merge_batches(input_dir: Path, include_unresolved: bool = False) -> None:
     items = pd.read_parquet(PROCESSED_DIR / "items_checked.parquet")
     files = sorted(input_dir.glob("batch_*_of_*.csv"))
@@ -475,17 +489,23 @@ def merge_batches(input_dir: Path, include_unresolved: bool = False) -> None:
     items.loc[auto_ok, "review_status"] = "ok"
     items["review_status"] = items["review_status"].replace("", pd.NA).fillna("pending")
 
+    # Fixes may only use values that already exist in the data (phase1_vocab), so every reviewer
+    # corrects the same way and no new spelling of a colour or family reaches the features.
+    vocab = build_vocabulary(items)
     log = []
     for idx, r in items[items["review_status"] == "fix"].iterrows():
-        for col, val in _parse_fixes(r["fixes"]):
-            if col not in items.columns:
-                errors.append(f"{r[KEY]}: unknown column in fixes '{col}'")
-                continue
+        fixes, problems = normalise_fixes(parse_fixes(r["fixes"]), r, vocab)
+        if not fixes and not problems:
+            problems = ["'fix' without any correction in the fixes column"]
+        errors += [f"{r[KEY]} ({r['source_file']}): {p}" for p in problems]
+        for col, val in fixes.items():
             log.append({KEY: r[KEY], "column": col, "old": items.at[idx, col], "new": val,
                         "reviewer": r["reviewer"], "source_file": r["source_file"]})
             items.at[idx, col] = val
+        items.at[idx, "fixes"] = format_fixes(fixes)
     if errors:
-        raise SystemExit("Merge aborted:\n- " + "\n- ".join(errors))
+        raise SystemExit("Merge aborted (allowed values: outputs/phase1/review_vocabulary.csv):\n- "
+                         + "\n- ".join(errors))
 
     drop_img = items["review_status"] == "drop_image"
     for idx in items.index[drop_img]:

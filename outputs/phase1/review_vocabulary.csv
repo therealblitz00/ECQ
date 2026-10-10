@@ -1,0 +1,673 @@
+﻿column,value,category,family
+CLR_DES,Amethyst,,
+CLR_DES,Anthracite,,
+CLR_DES,Aquamarine,,
+CLR_DES,Aubergine,,
+CLR_DES,Beige,,
+CLR_DES,Black,,
+CLR_DES,Black Nickel,,
+CLR_DES,Blue,,
+CLR_DES,Blue Jeans,,
+CLR_DES,Brick Red,,
+CLR_DES,Bright Blue,,
+CLR_DES,Bright Multicolor,,
+CLR_DES,Bronze,,
+CLR_DES,Brown,,
+CLR_DES,Burgundy,,
+CLR_DES,Camel,,
+CLR_DES,Champagne,,
+CLR_DES,Cherry,,
+CLR_DES,Chocolate,,
+CLR_DES,Clinic,,
+CLR_DES,Coffee,,
+CLR_DES,Cognac,,
+CLR_DES,Copper,,
+CLR_DES,Coral,,
+CLR_DES,Dark Brown,,
+CLR_DES,Dark Green,,
+CLR_DES,Dark Grey,,
+CLR_DES,Dark Multicolor,,
+CLR_DES,Dark Natural Color,,
+CLR_DES,Dark Pink,,
+CLR_DES,Dark Yellow,,
+CLR_DES,Ecru,,
+CLR_DES,Forest Green,,
+CLR_DES,Fuchsia,,
+CLR_DES,Gold,,
+CLR_DES,Green,,
+CLR_DES,Grey,,
+CLR_DES,Halftone Multicolor,,
+CLR_DES,Ice,,
+CLR_DES,Indigo,,
+CLR_DES,Indigo Dye,,
+CLR_DES,Ivory,,
+CLR_DES,Khaki,,
+CLR_DES,Light Blue,,
+CLR_DES,Light Gold,,
+CLR_DES,Light Green,,
+CLR_DES,Light Grey,,
+CLR_DES,Light Pink,,
+CLR_DES,Light Yellow,,
+CLR_DES,Lilac,,
+CLR_DES,Lime,,
+CLR_DES,Lust,,
+CLR_DES,Magenta,,
+CLR_DES,Maroon,,
+CLR_DES,Mauve,,
+CLR_DES,Metallic Multicolor,,
+CLR_DES,Midnight Blue,,
+CLR_DES,Mint,,
+CLR_DES,Mustard,,
+CLR_DES,Natural Color,,
+CLR_DES,Navy,,
+CLR_DES,Neutral Multicolor,,
+CLR_DES,Nickel,,
+CLR_DES,Nude,,
+CLR_DES,Off White,,
+CLR_DES,Old Gold,,
+CLR_DES,Old Rose,,
+CLR_DES,Old Silver,,
+CLR_DES,Olive,,
+CLR_DES,Orange,,
+CLR_DES,Oxford Blue,,
+CLR_DES,Papaya,,
+CLR_DES,Paprika,,
+CLR_DES,Pastel Blue,,
+CLR_DES,Pastel Green,,
+CLR_DES,Pastel Grey,,
+CLR_DES,Pastel Multicolor,,
+CLR_DES,Pastel Orange,,
+CLR_DES,Pastel Pink,,
+CLR_DES,Peach,,
+CLR_DES,Pearl,,
+CLR_DES,Pink,,
+CLR_DES,Pomegranate,,
+CLR_DES,Purple,,
+CLR_DES,Raspberry,,
+CLR_DES,Red,,
+CLR_DES,Rock,,
+CLR_DES,Rose Gold,,
+CLR_DES,Salmon,,
+CLR_DES,Silver,,
+CLR_DES,Skin,,
+CLR_DES,Snow,,
+CLR_DES,Straw,,
+CLR_DES,Taupe,,
+CLR_DES,Teal,,
+CLR_DES,Turquoise,,
+CLR_DES,Violet,,
+CLR_DES,White,,
+CLR_DES,Wine,,
+CLR_DES,Yellow,,
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Circular,Apparel,Bath Suit
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Circular,Apparel,Bikini
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Woven,Apparel,Blazer
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Woven,Apparel,Blouse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Knit,Apparel,Bodys
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Knit,Apparel,Cape
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Woven,Apparel,Cape
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Knit,Apparel,Cardigan
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Circular,Apparel,Coat
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Knit,Apparel,Coat
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Woven,Apparel,Coat
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Acessories,Apparel,Dress
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Circular,Apparel,Dress
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Knit,Apparel,Dress
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Woven,Apparel,Dress
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Knit,Apparel,Jeans
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Woven,Apparel,Jeans
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Circular,Apparel,Jumpsuit
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Woven,Apparel,Jumpsuit
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Woven,Apparel,Kaftan
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Knit,Apparel,Kimono
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Woven,Apparel,Kimono
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Knit,Apparel,Poncho
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Woven,Apparel,Poncho
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Woven,Apparel,Raincoat
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Circular,Apparel,Shirt
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Woven,Apparel,Shirt
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Circular,Apparel,Shorts
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Knit,Apparel,Shorts
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Woven,Apparel,Shorts
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Circular,Apparel,Skirt
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Knit,Apparel,Skirt
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Woven,Apparel,Skirt
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Knit,Apparel,Socks
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Circular,Apparel,Sweater
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Knit,Apparel,Sweater
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Circular,Apparel,Sweatshirt
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Circular,Apparel,T-shirt
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Knit,Apparel,T-shirt
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Circular,Apparel,Top
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Knit,Apparel,Top
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Woven,Apparel,Top
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Circular,Apparel,Trousers
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Knit,Apparel,Trousers
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Woven,Apparel,Trousers
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Circular,Apparel,Vest
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Knit,Apparel,Vest
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Woven,Apparel,Vest
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Leather,Footwear,Ankle Boots
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,PU,Footwear,Ankle Boots
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Textile,Footwear,Ankle Boots
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Leather,Footwear,Ballerinas
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,PU,Footwear,Ballerinas
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Textile,Footwear,Ballerinas
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Leather,Footwear,Boots
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,PU,Footwear,Boots
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Leather,Footwear,Flat Sandals
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Others,Footwear,Flat Sandals
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,PU,Footwear,Flat Sandals
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Textile,Footwear,Flat Sandals
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Flat Heel,Footwear,Flat Shoes
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Leather,Footwear,Flat Shoes
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,PU,Footwear,Flat Shoes
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Rubber,Footwear,Flat Shoes
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Textile,Footwear,Flat Shoes
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Leather,Footwear,High Heel Sandals
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Others,Footwear,High Heel Sandals
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,PU,Footwear,High Heel Sandals
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Rubber,Footwear,High Heel Sandals
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Textile,Footwear,High Heel Sandals
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Leather,Footwear,High Heel Shoes
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,PU,Footwear,High Heel Shoes
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Textile,Footwear,High Heel Shoes
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Leather,Footwear,Trainers
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,PU,Footwear,Trainers
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Textile,Footwear,Trainers
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Canvas,Hand Bag,Backpack
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Color Block,Hand Bag,Backpack
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Denim,Hand Bag,Backpack
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Nylon,Hand Bag,Backpack
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy Fabric,Hand Bag,Backpack
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy PU,Hand Bag,Backpack
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Felt,Hand Bag,Backpack
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Nylon,Hand Bag,Backpack
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Paper straw,Hand Bag,Backpack
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Patchwork,Hand Bag,Backpack
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plain PU,Hand Bag,Backpack
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Fake Nylon,Hand Bag,Backpack
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Nylon,Hand Bag,Backpack
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed PU,Hand Bag,Backpack
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Suede,Hand Bag,Backpack
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy Fabric,Hand Bag,Belt Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Nylon,Hand Bag,Belt Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Animal Embossed PU,Hand Bag,Briefcase
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Color Block,Hand Bag,Briefcase
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Nylon,Hand Bag,Briefcase
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plain PU,Hand Bag,Briefcase
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed PU,Hand Bag,Briefcase
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Crochet,Hand Bag,Bucket
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake straw,Hand Bag,Bucket
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy PU,Hand Bag,Bucket
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Jute,Hand Bag,Bucket
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Nylon,Hand Bag,Bucket
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Paper straw,Hand Bag,Bucket
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plain PU,Hand Bag,Bucket
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Fabric,Hand Bag,Bucket
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Fur,Hand Bag,Bucket
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Suede,Hand Bag,Bucket
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Straw,Hand Bag,Bucket
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Animal Embossed PU,Hand Bag,Computer Backpack
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Nylon,Hand Bag,Computer Backpack
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Nylon,Hand Bag,Computer Backpack
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Nylon,Hand Bag,Computer Hand Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Suede,Hand Bag,Computer Hand Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy PU,Hand Bag,Computer Hand Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Felt,Hand Bag,Computer Hand Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Nylon,Hand Bag,Computer Hand Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Patchwork,Hand Bag,Computer Hand Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Peach PU,Hand Bag,Computer Hand Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plain PU,Hand Bag,Computer Hand Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Animal Embossed PU,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Color Block,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Crochet,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Denim,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Fur,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Nylon,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake straw,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy Fabric,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy PU,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Jacquard,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Jute,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Leather,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Mesh,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Nylon,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Padded Peach PU,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Padded Pu,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Paper straw,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Patchwork,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Peach PU,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plain Fabric,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plain PU,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Fake Nylon,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Nylon,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed PU,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Fur,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Suede,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Sequins,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Straw,Hand Bag,Cross
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy Fabric,Hand Bag,Envelope
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Jute,Hand Bag,Envelope
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Paper straw,Hand Bag,Envelope
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Nylon,Hand Bag,Envelope
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed PU,Hand Bag,Envelope
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Nylon,Hand Bag,Gym Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Beads,Hand Bag,Hand
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Interlaced,Hand Bag,Hand
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Nylon,Hand Bag,Lunch Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Nylon,Hand Bag,Lunch Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Fake Nylon,Hand Bag,Lunch Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed PU,Hand Bag,Lunch Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy PU,Hand Bag,Mini Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Peach PU,Hand Bag,Mini Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Beads,Hand Bag,Sac
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Crochet,Hand Bag,Sac
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Fur,Hand Bag,Sac
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Suede,Hand Bag,Sac
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake straw,Hand Bag,Sac
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy Fabric,Hand Bag,Sac
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy PU,Hand Bag,Sac
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Interlaced,Hand Bag,Sac
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Jacquard,Hand Bag,Sac
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Leather,Hand Bag,Sac
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Nylon,Hand Bag,Sac
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Paper straw,Hand Bag,Sac
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Patchwork,Hand Bag,Sac
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plain Fabric,Hand Bag,Sac
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plain PU,Hand Bag,Sac
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Fabric,Hand Bag,Sac
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Nylon,Hand Bag,Sac
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Fur,Hand Bag,Sac
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Suede,Hand Bag,Sac
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Velvet,Hand Bag,Sac
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Canvas,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Crochet,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Denim,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Fur,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Nylon,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Suede,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy Fabric,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy PU,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Jacquard,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Jute,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Leather,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Mesh,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Nylon,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Paper straw,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Patchwork,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plain Fabric,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plain PU,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plastic,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Fabric,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Nylon,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed PU,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Fur,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Suede,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Straw,Hand Bag,Shopper
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Crochet,Hand Bag,Shoulder Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Suede,Hand Bag,Shoulder Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake straw,Hand Bag,Shoulder Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy Fabric,Hand Bag,Shoulder Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy PU,Hand Bag,Shoulder Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Leather,Hand Bag,Shoulder Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Nylon,Hand Bag,Shoulder Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Padded Peach PU,Hand Bag,Shoulder Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Padded Pu,Hand Bag,Shoulder Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Paper straw,Hand Bag,Shoulder Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Patchwork,Hand Bag,Shoulder Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Peach PU,Hand Bag,Shoulder Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plain Fabric,Hand Bag,Shoulder Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plain PU,Hand Bag,Shoulder Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Fabric,Hand Bag,Shoulder Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Nylon,Hand Bag,Shoulder Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Fur,Hand Bag,Shoulder Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Suede,Hand Bag,Shoulder Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Sequins,Hand Bag,Shoulder Bag
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plain Fabric,Hand Bag,Shoulder Strap
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Animal Embossed PU,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Canvas,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Crochet,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Denim,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Fur,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Nylon,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Suede,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake straw,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy Fabric,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy PU,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Felt,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Jacquard,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Jute,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Leather,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Nylon,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Padded Pu,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Paper straw,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Patchwork,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Peach PU,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plain PU,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Fabric,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Fake Nylon,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Nylon,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed PU,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Fur,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Straw,Hand Bag,Tote
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Adjustable Bracelet,Jewellery,Bracelets
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Anklet,Jewellery,Bracelets
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Arm Bangle,Jewellery,Bracelets
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Bangle,Jewellery,Bracelets
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Cuff,Jewellery,Bracelets
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Elastic Bracelet,Jewellery,Bracelets
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Non-Adjustable Bracelet,Jewellery,Bracelets
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Other Bracelets,Jewellery,Bracelets
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Letter,Jewellery,Charms
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Symbol,Jewellery,Charms
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Regular,Jewellery,Cigarette Box
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Clip Earrings,Jewellery,Earrings
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Clip with Post,Jewellery,Earrings
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Dangle,Jewellery,Earrings
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Drop,Jewellery,Earrings
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Ear Cuff,Jewellery,Earrings
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Ear Jacket,Jewellery,Earrings
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Hoop Earrings,Jewellery,Earrings
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Other Earrings,Jewellery,Earrings
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Stud,Jewellery,Earrings
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Tassel Earring,Jewellery,Earrings
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Charms,Jewellery,Key chains
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Figures,Jewellery,Key chains
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Other Key-Chain,Jewellery,Key chains
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Mobile Cases,Jewellery,Mobile Accessories
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Mobile Holder,Jewellery,Mobile Accessories
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Beaded Necklace,Jewellery,Necklaces
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Bib Necklace,Jewellery,Necklaces
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Chain,Jewellery,Necklaces
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Choker,Jewellery,Necklaces
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Collar,Jewellery,Necklaces
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Letter,Jewellery,Necklaces
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Other Necklaces,Jewellery,Necklaces
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Pendant,Jewellery,Necklaces
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Y-Necklace,Jewellery,Necklaces
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Belly Chains,Jewellery,Other Jewellery
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fan,Jewellery,Other Jewellery
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Jewellery Box,Jewellery,Other Jewellery
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Masks,Jewellery,Other Jewellery
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Self-Adhesive Gems,Jewellery,Other Jewellery
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Sunglass Holder,Jewellery,Other Jewellery
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Flower,Jewellery,Pins
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Lady Brooche,Jewellery,Pins
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Lady Pin,Jewellery,Pins
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Other Pins,Jewellery,Pins
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Pin,Jewellery,Pins
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Romantic Brooche,Jewellery,Pins
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Band Ring,Jewellery,Rings
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Cocktail,Jewellery,Rings
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy,Jewellery,Rings
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Other Rings,Jewellery,Rings
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Stone/Gem,Jewellery,Rings
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Animal Embossed PU,Wallet,Card Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Color Block,Wallet,Card Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy PU,Wallet,Card Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Interlaced,Wallet,Card Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Nylon,Wallet,Card Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Peach PU,Wallet,Card Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plain PU,Wallet,Card Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plastic,Wallet,Card Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Fake Nylon,Wallet,Card Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Nylon,Wallet,Card Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed PU,Wallet,Card Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Fur,Wallet,Card Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Suede,Wallet,Card Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Beads,Wallet,Coin Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Embroidery,Wallet,Coin Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Fur,Wallet,Coin Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Nylon,Wallet,Coin Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake straw,Wallet,Coin Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy Fabric,Wallet,Coin Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy PU,Wallet,Coin Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Interlaced,Wallet,Coin Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Knit,Wallet,Coin Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Nylon,Wallet,Coin Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Paper straw,Wallet,Coin Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Peach PU,Wallet,Coin Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plain PU,Wallet,Coin Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plastic,Wallet,Coin Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Fake Nylon,Wallet,Coin Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Nylon,Wallet,Coin Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed PU,Wallet,Coin Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Fur,Wallet,Coin Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Suede,Wallet,Coin Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Beads,Wallet,Multipurpose Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Denim,Wallet,Multipurpose Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Fur,Wallet,Multipurpose Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy Fabric,Wallet,Multipurpose Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy PU,Wallet,Multipurpose Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Knit,Wallet,Multipurpose Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Nylon,Wallet,Multipurpose Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Paper straw,Wallet,Multipurpose Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plain Fabric,Wallet,Multipurpose Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plain PU,Wallet,Multipurpose Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plastic,Wallet,Multipurpose Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Fake Nylon,Wallet,Multipurpose Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Nylon,Wallet,Multipurpose Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed PU,Wallet,Multipurpose Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Suede,Wallet,Multipurpose Purse
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Computer Case,Wallet,Others
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Document Holder,Wallet,Others
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Jewellery Case,Wallet,Others
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Notebook,Wallet,Others
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Passport Case,Wallet,Others
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Fake Nylon,Wallet,Others
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Tablet Case,Wallet,Others
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Nylon,Wallet,Pencil Case
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Peach PU,Wallet,Pencil Case
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plain PU,Wallet,Pencil Case
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Nylon,Wallet,Pencil Case
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Fur,Wallet,Pencil Case
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Animal Embossed PU,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Beads,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Color Block,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Denim,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Embroidery,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Fur,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Nylon,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake straw,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy Fabric,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy PU,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Felt,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Jacquard,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Knit,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Leather,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Nylon,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Padded Peach PU,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Padded Pu,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Paper straw,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Patchwork,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Peach PU,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plain PU,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plastic,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Fabric,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Fake Nylon,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Nylon,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed PU,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Fur,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Suede,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Straw,Wallet,Phone Holder
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Animal Embossed PU,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Color Block,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Denim,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Embroidery,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Fur,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake Nylon,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fake straw,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Fantasy PU,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Interlaced,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Jacquard,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Knit,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Nylon,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Padded Peach PU,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Padded Pu,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Paper straw,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Patchwork,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Peach PU,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Plain PU,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Fabric,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Fake Nylon,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed Nylon,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Printed PU,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Fur,Wallet,Wallet
+CAT_DES_EN › GFA_DES_EN › GFS_DES_EN,Real Suede,Wallet,Wallet
+FINISHING,Antik Silver,Hand Bag,
+FINISHING,Light Golden,Hand Bag,
+FINISHING,Other,Hand Bag,
+FINISHING,Silver,Hand Bag,
+FINISHING,Silver Plated,Hand Bag,
+FINISHING,Antik Golden,Jewellery,
+FINISHING,Antik Silver,Jewellery,
+FINISHING,Black Nikel,Jewellery,
+FINISHING,Black Plating,Jewellery,
+FINISHING,Brushed Golden,Jewellery,
+FINISHING,Brushed Rhodium,Jewellery,
+FINISHING,Brushed Rose Gold,Jewellery,
+FINISHING,Brushed Silver,Jewellery,
+FINISHING,Burnish Golden,Jewellery,
+FINISHING,Cooper,Jewellery,
+FINISHING,Gold Plated,Jewellery,
+FINISHING,Golden,Jewellery,
+FINISHING,Light Golden,Jewellery,
+FINISHING,Matt Brushed Gold,Jewellery,
+FINISHING,Matte Golden,Jewellery,
+FINISHING,Matte Silver,Jewellery,
+FINISHING,Multifinishing,Jewellery,
+FINISHING,Other,Jewellery,
+FINISHING,Rodhium,Jewellery,
+FINISHING,Rose Gold,Jewellery,
+FINISHING,Scratched Gold,Jewellery,
+FINISHING,Silver,Jewellery,
+FINISHING,Worn Gold,Jewellery,
+FINISHING,Worn Rhodium,Jewellery,
+FINISHING,Worn Rose God,Jewellery,
+FINISHING,Worn Silver,Jewellery,
+FINISHING,Worn Yellow Gold,Jewellery,
+FINISHING,Light Golden,Wallet,
+FINISHING,Silver,Wallet,
+MATERIAL,Acrylic,Apparel,
+MATERIAL,Cashmere,Apparel,
+MATERIAL,Chenille,Apparel,
+MATERIAL,Cotton,Apparel,
+MATERIAL,Elastane,Apparel,
+MATERIAL,Leather,Apparel,
+MATERIAL,Linen,Apparel,
+MATERIAL,Lyocell,Apparel,
+MATERIAL,Modal,Apparel,
+MATERIAL,Nylon,Apparel,
+MATERIAL,Polyamide,Apparel,
+MATERIAL,Polyester,Apparel,
+MATERIAL,Polyurethane,Apparel,
+MATERIAL,Recycled Polyester,Apparel,
+MATERIAL,Suede,Apparel,
+MATERIAL,Viscose,Apparel,
+MATERIAL,Wool,Apparel,
+MATERIAL,Beads,Jewellery,
+MATERIAL,Enamel,Jewellery,
+MATERIAL,Metal,Jewellery,
+MATERIAL,Other,Jewellery,
+MATERIAL,Shell,Jewellery,
+MATERIAL,Stone,Jewellery,
+MATERIAL,Strass,Jewellery,
+MATERIAL,Straw,Jewellery,
+MATERIAL,Zirconia,Jewellery,
+MATERIAL,Leather,Wallet,
+COMPOSITION (one material),Acetate,,
+COMPOSITION (one material),Acrylic,,
+COMPOSITION (one material),Acrylonitrile Butadiene Styrene,,
+COMPOSITION (one material),Agate,,
+COMPOSITION (one material),Alpaca,,
+COMPOSITION (one material),Aluminium,,
+COMPOSITION (one material),Bamboo,,
+COMPOSITION (one material),Brass,,
+COMPOSITION (one material),Bronze,,
+COMPOSITION (one material),Buffalo Bone,,
+COMPOSITION (one material),Camel Bone,,
+COMPOSITION (one material),Cashmere,,
+COMPOSITION (one material),Ceramic,,
+COMPOSITION (one material),Chenille,,
+COMPOSITION (one material),Clay,,
+COMPOSITION (one material),Copper,,
+COMPOSITION (one material),Cork,,
+COMPOSITION (one material),Cotton,,
+COMPOSITION (one material),Cow Leather,,
+COMPOSITION (one material),Cow Suede Leather,,
+COMPOSITION (one material),Crystal Glass,,
+COMPOSITION (one material),Cupro,,
+COMPOSITION (one material),Elastane,,
+COMPOSITION (one material),Elastodieno,,
+COMPOSITION (one material),Enamel,,
+COMPOSITION (one material),Ethylene vinyl acetate,,
+COMPOSITION (one material),Feather,,
+COMPOSITION (one material),Fiberglass,,
+COMPOSITION (one material),Glass,,
+COMPOSITION (one material),Goat Leather,,
+COMPOSITION (one material),Horse Hair,,
+COMPOSITION (one material),Iron,,
+COMPOSITION (one material),Jute,,
+COMPOSITION (one material),Linen,,
+COMPOSITION (one material),Lyocell,,
+COMPOSITION (one material),MDF,,
+COMPOSITION (one material),Magnet,,
+COMPOSITION (one material),Metal Fitting,,
+COMPOSITION (one material),Metal and Cord,,
+COMPOSITION (one material),Metal and Plastic,,
+COMPOSITION (one material),Metallic Fiber,,
+COMPOSITION (one material),Modal,,
+COMPOSITION (one material),Mohair,,
+COMPOSITION (one material),Nylon,,
+COMPOSITION (one material),Organic Cotton,,
+COMPOSITION (one material),PROPIONIC ACID,,
+COMPOSITION (one material),Paper,,
+COMPOSITION (one material),Pearl,,
+COMPOSITION (one material),Pig leather,,
+COMPOSITION (one material),Policloroeteno (pvc),,
+COMPOSITION (one material),Polyacrylonitrile,,
+COMPOSITION (one material),Polyamide,,
+COMPOSITION (one material),Polycarbonate,,
+COMPOSITION (one material),Polyester,,
+COMPOSITION (one material),Polyethylene,,
+COMPOSITION (one material),Polyethylene Terephthalate,,
+COMPOSITION (one material),Polymer,,
+COMPOSITION (one material),Polymethylmethacrylate,,
+COMPOSITION (one material),Polypropylene,,
+COMPOSITION (one material),Polystyrene,,
+COMPOSITION (one material),Polyurethane,,
+COMPOSITION (one material),Polyvinyl Chloride,,
+COMPOSITION (one material),RECYCLED COTTON,,
+COMPOSITION (one material),Raffia,,
+COMPOSITION (one material),Ramie,,
+COMPOSITION (one material),Rattan,,
+COMPOSITION (one material),Rayon,,
+COMPOSITION (one material),Recycled Polyamide,,
+COMPOSITION (one material),Resin,,
+COMPOSITION (one material),Rubber,,
+COMPOSITION (one material),Sheep leather,,
+COMPOSITION (one material),Shell,,
+COMPOSITION (one material),Silicone,,
+COMPOSITION (one material),Silk,,
+COMPOSITION (one material),Stainless Steel,,
+COMPOSITION (one material),Steel,,
+COMPOSITION (one material),Stone,,
+COMPOSITION (one material),Straw,,
+COMPOSITION (one material),Suede,,
+COMPOSITION (one material),Thermoplastic Polyurethane,,
+COMPOSITION (one material),Thermoplastic Rubber,,
+COMPOSITION (one material),Velvet,,
+COMPOSITION (one material),Vinyl,,
+COMPOSITION (one material),Viscose,,
+COMPOSITION (one material),Viscose (LENZING TM ECOVERO TM),,
+COMPOSITION (one material),Wood,,
+COMPOSITION (one material),Wool,,
+COMPOSITION (one material),Wrought Steel,,
+COMPOSITION (one material),Zamac,,
+COMPOSITION (one material),Zinc,,
+COMPOSITION (one material),Zirconium,,
+COMPOSITION (one material),elastomultiéster,,
+COMPOSITION (one material),glass bead,,
+COMPOSITION (one material),recycled acrylic,,
+COMPOSITION (one material),recycled polyester,,

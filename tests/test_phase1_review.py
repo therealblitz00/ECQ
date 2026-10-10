@@ -4,8 +4,8 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-import review_app
 import phase1_checks as checks
+import review_app
 
 
 # --------------------------------------------------------------------------- batch split
@@ -47,16 +47,6 @@ def test_write_batches_never_overwrites_review_decisions(checked_items):
 
 
 # --------------------------------------------------------------------------- merge
-@pytest.mark.parametrize("text, expected", [
-    ("CLR_DES=Black", [("CLR_DES", "Black")]),
-    ("CLR_DES=Black; COMPOSITION=Pearl; Zinc", [("CLR_DES", "Black"), ("COMPOSITION", "Pearl; Zinc")]),
-    (" GFA_DES_EN = Rings ;FINISHING=Golden", [("GFA_DES_EN", "Rings"), ("FINISHING", "Golden")]),
-    ("", []),
-])
-def test_parse_fixes(text, expected):
-    assert checks._parse_fixes(text) == expected
-
-
 def write_merge_inputs(reviews: list[dict]) -> None:
     items = pd.DataFrame({
         checks.KEY: ["A_1", "B_1", "C_1", "D_1", "E_1"],
@@ -75,7 +65,7 @@ def write_merge_inputs(reviews: list[dict]) -> None:
 
 def test_merge_applies_decisions_and_logs_changes(toy_dirs):
     write_merge_inputs([
-        {checks.KEY: "A_1", "review_status": "fix", "fixes": "CLR_DES=Black", "reviewer": "Manuel"},
+        {checks.KEY: "A_1", "review_status": "fix", "fixes": "CLR_DES=black ", "reviewer": "Manuel"},
         {checks.KEY: "B_1", "review_status": "discard", "reviewer": "Manuel"},
         {checks.KEY: "C_1", "review_status": "drop_image", "reviewer": "Manuel"},
         {checks.KEY: "D_1"},  # flagged but not reviewed -> pending
@@ -85,7 +75,8 @@ def test_merge_applies_decisions_and_logs_changes(toy_dirs):
 
     clean = pd.read_parquet(checks.PROCESSED_DIR / "items_clean.parquet").set_index(checks.KEY)
     assert sorted(clean.index) == ["A_1", "C_1", "E_1"]
-    assert clean.at["A_1", "CLR_DES"] == "Black"
+    assert clean.at["A_1", "CLR_DES"] == "Black"  # stored in the spelling used in the data
+    assert clean.at["A_1", "fixes"] == "CLR_DES=Black"
     assert pd.isna(clean.at["C_1", "img_file"]) and not clean.at["C_1", "has_image"]
     assert clean.at["E_1", "review_status"] == "ok"
     assert clean["img_trusted"].tolist() == [True, False, True]  # the dropped photo is not used
@@ -108,7 +99,9 @@ def test_merge_can_keep_unresolved_items(toy_dirs):
     [{checks.KEY: "A_1", "review_status": "maybe"}],  # invalid status
     [{checks.KEY: "Z_9", "review_status": "ok"}],  # unknown key
     [{checks.KEY: "A_1", "review_status": "ok"}, {checks.KEY: "A_1", "review_status": "ok"}],  # duplicated key
-    [{checks.KEY: "A_1", "review_status": "fix", "fixes": "NOT_A_COLUMN=1"}],  # unknown column
+    [{checks.KEY: "A_1", "review_status": "fix", "fixes": "NOT_A_COLUMN=1"}],  # not editable
+    [{checks.KEY: "A_1", "review_status": "fix", "fixes": "CLR_DES=Mustard"}],  # colour not in the data
+    [{checks.KEY: "A_1", "review_status": "fix", "fixes": ""}],  # "fix" without a correction
 ])
 def test_merge_aborts_on_bad_input(toy_dirs, reviews):
     write_merge_inputs(reviews)
@@ -118,10 +111,14 @@ def test_merge_aborts_on_bad_input(toy_dirs, reviews):
 
 
 # --------------------------------------------------------------------------- review app
-@pytest.fixture
-def batch(checked_items, monkeypatch):
+def point_review_app_to_toy_dirs(monkeypatch) -> None:
     for name in ["BATCH_DIR", "EMB_DIR", "PROCESSED_DIR"]:
         monkeypatch.setattr(review_app, name, getattr(checks, name))
+
+
+@pytest.fixture
+def batch(checked_items, monkeypatch):
+    point_review_app_to_toy_dirs(monkeypatch)
     checks.write_batches(checked_items.reset_index(), n_members=review_app.N_MEMBERS, only_id=4)
     return review_app.Batch(4)
 
@@ -133,7 +130,7 @@ def test_issue_labels_cover_every_text_check():
 
 def test_review_app_saves_decisions_in_the_merge_format(batch):
     key = batch.df.at[0, checks.KEY]
-    batch.save(key, "fix", "CLR_DES=Black", "colour was wrong")
+    assert batch.save(key, "fix", "CLR_DES=black", "colour was wrong") == "CLR_DES=Black"
     df = pd.read_csv(batch.path, dtype=str, encoding="utf-8-sig", keep_default_na=False)
     row = df.set_index(checks.KEY).loc[key]
     assert (row["review_status"], row["fixes"], row["reviewer"]) == ("fix", "CLR_DES=Black", checks.TEAM[4])
@@ -150,11 +147,15 @@ def test_review_app_rejects_bad_input(batch):
         batch.save(batch.df.at[0, checks.KEY], "maybe", "", "")
     with pytest.raises(ValueError, match="unknown product"):
         batch.save("999999_XX", "ok", "", "")
+    with pytest.raises(ValueError, match="not an existing value"):
+        batch.save(batch.df.at[0, checks.KEY], "fix", "CLR_DES=Mustard", "")
+    with pytest.raises(ValueError, match="cannot be corrected"):
+        batch.save(batch.df.at[0, checks.KEY], "fix", "PROD_DES_BASE=Ring Gold", "")
+    assert batch.df.at[0, "review_status"] == ""  # nothing was saved
 
 
 def test_review_app_raises_priority_with_image_flags(checked_items, monkeypatch):
-    for name in ["BATCH_DIR", "EMB_DIR", "PROCESSED_DIR"]:
-        monkeypatch.setattr(review_app, name, getattr(checks, name))
+    point_review_app_to_toy_dirs(monkeypatch)
     checks.write_batches(checked_items.reset_index(), n_members=1, only_id=1)
     monkeypatch.setattr(review_app, "N_MEMBERS", 1)
     pd.DataFrame({checks.KEY: ["100001_BK"], "vis_issues": ["VIS_TYPE_MISMATCH"],
@@ -170,8 +171,8 @@ def test_review_app_shows_image_flags_once_when_batch_already_has_them(toy_data,
     pd.DataFrame({checks.KEY: ["100001_BK"], "vis_issues": ["VIS_TYPE_MISMATCH"],
                   "vis_note": ["photo looks like a bag"]}).to_parquet(checks.EMB_DIR / "image_audit.parquet")
     items, _ = checks.run_checks(verify_files=False)
-    for name in ["BATCH_DIR", "EMB_DIR", "PROCESSED_DIR"]:
-        monkeypatch.setattr(review_app, name, getattr(checks, name))
+    items.to_parquet(checks.PROCESSED_DIR / "items_checked.parquet", index=False)
+    point_review_app_to_toy_dirs(monkeypatch)
     monkeypatch.setattr(review_app, "N_MEMBERS", 1)
     checks.write_batches(items, n_members=1, only_id=1)
 

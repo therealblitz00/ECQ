@@ -25,7 +25,7 @@ docs and reports. Talking to the team in Portuguese is fine; the files stay in E
   about 10,555 items. `df_product.csv` has one row per SKU (size), so always collapse sizes first.
 - Join sales on `PROD_CLR_EQUIV` (left join; ~370 items have no sales).
 - Link images through the **file stem of `PROG_IMAGE`**, never by building a name from
-  `PROD_CLR` (some file names are irregular). About 1,100 colourways have no image, so every
+  `PROD_CLR` (some file names are irregular). About 1,064 colourways have no image, so every
   method must also work on tabular data alone.
 - Read CSVs with `encoding="utf-8"`, keep codes as strings (see `STR_DTYPES` in
   `src/config.py`), replace `\xa0` and strip text.
@@ -61,6 +61,7 @@ Current scripts in `src/`:
 | `phase1_checks.py` | Phase 1 CLI: `check` (automatic checks), `batch` (review batches), `merge` (apply the review) |
 | `phase1b_image_audit.py` | Masks, CLIP embeddings and image-vs-label flags. Heavy; run on one machine only |
 | `review_app.py` | Browser app for the manual review (standard library + pandas only) |
+| `phase1_vocab.py` | Allowed values for review fixes (`build_vocabulary`, `normalise_fixes`). Used by the review app and `merge`; never accept a fix value that isn't in it |
 | `phase1_clean.py` | Final cleaning (`finalise_items`), the preview table and `load_items()`. Its `CONTRACT_COLUMNS` are the columns later phases may rely on |
 
 New code goes into `src/phase<N>_<topic>.py`, one module per roadmap phase (move to a package
@@ -108,6 +109,7 @@ python -m venv .venv
 # Phase 1b (vision environment only)
 .venv/Scripts/python src/phase1b_image_audit.py --limit 300   # quick trial
 .venv/Scripts/python src/phase1b_image_audit.py --reflag      # recompute flags from stored scores
+.venv/Scripts/python src/phase1b_image_audit.py --add-missing # embed only items not in data/embeddings yet
 ```
 
 `data/processed/` is not in git: run `check` and then `python src/phase1_clean.py` after cloning

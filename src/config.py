@@ -25,6 +25,7 @@ STR_DTYPES = {c: str for c in ["PROD_REF", "PROD_REF_EQUIV", "BAR_COD", "SEA_COD
 ISSUES = {
     "IMG_PATH_INVALID": "high",        # PROG_IMAGE does not follow /<season>/<cat>/<file>
     "IMG_FILE_MISSING": "info",        # no image file -> item will use tabular data only
+    "IMG_PATH_REPAIRED": "medium",     # PROG_IMAGE file missing; linked to the unused file named after the item
     "IMG_UNREADABLE": "high",          # file exists but is corrupt
     "IMG_REF_MISMATCH": "high",        # image file name belongs to another model
     "IMG_CAT_MISMATCH": "medium",      # category folder in path != CAT_COD (often a reclassified item)

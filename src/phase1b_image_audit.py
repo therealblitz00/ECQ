@@ -5,6 +5,7 @@ committed to data/embeddings/ so teammates only load them (see ROADMAP "Compute 
 
     python src/phase1b_image_audit.py                 # full run (~20-40 min on a laptop CPU)
     python src/phase1b_image_audit.py --limit 300     # quick trial on a sample
+    python src/phase1b_image_audit.py --add-missing   # only items not embedded yet (e.g. repaired paths)
 
 Steps:
 1. Mask: white-background packshots -> crop to the non-white pixels (threshold).
@@ -218,21 +219,12 @@ def dhash(img: Image.Image) -> np.uint64:
 
 
 # ----------------------------------------------------------------------------- main
-def main() -> None:
-    import os
-    import torch
-    torch.set_num_threads(os.cpu_count() or 4)
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--limit", type=int, help="only process a random sample of N items (trial run)")
-    ap.add_argument("--batch-size", type=int, default=64)
-    ap.add_argument("--reflag", action="store_true", help="only recompute flags/report from stored scores")
-    args = ap.parse_args()
-    if args.reflag:
-        return reflag()
-    t0 = time.time()
-
+def _items_with_image(only_new: set[str] | None = None) -> pd.DataFrame:
+    """Colourways with a readable image file (optionally only those not embedded yet)."""
     items, _ = run_checks(verify_files=False)
     items = items[items["has_image"]].reset_index(drop=True)
+    if only_new is not None:
+        items = items[~items[KEY].isin(only_new)].reset_index(drop=True)
 
     def readable(f: str) -> bool:  # damaged files (already flagged IMG_UNREADABLE) are skipped
         try:
@@ -246,23 +238,25 @@ def main() -> None:
     if (~ok).any():
         print(f"Skipping {int((~ok).sum())} unreadable image(s): {', '.join(items.loc[~ok, 'img_file'])}", flush=True)
     items = items[ok].reset_index(drop=True)
-    if args.limit:
-        items = items.sample(args.limit, random_state=0).reset_index(drop=True)
     items["group_expected"] = items["GFA_DES_EN"].map(FAMILY_TO_GROUP)
     items["colour_expected"] = items["CLR_DES"].map(NAME_TO_COLOUR)
-    print(f"{len(items)} items with an image. Loading CLIP...", flush=True)
+    return items
 
-    clip = Clip()
+
+def embed_and_score(items: pd.DataFrame, clip: Clip, batch_size: int, t0: float) -> tuple[np.ndarray, pd.DataFrame, pd.DataFrame]:
+    """Per-image steps: mask, CLIP embedding, refined crop, type and colour scores.
+
+    Returns (embeddings, masks, audit) with one row per item, in the order of `items`.
+    """
     groups = list(GROUPS)
     group_vecs = clip.prompt_bank([GROUP_PHRASE[g] for g in groups])
 
     # 1-2. masks + embeddings (streamed in batches to keep memory low)
     detector = None
-    mask_rows, embs, hashes = [], [], []
+    mask_rows, embs = [], []
     batch_imgs: list[Image.Image] = []
     for i, r in enumerate(items.itertuples(index=False)):
         img = Image.open(IMG_DIR / r.img_file).convert("RGB")
-        hashes.append(dhash(img))
         wb = white_border_share(img)
         row = {KEY: r.PROD_CLR_EQUIV, "img_file": r.img_file, "white_border": round(wb, 3), "packshot": wb > 0.9,
                "mask_method": "threshold", "box": None, "target_found": True, "det_score": np.nan,
@@ -281,7 +275,7 @@ def main() -> None:
             row["box"] = box if found else None
         mask_rows.append(row)
         batch_imgs.append(square_crop(img, row["box"]))
-        if len(batch_imgs) == args.batch_size or i == len(items) - 1:
+        if len(batch_imgs) == batch_size or i == len(items) - 1:
             embs.append(clip.images(batch_imgs))
             batch_imgs = []
             print(f"  {i + 1}/{len(items)} images  ({time.time() - t0:.0f}s)", flush=True)
@@ -324,15 +318,6 @@ def main() -> None:
     audit["p_group_expected"] = [round(float(p_group[n, gi[g]]), 3) if isinstance(g, str) else np.nan
                                  for n, g in enumerate(audit["group_expected"])]
 
-    # 3b. neighbours: share of the 10 nearest images (other models) with the same broad type
-    sims = emb @ emb.T
-    same_ref = audit["PROD_REF"].to_numpy()[:, None] == audit["PROD_REF"].to_numpy()[None, :]
-    sims[same_ref] = -1
-    nn = np.argsort(-sims, axis=1)[:, :10]
-    exp = audit["group_expected"].to_numpy()
-    audit["nn_same_type_share"] = [round(float(np.mean(exp[nn[n]] == exp[n])), 2) if isinstance(exp[n], str) else np.nan
-                                   for n in range(len(audit))]
-
     # 3c. colour: zero-shot over basic colours, phrased with the item type ("a black handbag")
     colours = list(COLOURS)
     ci = {c: k for k, c in enumerate(colours)}
@@ -344,9 +329,28 @@ def main() -> None:
     audit["colour_pred"] = [colours[k] for k in p_col.argmax(1)]
     audit["p_colour_expected"] = [round(float(p_col[n, ci[c]]), 3) if isinstance(c, str) else np.nan
                                   for n, c in enumerate(audit["colour_expected"])]
+    return emb, masks, audit
 
-    # 3d. near-duplicate photos (dHash, Hamming distance <= 4) across different colours or models
-    h = np.array(hashes, dtype=np.uint64)
+
+def compare_all(audit: pd.DataFrame, masks: pd.DataFrame, emb: np.ndarray) -> pd.DataFrame:
+    """Steps that compare every photo with every other one: neighbours, near-duplicates, flags.
+
+    Cheap (no model), so they are always recomputed on the full set, also when items are added.
+    """
+    audit = audit.drop(columns=["nn_same_type_share", "near_duplicate_of", "packshot", "mask_method",
+                                "target_found", "det_strongest", "vis_issues", "vis_note"], errors="ignore")
+    # 3b. neighbours: share of the 10 nearest images (other models) with the same broad type
+    sims = emb @ emb.T
+    same_ref = audit["PROD_REF"].to_numpy()[:, None] == audit["PROD_REF"].to_numpy()[None, :]
+    sims[same_ref] = -1
+    nn = np.argsort(-sims, axis=1)[:, :10]
+    exp = audit["group_expected"].to_numpy()
+    audit["nn_same_type_share"] = [round(float(np.mean(exp[nn[n]] == exp[n])), 2) if isinstance(exp[n], str) else np.nan
+                                   for n in range(len(audit))]
+
+    # 3d. near-duplicate photos (dHash, Hamming distance <= 2) across different colours or models
+    files = dict(zip(masks[KEY], masks["img_file"]))
+    h = np.array([dhash(Image.open(IMG_DIR / files[k]).convert("RGB")) for k in audit[KEY]], dtype=np.uint64)
     clr = audit["CLR_DES"].to_numpy()
     ref = audit["PROD_REF"].to_numpy()
     keys = audit[KEY].to_numpy()
@@ -361,27 +365,88 @@ def main() -> None:
     audit["near_duplicate_of"] = ["|".join(v[:10]) for v in near]
 
     audit = audit.merge(masks[[KEY, "packshot", "mask_method", "target_found", "det_strongest"]], on=KEY)
-
     audit["near_duplicate_of"] = confirm_near_duplicates(audit, masks)
     audit[["vis_issues", "vis_note"]] = compute_flags(audit)
+    return audit
 
-    # outputs
-    suffix = "_sample" if args.limit else ""
+
+def save_outputs(emb: np.ndarray, masks: pd.DataFrame, audit: pd.DataFrame, suffix: str, secs: float | None,
+                 created: str | None = None) -> None:
     EMB_DIR.mkdir(parents=True, exist_ok=True)
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     np.save(EMB_DIR / f"image_clip{suffix}.npy", emb.astype(np.float16))
+    now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     meta = {"model": CLIP_MODEL, "detector": DETECTOR_MODEL, "dim": int(emb.shape[1]), "dtype": "float16",
             "normalised": True, "input": "masked crop, padded to a white square, CLIP processor (224 px)",
             "mask": {"packshot_rule": "white border share > 0.9", "threshold": 235, "detector_min_score": 0.15,
                      "pad": 0.04},
-            "created": datetime.now(timezone.utc).isoformat(timespec="seconds"), "n": int(len(audit)),
-            "keys": audit[KEY].tolist()}
+            "created": created or now, "n": int(len(audit)), "keys": audit[KEY].tolist()}
+    if created:
+        meta["updated"] = now
     (EMB_DIR / f"image_clip{suffix}.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
     masks.to_parquet(EMB_DIR / f"masks{suffix}.parquet", index=False)
     audit.to_parquet(EMB_DIR / f"image_audit{suffix}.parquet", index=False)
-    write_report(audit, masks, suffix, time.time() - t0)
-    print(f"Done in {time.time() - t0:.0f}s -> {EMB_DIR}", flush=True)
+    write_report(audit, masks, suffix, secs)
 
+
+def add_missing(batch_size: int, t0: float) -> None:
+    """Embed and audit only the items with an image that are not in data/embeddings yet.
+
+    The stored embeddings are kept as they are; the comparisons across all photos (neighbours,
+    near-duplicates, flags) are recomputed on the full set.
+    """
+    meta = json.loads((EMB_DIR / "image_clip.json").read_text(encoding="utf-8"))
+    emb_old = np.load(EMB_DIR / "image_clip.npy").astype(np.float32)
+    masks_old = pd.read_parquet(EMB_DIR / "masks.parquet")
+    audit_old = pd.read_parquet(EMB_DIR / "image_audit.parquet")
+    assert meta["keys"] == audit_old[KEY].tolist() == masks_old[KEY].tolist(), "embedding files out of sync"
+
+    items = _items_with_image(only_new=set(meta["keys"]))
+    if items.empty:
+        print("Nothing to add: every item with an image is already embedded.")
+        return
+    print(f"{len(items)} new item(s) with an image: {', '.join(items[KEY])}. Loading CLIP...", flush=True)
+    emb_new, masks_new, audit_new = embed_and_score(items, Clip(), batch_size, t0)
+
+    emb = np.concatenate([emb_old, emb_new])
+    masks = pd.concat([masks_old, masks_new], ignore_index=True)
+    audit = pd.concat([audit_old, audit_new], ignore_index=True)
+    before = dict(zip(audit_old[KEY], audit_old["vis_issues"]))
+    audit = compare_all(audit, masks, emb)
+    changed = [k for k, v in zip(audit[KEY], audit["vis_issues"]) if k in before and before[k] != v]
+    save_outputs(emb, masks, audit, "", None, created=meta["created"])
+    print(f"Added {len(items)} item(s) in {time.time() - t0:.0f}s. Flags changed on {len(changed)} existing item(s)"
+          + (f": {', '.join(changed[:20])}" if changed else "") + ".", flush=True)
+    for k in items[KEY]:
+        r = audit.loc[audit[KEY] == k].iloc[0]
+        print(f"  {k}: {r['vis_issues'] or 'no flag'} {('· ' + r['vis_note']) if r['vis_note'] else ''}")
+
+
+def main() -> None:
+    import os
+    import torch
+    torch.set_num_threads(os.cpu_count() or 4)
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--limit", type=int, help="only process a random sample of N items (trial run)")
+    ap.add_argument("--batch-size", type=int, default=64)
+    ap.add_argument("--reflag", action="store_true", help="only recompute flags/report from stored scores")
+    ap.add_argument("--add-missing", action="store_true",
+                    help="only embed items with an image that are not in data/embeddings yet (keeps the rest)")
+    args = ap.parse_args()
+    if args.reflag:
+        return reflag()
+    t0 = time.time()
+    if args.add_missing:
+        return add_missing(args.batch_size, t0)
+
+    items = _items_with_image()
+    if args.limit:
+        items = items.sample(args.limit, random_state=0).reset_index(drop=True)
+    print(f"{len(items)} items with an image. Loading CLIP...", flush=True)
+    emb, masks, audit = embed_and_score(items, Clip(), args.batch_size, t0)
+    audit = compare_all(audit, masks, emb)
+    save_outputs(emb, masks, audit, "_sample" if args.limit else "", time.time() - t0)
+    print(f"Done in {time.time() - t0:.0f}s -> {EMB_DIR}", flush=True)
 
 SMALL_JEWELLERY = {"ring", "bracelet", "earrings", "keychain"}  # no sense of scale on a white background
 

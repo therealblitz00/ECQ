@@ -1,6 +1,6 @@
 # Phase 1: automatic check report
 
-- SKU rows: 17,125 · colourways: 10,555 · with image file: 9,458
+- SKU rows: 17,125 · colourways: 10,555 · with image file: 9,491
 - Colourways needing review: high 29, medium 578
 
 ## Duplicates and keys
@@ -20,16 +20,17 @@
 
 | issue | severity | n_items | pct_items |
 |---|---|---|---|
-| IMG_FILE_MISSING | info | 1097 | 10.39 |
+| IMG_FILE_MISSING | info | 1064 | 10.08 |
 | SALES_MISSING | info | 370 | 3.51 |
 | IMG_NOT_PACKSHOT | low | 272 | 2.58 |
-| IMG_GENERIC | medium | 249 | 2.36 |
+| IMG_GENERIC | medium | 216 | 2.05 |
 | VIS_TYPE_DOUBT | low | 189 | 1.79 |
 | SKU_ATTR_CONFLICT | medium | 165 | 1.56 |
-| VIS_COLOUR_MISMATCH | medium | 132 | 1.25 |
-| IMG_SHARED | medium | 100 | 0.95 |
+| VIS_COLOUR_MISMATCH | medium | 135 | 1.28 |
+| IMG_SHARED | medium | 96 | 0.91 |
 | IMG_NEAR_DUPLICATE | medium | 54 | 0.51 |
 | VIS_TARGET_NOT_FOUND | low | 46 | 0.44 |
+| IMG_PATH_REPAIRED | medium | 33 | 0.31 |
 | CLR_NOT_IN_DESC | medium | 25 | 0.24 |
 | VIS_TYPE_MISMATCH | high | 24 | 0.23 |
 | SALES_ZERO_QTY | low | 9 | 0.09 |
@@ -65,7 +66,7 @@ Full table: `missing_values.csv`. Empty or constant columns (33): INFO_TXT, DIME
 | 166363_PK | Fan FASHION SUPPLEMENTS Pink | Pink | Other Jewellery | /191/52/166363_1 |
 | 166730_AU | Earring GLEAM COLOR | Aubergine | Earrings | /191/52/166730_1 |
 | 169622_PK | Earring WHITE FIELDS | Pink | Earrings | /192/52/169622_1 |
-| 170562_LK | Earring ORPHIC Light Pink | Light Pink | Earrings | /192/52/170562_1 |
+| 176549_BK | Earring WILD COLOR | Black | Earrings | /201/52/176549_1 |
 
 **SKU_ATTR_CONFLICT**
 
@@ -106,6 +107,16 @@ Full table: `missing_values.csv`. Empty or constant columns (33): INFO_TXT, DIME
 | 206914_GD | Necklace GLDN DEL Gold | Gold | Necklaces | /231/52/206914_GD_1 |
 | 206914_SV | Necklace SILVER D Silver | Silver | Necklaces | /231/52/206914_SV_1 |
 | 208038_BL | Dress ESSENTIALS T DISPLAY 1 Blue | Blue | Dress | /231/64/208038_BL_1 |
+
+**IMG_PATH_REPAIRED**
+
+| PROD_CLR_EQUIV | PROD_DES_BASE | CLR_DES | GFA_DES_EN | PROG_IMAGE |
+|---|---|---|---|---|
+| 170562_LK | Earring ORPHIC Light Pink | Light Pink | Earrings | /192/52/170562_1 |
+| 193076_PU | Earring FLORABUNDANCE Purple | Purple | Earrings | /221/52/193076_1 |
+| 193166_BR | Earring mulstone Brick Red | Brick Red | Earrings | /221/52/193166_1 |
+| 1999351HM | Earring mulstone Halftone Multicolor | Halftone Multicolor | Earrings | /222/52/199935_1 |
+| 209656_BG | Trainer Shoes RUNNING LIGHT BEIGE Beige | Beige | Trainers | /232/53/209656_1 |
 
 **CLR_NOT_IN_DESC**
 

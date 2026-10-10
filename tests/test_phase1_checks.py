@@ -41,14 +41,14 @@ def test_load_data_normalises_text_and_composition(toy_data):
     assert prod["CAT_COD"].eq("52").all()
     assert "Earrings" in set(prod["GFA_DES_EN"])  # trailing \xa0 removed
     assert set(prod.loc[prod["PROD_CLR_EQUIV"] == "100001_BK", "COMPOSITION"]) == {"Enamel; Zinc"}
-    assert len(sales) == 3
+    assert len(sales) == 4
 
 
 def test_build_items_collapses_sizes_and_keeps_the_most_common_value(toy_data):
     prod, sales = checks.load_data()
     items = checks.build_items(prod, sales).set_index(checks.KEY)
 
-    assert list(items.index) == ["100001_BK", "100002_GD", "100003_SV", "100004_BK"]
+    assert list(items.index) == ["100001_BK", "100002_GD", "100003_SV", "100004_BK", "100005_GN"]
     a = items.loc["100001_BK"]
     assert a["n_skus"] == 3
     assert a["sizes"] == "S|M|L"
@@ -79,6 +79,26 @@ def test_missing_image_wrong_colour_in_description_and_no_sales(checked_items):
 
 def test_image_of_another_model(checked_items):
     assert issues(checked_items, "100004_BK") == {"IMG_REF_MISMATCH"}
+
+
+def test_wrong_image_path_is_repaired_from_the_unused_file(checked_items):
+    e = checked_items.loc["100005_GN"]
+    assert e["img_file"] == "100005_GN_1.jpg" and bool(e["has_image"])
+    assert issues(checked_items, "100005_GN") == {"IMG_PATH_REPAIRED"}
+    assert e["priority"] == "medium"  # a reviewer confirms the photo
+
+
+def test_image_repair_needs_one_unambiguous_file(toy_dirs):
+    items = pd.DataFrame({checks.KEY: ["100001_BK", "100002_GD", "100003_SV"],
+                          "PROD_CLR": ["100001_BK", "100002_GD", "100003_SV"],
+                          "img_stem": ["100001_1", "100002_1", "100003_SV_1"]})
+    files = {s: s + ".jpg" for s in ["100001_BK_1", "100001_BK_2", "100002_GD_1", "100003_SV_1"]}
+    items["img_file"] = items["img_stem"].map(files)
+    repaired = checks._repair_image_links(items, files)
+    assert repaired.tolist() == [False, True, False]  # two candidate files for 100001_BK: left alone
+    assert pd.isna(items.at[0, "img_file"])
+    assert items.at[1, "img_file"] == "100002_GD_1.jpg"
+    assert items.at[2, "img_file"] == "100003_SV_1.jpg"  # already linked: untouched
 
 
 def test_invalid_path_generic_and_shared_images(toy_dirs):
@@ -135,5 +155,7 @@ def test_write_check_outputs(toy_data):
     checks.write_check_outputs(items, ctx)
     assert (checks.PROCESSED_DIR / "items_checked.parquet").exists()
     report = (checks.OUT_DIR / "check_report.md").read_text(encoding="utf-8")
-    assert "colourways: 4" in report
+    assert "colourways: 5" in report
+    vocab = pd.read_csv(checks.OUT_DIR / "review_vocabulary.csv", encoding="utf-8-sig")
+    assert {"CLR_DES", "COMPOSITION (one material)"} <= set(vocab["column"])
     assert "CLR_CONFLICT_DESC" in report

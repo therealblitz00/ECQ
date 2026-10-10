@@ -9,10 +9,10 @@ What has been done so far, with evidence, in date order. **Status and next steps
 | | |
 |---|---|
 | Products (SKUs / colourways) | 17,125 SKUs → **10,555 colourways** (model × colour), the unit of analysis |
-| Photos | 9,496 files, **9,455 colourways (89.6%)** with a photo |
+| Photos | 9,496 files, **9,491 colourways (89.9%)** with a photo (33 wrong paths repaired) |
 | Automatic checks | 21 checks on codes, text, images and sizes. **29 high, 578 medium, 351 low priority** products |
-| Image AI | 9,457 photos masked and embedded (512 numbers each) in 86 min on one laptop CPU |
-| Image flags | **24** photos of another item type, **132** of another colour, **54** same photo for another colour |
+| Image AI | 9,490 photos masked and embedded (512 numbers each): 9,457 in 86 min on one laptop CPU, plus 33 repaired paths in 98 s |
+| Image flags | **24** photos of another item type, **135** of another colour, **54** same photo for another colour |
 | Review | 5 balanced batches (2,111 products each), browser app, autosave, one-click submit |
 
 ---
@@ -34,7 +34,7 @@ What has been done so far, with evidence, in date order. **Status and next steps
 - **What it checks:**
   - **Keys and duplicates:** none found.
   - **Missing values:** a full table of empty and constant columns.
-  - **Image paths and files:** 1 invalid path, 1 corrupt file, 1,100 colourways without a photo.
+  - **Image paths and files:** 1 invalid path, 1 corrupt file, 1,100 colourways without a photo (1,064 after the path repair, see §9).
   - **Image file name vs product code, colour and category:** 252 generic photos, 100 shared photos.
   - **Colour code ↔ colour name ↔ description, and description type ↔ family.**
   - **Sizes of the same colourway that disagree:** 165 colourways, e.g. a different price or theme per size. The value most sizes share is used, and the product is flagged.
@@ -138,3 +138,21 @@ The project was hard to follow: two numberings (sprints and phases) mixed in fil
 - **Archived** in `docs/archive/`: the teammate audit of 2026-10-09 and the prompt used to produce it. A note at its top gives the status of each finding: 6 fixed, 1 partly, 7 still open. The open ones are now in the roadmap's Phase 1 checklist, so they aren't lost in the archive.
 - The review batches moved unchanged (no decisions had been recorded yet).
 - Fixed on the way: the review app showed raw image-check codes next to their plain-language note if a batch was regenerated after Phase 1b.
+
+## 9. Image counts verified and review fixes normalised (2026-10-10)
+
+**Are the "missing" photos real?** Checked from scratch:
+- The CSV is read correctly: 17,125 rows = 17,125 lines in the file, 10,555 colourways, every row has an image path. 9,496 image files, all with different names.
+- **33 image paths in the CSV are wrong:** they drop the colour code (`212983_2`) while the file has it (`212983_HM_1.jpg`). Each file matches exactly one colourway and nothing else used it. `check` now links them and flags them `IMG_PATH_REPAIRED` (medium) so a reviewer confirms the photo. No image file is left unused.
+- **1,064 colourways really have no photo.** 91% are from the latest season (`242`), so the photos were not delivered. Coverage: 9,458 → **9,491 colourways (89.9%)**.
+- **Phase 1b on the 33 repaired photos:** new mode `phase1b_image_audit.py --add-missing` embeds only the photos missing from `data/embeddings/` and keeps the stored vectors; the comparisons across all photos (neighbours, near-duplicates, flags) are recomputed on the full set. It took 98 s on CPU. Before using it, the full-set comparisons were recomputed on the stored data: identical flags on all 9,457 photos. Result: 3 new colour flags (e.g. `193076_PU`: CSV says purple, the earrings are teal; checked by eye), no flag changed on existing photos. 9,490 photos are embedded; only `216726_DM` (damaged file) is not.
+- Photo trust after this: 9,466 photos trusted, 9,181 also for colour.
+
+**Review fixes use fixed lists** (`src/phase1_vocab.py`), so 5 reviewers can't create 5 spellings of the same colour:
+- a fix can only use values that already exist in the data: 100 colours, 416 category › family › sub-family combinations, finishing and material per category, 95 materials;
+- the review app shows lists instead of free text, and the family list depends on the category; the description is no longer editable;
+- if the right value isn't listed, the reviewer uses **Not sure** with a note;
+- the app and `merge` both validate, so a CSV edited by hand can't bring in new values; `merge` stores them in the data's spelling (`yellow` → `Yellow`);
+- the allowed values are in `outputs/phase1/review_vocabulary.csv`.
+- The review batches were regenerated (no decisions had been recorded): same products per member, now with the repaired photos and the Phase 1b flags written in.
+- Tests: 79 (17 new).

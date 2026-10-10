@@ -191,18 +191,21 @@ These columns are empty or constant and can be dropped:
 | Naming | `<last part of PROG_IMAGE>.<ext>`, e.g. `PROG_IMAGE = /241/52/218792_PM_1` → `218792_PM_1.jpg` |
 | Link to items | Take the file stem (name without extension) of `PROG_IMAGE` and match it to the file name, ignoring the extension. Do **not** build file names from `PROD_CLR`: some are irregular (`2089811OW_1`, `140428CT__1`, `225874_1`) |
 
-**Coverage (colourway level):** 9,455 of 10,555 colourways (89.6%) have an image file.
+**Coverage (colourway level):** 9,491 of 10,555 colourways (89.9%) have an image file (verified 2026-10-10).
 
 | Category | With image |
 |---|---|
-| Footwear | 97.0% |
-| Wallet | 95.4% |
-| Hand Bag | 91.9% |
-| Jewellery | 89.2% |
-| Apparel | 83.4% |
+| Footwear | 97.7% |
+| Wallet | 95.5% |
+| Hand Bag | 92.0% |
+| Jewellery | 89.9% |
+| Apparel | 83.6% |
 
-- 64 files are not referenced by any colourway (e.g. `192346_EC_1`, `208203_EC_1`). Most look like images of items that were later re-coded (the old code before the `*_EQUIV` mapping).
-- About 1,100 colourways have no image. They need a similarity method that works on tabular data only.
+**Check of the counts (2026-10-10):**
+- The CSV is read correctly: 17,125 rows = 17,125 data lines in the file (no broken lines or quotes), 17,125 unique SKUs, 10,555 colourways. Every row has a `PROG_IMAGE`.
+- 9,496 files with 9,496 different names (no duplicates by case or extension).
+- **33 paths in the CSV are wrong:** they drop the colour code (`/242/52/212983_2`) and point to a file that doesn't exist, while the file named after the colourway exists and nothing else uses it (`212983_HM_1.jpg`). Each of these 33 files matches exactly one colourway. The checks link them automatically and flag the item `IMG_PATH_REPAIRED` for the reviewers. After this, **no image file is left unused**.
+- **1,064 colourways really have no photo** in the delivery. 91% of them are from the latest season (24 Fall/Winter, `242`), and they have an online photo date, so the photos exist at Parfois but were not delivered. Only 6 of them have a photo of another colour of the same model. They need a similarity method that works on tabular data only.
 
 ## 5. Image-label mismatches
 
@@ -226,7 +229,7 @@ The professor warned that **some images do not match their CSV row** (e.g. the r
 | Wrong item entirely | Image belongs to another model | Duplicate or near-duplicate hashes across different `PROD_REF`. The item's visual neighbours mostly belong to another family |
 | Not usable | Amateur photo, multiple items, missing | Background/whiteness heuristic, image size, missing file |
 
-**Results (2026-10-09):** the automatic version of these checks is in Phase 1b (`src/phase1b_image_audit.py`). It found 24 photos of another item type, 132 of another colour and 54 photos shared with another colour of the same model. See `outputs/phase1b/image_audit_report.md` and [progress.md](progress.md).
+**Results (2026-10-09):** the automatic version of these checks is in Phase 1b (`src/phase1b_image_audit.py`). It found 24 photos of another item type, 135 of another colour (132 + 3 among the 33 repaired paths, 2026-10-10) and 54 photos shared with another colour of the same model. See `outputs/phase1b/image_audit_report.md` and [progress.md](progress.md).
 
 **Handling rule:** never silently drop or relabel. Flag each item in an `image_audit.parquet` with the mismatch type and a confidence score. If an item's image is unreliable, compute its similarity **without the visual block** (tabular data only), and list the item in a data-quality report for the business.
 

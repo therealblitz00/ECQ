@@ -35,7 +35,7 @@ The batches already exist (`outputs/phase1/batches/`). If yours is missing, `2_r
 |---|---|---|
 | **Looks right** | Everything matches | `ok` |
 | **Wrong photo** | The photo shows a different article (e.g. the row says necklace, the photo shows earrings) | `drop_image` |
-| **Fix data** | The description or a data field is wrong. A small form opens: type only the corrected values (suggestions appear as you type), then click **Save fix** | `fix` + `fixes` |
+| **Fix data** | A data field is wrong. A small form opens: **choose** the corrected values from the lists (see below), then click **Save fix** | `fix` + `fixes` |
 | **Not sure** | You can't decide. Add a note, and the team decides later | `team_review` |
 | **Discard** | Nothing matches and it can't be repaired | `discard` |
 
@@ -59,7 +59,22 @@ Your name is filled in automatically, and every click is saved immediately to `o
 Always fill in `reviewer` (your name) when you set a status. Don't edit the CSV while the review app is running.
 </details>
 
-**`fixes` syntax (for the CSV):** `COLUMN=new value`, separated by `;`. Example: `GFA_DES_EN=Bracelets; COMPOSITION=Pearl; Zinc`. A `;` only starts a new fix when it is followed by `COLUMN=`, so values such as `COMPOSITION` can contain `;`. The column must exist (see `outputs/phase1/items_checked.csv`). Every fix is logged in `changes_log.csv` with its old value and the reviewer.
+## Corrections use fixed lists
+
+So that every reviewer corrects the data the same way, a fix can only use **values that already exist in the data**. The app shows lists, not free text:
+
+| Field | You can choose |
+|---|---|
+| Colour | one of the 100 colour names in the data (e.g. the photo is yellow, the row says green → choose `Yellow`) |
+| Category › Family › Sub-family | only existing combinations: the family list depends on the category, the sub-family list on the family |
+| Finishing, Material | only values already used in that category |
+| Composition | one or more existing materials |
+
+- **The description can't be edited.** If it contradicts the data (e.g. it says "Gold" but the photo is silver), correct the structured field (`Colour`) and leave the description.
+- **The right value isn't in the list?** Don't pick the closest one: click **Not sure** and write the value in the note. The team decides, and nothing new enters the data by accident.
+- The app saves values in the spelling used in the data (`yellow` → `Yellow`), and `merge` stops with a list of errors if a CSV edited by hand uses any other value.
+
+**`fixes` syntax (for the CSV):** `COLUMN=new value`, separated by `;`. Example: `GFA_DES_EN=Bracelets; COMPOSITION=Pearl; Zinc`. A `;` only starts a new fix when it is followed by `COLUMN=`, so values such as `COMPOSITION` can contain `;`. Allowed columns: `CLR_DES`, `CAT_DES_EN`, `GFA_DES_EN`, `GFS_DES_EN`, `FINISHING`, `MATERIAL`, `COMPOSITION`. Allowed values: `outputs/phase1/review_vocabulary.csv`. Every fix is logged in `changes_log.csv` with its old value and the reviewer.
 
 **Rules:**
 - If you edit the CSV by hand: change only the four review columns (everything else is ignored at merge), and in Excel save with *Save As → CSV UTF-8*.
@@ -90,6 +105,7 @@ Always fill in `reviewer` (your name) when you set a status. Don't edit the CSV 
 | `IMG_NEAR_DUPLICATE` | medium | *Image check:* the same photo is used for another colour of the same model, so for at least one colour it shows the wrong colour |
 | `VIS_TYPE_DOUBT` | low | *Image check:* only the image model doubts the item type (often fine: cuffs, charms, unusual shapes) |
 | `IMG_NOT_PACKSHOT` | low | *Image check:* model, lifestyle or amateur photo, not a studio shot |
+| `IMG_PATH_REPAIRED` | medium | The image path in the data was wrong (no colour in it, e.g. `212983_2`). The photo was found by its file name (`212983_HM_1.jpg`): check it shows this product |
 | `IMG_FILE_MISSING`, `SALES_MISSING` | info | No image or no sales. No action needed |
 
 **About the image checks:** `VIS_*` and `IMG_NEAR_DUPLICATE`/`IMG_NOT_PACKSHOT` come from Phase 1b (`src/phase1b_image_audit.py`). An image model (CLIP) and an object detector (OWLv2) looked at every photo, after cutting out the target item. They were computed once and stored in `data/embeddings/`, so you don't need to run anything. They are **suggestions, not verdicts**: the model can be fooled by unusual shapes. You decide. Photos of a model wearing several items (e.g. earrings and a necklace) are fine to review by eye: judge only the item the row describes.

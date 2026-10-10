@@ -139,18 +139,19 @@ description ──[text encoder, once]──► 384–512 numbers
 - [x] Check that the attributes are constant within each colourway (`SKU_ATTR_CONFLICT`, `sku_conflicts`). COMPOSITION is put in a canonical order first.
 - [x] Left-join the sales data.
 - [x] Add `has_sales`, `log_sales_qty`, `realised_price` (empty when 0 units) and `sales_pct_in_cat` (sales are only comparable within a category).
-- [x] Link each colourway to its image: take the stem of the last part of `PROG_IMAGE` and match it to a file stem in `data/images/` (9,455 / 10,555 = 89.6% coverage). Stored as `img_file` and `has_image`.
+- [x] Link each colourway to its image: take the stem of the last part of `PROG_IMAGE` and match it to a file stem in `data/images/` (9,491 / 10,555 = 89.9% coverage, after repairing 33 wrong paths: `IMG_PATH_REPAIRED`). Stored as `img_file` and `has_image`.
 - [x] Missing-value and duplicate reports (`outputs/phase1/`).
-- [x] **Photo trust before the human review:** `img_trusted` (the photo shows this product) and `img_colour_trusted` (its colour is reliable too), from the automatic flags. After `merge`, the reviewer's decision overrides the flags. Currently 9,433 of 9,458 photos trusted, 9,151 for colour.
+- [x] **Photo trust before the human review:** `img_trusted` (the photo shows this product) and `img_colour_trusted` (its colour is reliable too), from the automatic flags. After `merge`, the reviewer's decision overrides the flags. Currently 9,466 of 9,491 photos trusted, 9,181 for colour.
 - [x] **Preview table** `data/processed/items_preview.parquet` (`python src/phase1_clean.py`, also run by the setup scripts), so Phase 2 can start before the review. Same columns as `items_clean.parquet`; later phases read whichever exists with `phase1_clean.load_items()`. Report and schema: `outputs/phase1/clean_report.md`.
 - [x] Tests for the "done when" rule: unique key, all 10,185 sales rows joined, 10,555 rows, contract columns present (`tests/test_data_contracts.py`, `tests/test_phase1_clean.py`).
+- [x] **Fixed lists for review fixes** (`src/phase1_vocab.py`): a fix can only use values that exist in the data (colour, category › family › sub-family combination, finishing/material per category, materials). The app shows lists, `merge` rejects anything else, and `check` writes `outputs/phase1/review_vocabulary.csv`.
 - [ ] Apply the review decisions (`merge`): fixes, dropped images, discarded items. The code is ready and tested (it also runs the Phase 1 cleaning); waiting for the 5 batches.
 
 **Open findings from the 2026-10-09 audit** ([archive](archive/2026-10-09_phase1_audit.md)). None blocks Phase 2:
 - [ ] GAP-001: sanity checks on prices, costs and sales (negative values, outlet price above base price, extreme realised prices).
 - [ ] INC-002: after `merge` applies a fix, re-run the checks on the fixed rows so their old flags are cleared or confirmed.
 - [ ] WEA-001: check image size and colour mode (not only that the file opens).
-- [ ] GAP-004: list the 64 image files no item points to (probably old codes before re-coding).
+- [x] GAP-004: unused image files. Resolved 2026-10-10: all 33 are the photos of 33 colourways whose `PROG_IMAGE` drops the colour code; they are now linked (`IMG_PATH_REPAIRED`). No unused file left.
 - [ ] WEA-002: a sturdier singular form for item-type words in `TYPE_CONFLICT_DESC`.
 - [ ] RED-001: lower `CLR_NOT_IN_DESC` to low severity if reviewers find it mostly noise.
 - [ ] OPP-001: profile the sales file like the product file (distribution per category, outliers).
@@ -174,7 +175,7 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 **Done 2026-10-09 (vision model, `src/phase1b_image_audit.py`, run on one machine in 86 min):**
 - [x] **Vision stack:** `torch` (CPU), `transformers`, `scipy` (`requirements-vision.txt`, only for the computing machine).
 - [x] **Item masks:** 9,096 packshots cropped by white-background threshold, 272 non-packshot photos and 89 white-background photos with a person (e.g. bag carried by a model) cropped with the OWLv2 detector, prompted with the CSV item type. SAM outlines were not needed for cropping, so they were left out.
-- [x] **Image embeddings:** CLIP ViT-B/32 on the masked crop, 512 numbers per image → `data/embeddings/image_clip.npy` (9,457 × 512, float16, ≈10 MB) + `.json` (model, settings, row order).
+- [x] **Image embeddings:** CLIP ViT-B/32 on the masked crop, 512 numbers per image → `data/embeddings/image_clip.npy` (9,490 × 512, float16, ≈10 MB) + `.json` (model, settings, row order).
 - [x] **Type check:** zero-shot over 15 broad item types (earrings, necklace, ring, bracelet, keychain, phone case, bag, wallet, shoes, top, coat, dress, trousers, skirt, swimwear) plus agreement of the 10 nearest images. Confusions between small jewellery items (no sense of scale) are only doubts.
 - [x] **Colour check:** zero-shot over 16 basic colours, with neighbouring colours tolerated. Strong only when very confident or when the photo is shared with another colour.
 - [x] **Near-duplicates:** same model, other colour, same photo (perceptual hash + CLIP + product pixels).
@@ -185,7 +186,7 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 | Flag | Items | Severity |
 |---|---|---|
 | `VIS_TYPE_MISMATCH` | 24 | high |
-| `VIS_COLOUR_MISMATCH` | 132 | medium |
+| `VIS_COLOUR_MISMATCH` | 135 | medium |
 | `IMG_NEAR_DUPLICATE` | 54 | medium |
 | `VIS_TYPE_DOUBT` | 189 | low |
 | `VIS_TARGET_NOT_FOUND` | 46 | low |
@@ -194,6 +195,8 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 **Still to do:**
 - [ ] Measure the precision of each flag from the reviewers' decisions after the merge (target ≥ 80% for high, ≥ 50% for medium), and adjust the thresholds with `python src/phase1b_image_audit.py --reflag` (seconds, no models needed).
 - [ ] Optional: SAM outlines, if the colour check needs product-only pixels on model photos.
+
+- [x] Image checks and embeddings for the 33 photos linked by `IMG_PATH_REPAIRED` (2026-10-10, `phase1b_image_audit.py --add-missing`, 98 s on CPU). 3 new colour flags; no flag changed on the 9,457 photos already embedded. Only `216726_DM` (damaged file) has no embedding.
 
 **Output:** `data/embeddings/{image_clip.npy, image_clip.json, masks.parquet, image_audit.parquet}` (committed) and `outputs/phase1b/image_audit_report.md` + contact sheets. The final status per item comes from the human review (`review_status` in `items_clean.parquet`).
 **Done when:** every colourway has an audit status, and the manual precision of the flags is at least 80% on the review sample.

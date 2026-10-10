@@ -22,12 +22,12 @@ Produced by `src/phase1_clean.py` (`finalise_items`). Later phases load it with 
 
 | Category | Items | With photo | Photo trusted | Colour trusted |
 |---|---|---|---|---|
-| Apparel | 2,259 | 1,885 | 1,879 | 1,825 |
-| Footwear | 435 | 424 | 422 | 411 |
-| Hand Bag | 1,971 | 1,812 | 1,812 | 1,774 |
-| Jewellery | 4,639 | 4,143 | 4,128 | 3,972 |
-| Wallet | 1,251 | 1,194 | 1,192 | 1,169 |
-| **Total** | 10,555 | 9,458 | 9,433 | 9,151 |
+| Apparel | 2,259 | 1,889 | 1,883 | 1,829 |
+| Footwear | 435 | 425 | 423 | 412 |
+| Hand Bag | 1,971 | 1,813 | 1,813 | 1,775 |
+| Jewellery | 4,639 | 4,169 | 4,154 | 3,995 |
+| Wallet | 1,251 | 1,195 | 1,193 | 1,170 |
+| **Total** | 10,555 | 9,491 | 9,466 | 9,181 |
 
 ## Schema
 
@@ -130,7 +130,7 @@ Produced by `src/phase1_clean.py` (`finalise_items`). Later phases load it with 
 | `SALES_QTY` | float64 | 96.5 |
 | `SALES_AMT_FX_RATE` | float64 | 96.5 |
 | `issues` | str | 100.0 |
-| `img_file` | str | 89.6 |
+| `img_file` | str | 89.9 |
 | `has_image` | bool | 100.0 |
 | `img_shared_with` | str | 100.0 |
 | `vis_note` | str | 100.0 |

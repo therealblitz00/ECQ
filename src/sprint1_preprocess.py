@@ -542,8 +542,12 @@ def merge_batches(input_dir: Path, include_unresolved: bool = False) -> None:
     # table unless explicitly requested, so nothing doubtful reaches the features.
     excluded = ["discard"] if include_unresolved else ["discard", "team_review", "pending"]
     clean = items[~items["review_status"].isin(excluded)].drop(columns=["source_file"])
+    # Phase 1 cleaning (dates, placeholders, sales features, photo trust); imported here to avoid a cycle.
+    from phase1_clean import finalise_items, write_report
+    clean, clean_log = finalise_items(clean)
 
     clean.to_parquet(PROCESSED_DIR / "items_clean.parquet", index=False)
+    write_report(clean, clean_log, "data/processed/items_clean.parquet")
     clean.to_csv(OUT_DIR / "items_clean.csv", index=False, encoding="utf-8-sig")
     pd.DataFrame(log, columns=[KEY, "column", "old", "new", "reviewer", "source_file"]).to_csv(
         OUT_DIR / "changes_log.csv", index=False, encoding="utf-8-sig")

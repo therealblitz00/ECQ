@@ -53,6 +53,7 @@ Current scripts in `src/`:
 | `sprint1_preprocess.py` | Shared constants (`ROOT`, `KEY`, paths, `ISSUES`, `TEAM`) and the Sprint 1 CLI: `check`, `batch`, `merge` |
 | `phase1b_image_audit.py` | Masks, CLIP embeddings and image-vs-label flags. Heavy; run on one machine only |
 | `review_app.py` | Browser app for the manual review (standard library + pandas only) |
+| `phase1_clean.py` | Final cleaning (`finalise_items`), the preview table and `load_items()`. Its `CONTRACT_COLUMNS` are the columns later phases may rely on |
 
 As the project grows, new code goes into a package under `src/` (`features/`, `retrieval/`,
 `explain/`, `eval/`), one module per roadmap phase. Reuse the constants in
@@ -100,7 +101,13 @@ python -m venv .venv
 .venv/Scripts/python src/phase1b_image_audit.py --reflag      # recompute flags from stored scores
 ```
 
-`data/processed/` is not in git: run `check` after cloning before anything that reads it.
+`data/processed/` is not in git: run `check` and then `python src/phase1_clean.py` after cloning
+(the setup scripts do both).
+
+**Input of Phase 2 onwards:** always `phase1_clean.load_items()`. It returns
+`items_clean.parquet` (after the human review is merged) or else `items_preview.parquet` (before
+it). Both have the same columns. Use `img_trusted` / `img_colour_trusted` to decide whether an
+item's photo may feed the visual block; never use `has_image` alone, because the review is not done yet.
 
 ## Tests and CI
 

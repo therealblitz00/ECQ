@@ -22,6 +22,7 @@ echo Installing requirements ...
 
 echo Running the automatic checks ...
 .venv\Scripts\python src\sprint1_preprocess.py check || (echo Checks failed. & pause & exit /b 1)
+.venv\Scripts\python src\phase1_clean.py || (echo Cleaning failed. & pause & exit /b 1)
 
 echo.
 echo Setup complete. Next: double-click 2_review_windows.bat

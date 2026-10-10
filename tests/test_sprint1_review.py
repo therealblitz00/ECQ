@@ -61,6 +61,8 @@ def write_merge_inputs(reviews: list[dict]) -> None:
     items = pd.DataFrame({
         sp.KEY: ["A_1", "B_1", "C_1", "D_1", "E_1"],
         "priority": ["high", "medium", "medium", "medium", "none"],
+        "issues": ["CLR_CONFLICT_DESC", "IMG_SHARED", "VIS_TYPE_MISMATCH", "CLR_NOT_IN_DESC", ""],
+        "CAT_DES_EN": ["Jewellery"] * 5,
         "CLR_DES": ["Navy", "Gold", "Silver", "Black", "Ecru"],
         "PROG_IMAGE": ["/241/52/A_1_1"] * 5,
         "img_file": ["A_1_1.jpg"] * 5,
@@ -86,6 +88,8 @@ def test_merge_applies_decisions_and_logs_changes(toy_dirs):
     assert clean.at["A_1", "CLR_DES"] == "Black"
     assert pd.isna(clean.at["C_1", "img_file"]) and not clean.at["C_1", "has_image"]
     assert clean.at["E_1", "review_status"] == "ok"
+    assert clean["img_trusted"].tolist() == [True, False, True]  # the dropped photo is not used
+    assert (sp.OUT_DIR.parent / "phase1" / "clean_report.md").exists()
 
     log = pd.read_csv(sp.OUT_DIR / "changes_log.csv", encoding="utf-8-sig")
     assert set(zip(log[sp.KEY], log["column"])) == {("A_1", "CLR_DES"), ("C_1", "img_file")}

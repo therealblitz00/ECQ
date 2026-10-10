@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+import phase1_clean as p1
 import sprint1_preprocess as sp
 
 pytestmark = pytest.mark.data
@@ -78,3 +79,24 @@ def test_review_batches_are_valid_and_cover_every_colourway(colourways):
     keys = pd.concat([df[sp.KEY] for df in batches])
     assert keys.is_unique
     assert set(keys) == {k for k in colourways if pd.notna(k)}
+
+
+@pytest.fixture(scope="module")
+def phase1_preview():
+    require(sp.ROOT / "data" / "csv" / "df_product.csv")
+    items, ctx = sp.run_checks(verify_files=False)
+    preview, _ = p1.finalise_items(items.assign(review_status="unreviewed"))
+    return preview, ctx
+
+
+def test_phase1_table_has_one_row_per_colourway_and_every_sale(phase1_preview, colourways):
+    """Phase 1 'done when': unique key, all sales rows joined, stable row count."""
+    items, ctx = phase1_preview
+    assert items[sp.KEY].is_unique
+    assert set(items[sp.KEY]) == colourways
+    assert int(items["has_sales"].sum()) == len(ctx["sales"])
+    missing = [c for c in p1.CONTRACT_COLUMNS if c not in items.columns]
+    assert missing == []
+    assert items["STORE_DATE_FINAL"].notna().all()
+    assert items["img_trusted"].le(items["has_image"]).all()
+    assert items["img_colour_trusted"].le(items["img_trusted"]).all()

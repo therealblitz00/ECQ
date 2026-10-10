@@ -17,7 +17,7 @@ Expected layout: `data/csv/df_product.csv`, `data/csv/df_sales.csv`, `data/image
 | 1. Automatic checks | anyone (takes about 15 s) | `python src/sprint1_preprocess.py check` | `outputs/sprint1/check_report.md`, `items_checked.csv`, `missing_values.csv` |
 | 2. Get my batch | each member | `python src/sprint1_preprocess.py batch --members 5 --id K` | `outputs/sprint1/batches/batch_K_of_N.csv` and `.html` |
 | 3. Review | each member | double-click `2_review_…` (or `python src/review_app.py --id K`), then click through the products in the browser | your batch CSV, saved automatically |
-| 4. Merge | one person | put all reviewed CSVs in `outputs/sprint1/batches/`, run `python src/sprint1_preprocess.py merge` | `data/processed/items_clean.parquet`, `changes_log.csv`, `discarded.csv`, `team_review.csv` |
+| 4. Merge | one person | put all reviewed CSVs in `outputs/sprint1/batches/`, run `python src/sprint1_preprocess.py merge` | `data/processed/items_clean.parquet` (decisions applied + Phase 1 cleaning), `changes_log.csv`, `discarded.csv`, `team_review.csv`, `outputs/phase1/clean_report.md` |
 
 The team has **5 members**. Everyone must use `--members 5`, otherwise the batches will not line up at merge.
 

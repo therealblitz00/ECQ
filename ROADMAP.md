@@ -10,21 +10,21 @@
 
 ---
 
-## Status (last updated 2026-10-09)
+## Status (last updated 2026-10-10)
 
 Progress log with evidence: **[PROGRESS.md](PROGRESS.md)**.
 
 | Sprint | Roadmap phases | Status |
 |---|---|---|
 | **Sprint 1: data cleaning and validation** | 0, 1, 1b | 🟡 **In progress**: automatic checks ✅, image pre-screen ✅, review app ✅. Manual review by the 5 members under way, then merge |
-| Sprint 2: features | 1 (rest), 2a, 2b | ⚪ Not started (image embeddings already computed in 1b) |
+| Sprint 2: features | 1 (rest), 2a, 2b | ⚪ Can start now on the Phase 1 preview table (image embeddings already computed in 1b) |
 | Sprint 3: similarity and evaluation | 3, 4 | ⚪ Not started |
 | Sprint 4: explanations and delivery | 5, 6 | ⚪ Not started |
 
 | Phase | Status | Done | Still to do |
 |---|---|---|---|
 | 0. Setup | ✅ | Repo, environments, README, double-click scripts, `CLAUDE.md`, tests and CI | – |
-| 1. Data foundation | 🟡 | Loader, colourway table, sales join, image link, size-conflict check, reports | Merge the review, dates, placeholders, casing, drop empty columns, sales features |
+| 1. Data foundation | 🟡 | Loader, colourway table, sales join, image link, size-conflict check, reports, final cleaning (`phase1_clean.py`), preview table, photo trust | Merge the review (waiting for the team) |
 | 1b. Image audit | 🟡 | Masks, CLIP embeddings, type/colour/duplicate/quality flags, review app | Human review; measure the flags' precision afterwards |
 | 2a. Tabular/text features | ⚪ | – | Everything |
 | 2b. Visual features | 🟡 | Image embeddings (`data/embeddings/image_clip.npy`) | Colour palettes, optional tags |
@@ -152,18 +152,21 @@ description ──[text encoder, once]──► 384–512 numbers
 ## Phase 1: Data foundation
 
 - [x] Loader: UTF-8, whitespace and non-breaking-space (`\xa0`) cleanup, `COMPOSITION` split into `;`-separated materials (`sprint1_preprocess.py`). *The `�` characters reported earlier were a terminal display issue, not a data problem.*
-- [ ] Date parsing for all three date formats.
-- [ ] Drop the empty, constant and duplicate columns (list in `data_description.md` §3.3).
-- [ ] Treat placeholders (`UNDEFINED`, `Not Applicable`, `Without Block`, `Others`) as missing values.
+- [x] Date parsing for all three date formats (`phase1_clean.parse_dates`, 10 columns, 0 values lost).
+- [x] Drop the empty, constant and duplicate columns (list in `data_description.md` §3.3), plus SKU-level columns (size, barcode) that mean nothing per colourway: 61 columns dropped, 109 kept.
+- [x] Treat placeholders as missing values, **per column**: `DIMENSION` (`UNDEFINED`, `Not Applicable`), `DISTRIBUTION_BLOCK` (`Without Block`), `CATEGORY_MATRIX*` (`Sem Categoria`). `Others` is kept where it is a real category (`PRINT_TYPE` = a print outside the list, `GFA_DES_EN`, `FINISHING`).
 - [x] Tokenise `COMPOSITION` into a canonical, sorted list of materials.
-- [ ] Normalise casing (`THEME`, `L1_DES`…).
+- [x] Normalise casing: spellings that differ only in case get the most common one (`THEME` 153 values, e.g. `GOLDEN BASICS` → `Golden Basics`; `GFS_DES_EN`, `L4_DES`, `DIMENSION`). `L1_DES` had no real duplicates.
 - [x] **Collapse to colourway level** (`PROD_CLR_EQUIV`), with the list of sizes and a size-free description (`PROD_DES_BASE`).
 - [x] Check that the attributes are constant within each colourway (`SKU_ATTR_CONFLICT`, `sku_conflicts`). COMPOSITION is put in a canonical order first.
 - [x] Left-join the sales data.
-- [ ] Add `log_sales_qty` and `realised_price` (guarding against division by zero).
+- [x] Add `has_sales`, `log_sales_qty`, `realised_price` (empty when 0 units) and `sales_pct_in_cat` (sales are only comparable within a category).
 - [x] Link each colourway to its image: take the stem of the last part of `PROG_IMAGE` and match it to a file stem in `data/images/` (9,455 / 10,555 = 89.6% coverage). Stored as `img_file` and `has_image`.
 - [x] Missing-value and duplicate reports (`outputs/sprint1/`).
-- [ ] Apply the Sprint 1 review decisions (`merge`): fixes, dropped images, discarded items.
+- [x] **Photo trust before the human review:** `img_trusted` (the photo shows this product) and `img_colour_trusted` (its colour is reliable too), from the automatic flags. After `merge`, the reviewer's decision overrides the flags. Currently 9,433 of 9,458 photos trusted, 9,151 for colour.
+- [x] **Preview table** `data/processed/items_preview.parquet` (`python src/phase1_clean.py`, also run by the setup scripts), so Phase 2 can start before the review. Same columns as `items_clean.parquet`; later phases read whichever exists with `phase1_clean.load_items()`. Report and schema: `outputs/phase1/clean_report.md`.
+- [x] Tests for the "done when" rule: unique key, all 10,185 sales rows joined, 10,555 rows, contract columns present (`tests/test_data_contracts.py`, `tests/test_phase1_clean.py`).
+- [ ] Apply the Sprint 1 review decisions (`merge`): fixes, dropped images, discarded items. The code is ready and tested (it also runs the Phase 1 cleaning); waiting for the 5 batches.
 
 **Output:** `data/processed/items_clean.parquet`, with one row per colourway (about 10,555 rows, minus discarded items).
 **Done when:** the review is merged, and tests check that the key is unique, all sales rows are joined and the row count is stable.

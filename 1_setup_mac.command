@@ -18,6 +18,7 @@ echo "Installing requirements ..."
 
 echo "Running the automatic checks ..."
 .venv/bin/python src/sprint1_preprocess.py check || { echo "Checks failed."; read -r -p "Press Enter..."; exit 1; }
+.venv/bin/python src/phase1_clean.py || { echo "Cleaning failed."; read -r -p "Press Enter..."; exit 1; }
 
 echo
 echo "Setup complete. Next: double-click 2_review_mac.command"

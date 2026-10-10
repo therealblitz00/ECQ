@@ -230,19 +230,26 @@ The professor warned that **some images do not match their CSV row** (e.g. the r
 
 **Handling rule:** never silently drop or relabel. Flag each item in an `image_audit.parquet` with the mismatch type and a confidence score. If an item's image is unreliable, compute its similarity **without the visual block** (tabular data only), and list the item in a data-quality report for the business.
 
+**Implemented (2026-10-10):** the Phase 1 table has two columns for this (`src/phase1_clean.py`):
+- `img_trusted`: the photo shows this product (no `IMG_UNREADABLE`, `IMG_REF_MISMATCH` or `VIS_TYPE_MISMATCH` flag).
+- `img_colour_trusted`: its colour can also be trusted (no shared, generic or colour-mismatch flag either).
+- Before the human review they come from the automatic flags only. After `merge`, the reviewer's decision overrides them.
+
 ## 6. Data-quality notes (CSV)
 
 - **Encoding:** the file is valid UTF-8 and accents are correct (e.g. `Online + Lojas Imagem Próprias`). Read it with `encoding="utf-8"`. A Windows terminal may show `�`, but that is only the display. There are hidden non-breaking spaces, e.g. `GFA_DES_EN = 'Raincoat\xa0'`, so replace `\xa0` (non-breaking space) and strip all text columns.
 - **Mixed casing / inconsistent labels:** `Golden Basics` vs `GOLDEN BASICS`, `TEXTILE` vs `Footwear` in `L1_DES`, `Transluncent` (typo). Normalise case before encoding.
 - **Leading whitespace** in `COMPOSITION` (`" Zinc"`). Materials are separated by double spaces.
 - **Dates come in several formats:** `YYYYMMDD` ints, `YYYYMMDD.0` floats (they have NaNs) and ISO strings.
-- **`"UNDEFINED"` / `"Not Applicable"` / `"Without Block"` / `"Others"`** are placeholders for missing data and should be treated as missing, not as real categories.
+- **`"UNDEFINED"` / `"Not Applicable"` / `"Without Block"` / `"Sem Categoria"`** are placeholders for missing data in `DIMENSION`, `DISTRIBUTION_BLOCK` and `CATEGORY_MATRIX*`, and are treated as missing. **`"Others"` is not always a placeholder:** in `PRINT_TYPE` it means a print outside the list (different from `No Print`), and in `GFA_DES_EN` / `FINISHING` it is a real family or finish, so it is kept there.
 - **Category-specific sparsity:** attributes such as `MATERIAL`, `FINISHING`, `OUTFIT` and `SHAPE` are only meaningful inside one category. Model per category, or encode "not applicable" explicitly.
 - **Code reuse across levels:** `GFA_COD` / `GFS_COD` numbers repeat across categories. Always combine them with `CAT_COD`.
 
 ---
 
 ## 7. Suggested preparation for the similarity model
+
+Steps 1 and 2, the cleaning from §6 and the sales features are implemented in Phase 1 (`src/phase1_clean.py`). Later phases load the result with `phase1_clean.load_items()`. What was changed and the column schema: `outputs/phase1/clean_report.md`.
 
 1. **Collapse to colourway level:** group `df_product` by `PROD_CLR_EQUIV` and keep the attributes that are constant within the group (everything except size, barcode and SKU keys). This gives about 10,555 items.
 2. **Join sales** on `PROD_CLR_EQUIV` (left join; 370 items have no sales).

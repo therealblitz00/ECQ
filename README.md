@@ -2,12 +2,14 @@
 
 Case study for the MADSAD Master's (FEP, University of Porto). The goal is to find, for every Parfois product, at least 4 similar products and explain **why** they match, using product data, text descriptions and images.
 
-> This is the `parfois` branch. It is independent from `main`, which holds a different project.
+> This is the `parfois` branch. It is independent from `Projeto-I` (the default branch), which holds a different project.
 
-**Where we are (2026-10-09):** Sprint 1 (data cleaning and validation).
+**Where we are (2026-10-10):** Sprint 1 (data cleaning and validation).
 - ✅ Automatic checks.
 - ✅ AI image pre-screen.
 - ✅ Review app.
+- ✅ Phase 1 cleaning: a preview table, so Sprint 2 can start before the review ends.
+- ✅ Tests and CI.
 - 🟡 Team review in progress.
 
 What has been done, with numbers and examples: **[PROGRESS.md](PROGRESS.md)**. The plan and checklist: **[ROADMAP.md](ROADMAP.md)**.
@@ -39,7 +41,7 @@ Install **Python 3.10 or newer** from <https://www.python.org/downloads/>.
 | **Review my batch** (opens the review app) | `2_review_windows.bat` | `2_review_mac.command` |
 | **Merge all reviews** (one person, at the end) | `3_merge_windows.bat` | `3_merge_mac.command` |
 
-The setup creates a private Python environment (`.venv/`) in the project folder, installs the packages from `requirements.txt` (pandas, pyarrow, pillow) and runs the automatic data checks. Nothing is installed system-wide.
+The setup creates a private Python environment (`.venv/`) in the project folder, installs the packages from `requirements.txt` (pandas, pyarrow, pillow), runs the automatic data checks and builds the cleaned preview table (`data/processed/items_preview.parquet`). Nothing is installed system-wide.
 
 <details>
 <summary><b>Mac: "cannot be opened" or "permission denied"?</b></summary>
@@ -59,12 +61,14 @@ The setup creates a private Python environment (`.venv/`) in the project folder,
 py -3 -m venv .venv
 .venv\Scripts\python -m pip install -r requirements.txt
 .venv\Scripts\python src\sprint1_preprocess.py check
+.venv\Scripts\python src\phase1_clean.py
 .venv\Scripts\python src\sprint1_preprocess.py batch --members 5 --id 1   # your number, see "Who reviews what"
 
 # Mac (Terminal)
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
 .venv/bin/python src/sprint1_preprocess.py check
+.venv/bin/python src/phase1_clean.py
 .venv/bin/python src/sprint1_preprocess.py batch --members 5 --id 1       # your number, see "Who reviews what"
 ```
 </details>
@@ -92,7 +96,7 @@ Each batch has 2,111 products with the same mix of categories.
 1. **Open the review app.** Double-click `2_review_windows.bat` (Windows) or `2_review_mac.command` (Mac) and type **your number** from the table. The app opens in your browser. **Keep the black window open** while you review.
 2. **Review.** For each product, click **Looks right**, **Wrong photo**, **Fix data**, **Not sure** or **Discard**. Every click is saved automatically, and you can stop and continue later. Start with the flagged products (the default view), then skim the rest. Details are in **[SPRINT1_GUIDE.md](SPRINT1_GUIDE.md)**.
 3. **Submit.** Click **Submit my review** in the app. It sends only your file to GitHub.
-4. **Merge.** When all 5 are in, one person runs `3_merge_…`. This produces `data/processed/items_clean.parquet`, the cleaned dataset.
+4. **Merge.** When all 5 are in, one person runs `3_merge_…`. This applies the decisions, runs the Phase 1 cleaning and produces `data/processed/items_clean.parquet`, the cleaned dataset (it replaces the preview).
    - Only resolved products go into the clean table.
    - Flagged products nobody reviewed (`pending`) and products marked **Not sure** are listed in `outputs/sprint1/team_review.csv` until the team decides.
 
@@ -123,17 +127,24 @@ git pull --rebase && git push
 ├── ROADMAP.md                 project phases, checklist and architecture decisions
 ├── PROGRESS.md                what has been done so far, with evidence
 ├── SPRINT1_GUIDE.md           how to do the Sprint 1 review
-├── requirements.txt           Python packages
+├── CLAUDE.md                  conventions for AI coding agents
+├── requirements.txt           Python packages (requirements-dev.txt adds pytest + ruff)
+├── pyproject.toml             pytest and ruff settings
 ├── 1_/2_/3_*.bat|.command     double-click helpers (Windows / Mac)
+├── .github/workflows/ci.yml   CI: lint + tests on every push
 ├── src/
 │   ├── sprint1_preprocess.py  checks, batch split and merge (check | batch | merge)
 │   ├── review_app.py          browser review app (python src/review_app.py --id K)
+│   ├── phase1_clean.py        final cleaning, preview table, load_items() for later phases
 │   └── phase1b_image_audit.py image masks, CLIP embeddings and image checks (heavy: one machine only)
+├── tests/                     pytest suite (python -m pytest)
 ├── data/
 │   ├── csv/                   df_product.csv (17,125 SKUs), df_sales.csv (10,185 colourways)
 │   ├── images/                9,496 product images (<code>_<n>.jpg)
 │   ├── embeddings/            image embeddings, masks and image-check flags (computed once, in git)
-│   └── processed/             generated, not in git
+│   └── processed/             generated, not in git (items_checked, items_preview, items_clean)
+├── outputs/phase1/
+│   └── clean_report.md        what the Phase 1 cleaning changed, photo trust, column schema
 └── outputs/sprint1/
     ├── check_report.md        automatic check summary
     ├── items_checked.csv      one row per colourway with all flags

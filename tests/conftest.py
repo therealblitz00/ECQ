@@ -1,6 +1,6 @@
 """Shared fixtures: a toy copy of the dataset in a temporary folder.
 
-Every path constant of sprint1_preprocess (and review_app) is redirected to tmp_path, so the
+Every path constant of sprint1_preprocess, phase1_clean and review_app is redirected to tmp_path, so the
 tests never read or write the real data/ and outputs/ folders.
 """
 from __future__ import annotations
@@ -11,9 +11,8 @@ import pandas as pd
 import pytest
 from PIL import Image
 
+import phase1_clean as p1
 import sprint1_preprocess as sp
-
-PATH_CONSTANTS = ["CSV_DIR", "IMG_DIR", "PROCESSED_DIR", "EMB_DIR", "OUT_DIR", "BATCH_DIR"]
 
 
 def sku(ref: str, clr_cod: str, clr_des: str, size: str, spk: int, *, desc: str | None = None,
@@ -60,6 +59,8 @@ def toy_dirs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     for name, path in dirs.items():
         path.mkdir(parents=True, exist_ok=True)
         monkeypatch.setattr(sp, name, path)
+    monkeypatch.setattr(p1, "PROCESSED_DIR", dirs["PROCESSED_DIR"])
+    monkeypatch.setattr(p1, "REPORT_DIR", tmp_path / "outputs" / "phase1")
     return tmp_path
 
 

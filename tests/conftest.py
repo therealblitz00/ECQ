@@ -1,6 +1,6 @@
 """Shared fixtures: a toy copy of the dataset in a temporary folder.
 
-Every path constant of sprint1_preprocess, phase1_clean and review_app is redirected to tmp_path, so the
+Every path constant of phase1_checks, phase1_clean and review_app is redirected to tmp_path, so the
 tests never read or write the real data/ and outputs/ folders.
 """
 from __future__ import annotations
@@ -12,12 +12,12 @@ import pytest
 from PIL import Image
 
 import phase1_clean as p1
-import sprint1_preprocess as sp
+import phase1_checks as checks
 
 
 def sku(ref: str, clr_cod: str, clr_des: str, size: str, spk: int, *, desc: str | None = None,
         gfa: str = "Earrings", price: float = 9.99, comp: str = "Zinc", img: str | None = None) -> dict:
-    """One df_product row (SKU) with the columns the Sprint 1 checks use."""
+    """One df_product row (SKU) with the columns the Phase 1 checks use."""
     clr = f"{ref}{clr_cod}"
     return {
         "PROD_SPK": spk, "PROD_COD": f"{clr}{size}", "PROD_COD_EQUIV": f"{clr}{size}",
@@ -47,36 +47,36 @@ TOY_IMAGES = {"100001_BK_1.jpg": (20, 20, 20), "100004_BK_1.jpg": (200, 30, 30),
 
 @pytest.fixture
 def toy_dirs(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
-    """Empty data/output folders under tmp_path, with sprint1_preprocess pointed at them."""
+    """Empty data/output folders under tmp_path, with phase1_checks pointed at them."""
     dirs = {
         "CSV_DIR": tmp_path / "data" / "csv",
         "IMG_DIR": tmp_path / "data" / "images",
         "PROCESSED_DIR": tmp_path / "data" / "processed",
         "EMB_DIR": tmp_path / "data" / "embeddings",
-        "OUT_DIR": tmp_path / "outputs" / "sprint1",
-        "BATCH_DIR": tmp_path / "outputs" / "sprint1" / "batches",
+        "OUT_DIR": tmp_path / "outputs" / "phase1",
+        "BATCH_DIR": tmp_path / "outputs" / "phase1" / "batches",
     }
     for name, path in dirs.items():
         path.mkdir(parents=True, exist_ok=True)
-        monkeypatch.setattr(sp, name, path)
+        monkeypatch.setattr(checks, name, path)
     monkeypatch.setattr(p1, "PROCESSED_DIR", dirs["PROCESSED_DIR"])
-    monkeypatch.setattr(p1, "REPORT_DIR", tmp_path / "outputs" / "phase1")
+    monkeypatch.setattr(p1, "REPORT_DIR", dirs["OUT_DIR"])
     return tmp_path
 
 
 @pytest.fixture
 def toy_data(toy_dirs: Path) -> Path:
     """The toy dataset above written as CSVs and image files."""
-    pd.DataFrame(TOY_PRODUCTS).to_csv(sp.CSV_DIR / "df_product.csv", index=False, encoding="utf-8")
+    pd.DataFrame(TOY_PRODUCTS).to_csv(checks.CSV_DIR / "df_product.csv", index=False, encoding="utf-8")
     pd.DataFrame(TOY_SALES, columns=["PROD_CLR_EQUIV", "SALES_QTY", "SALES_AMT_FX_RATE"]).to_csv(
-        sp.CSV_DIR / "df_sales.csv", index=False, encoding="utf-8")
+        checks.CSV_DIR / "df_sales.csv", index=False, encoding="utf-8")
     for name, colour in TOY_IMAGES.items():
-        Image.new("RGB", (16, 16), colour).save(sp.IMG_DIR / name)
-    (sp.IMG_DIR / "100002_GD_1.jpg").write_bytes(b"not an image")
+        Image.new("RGB", (16, 16), colour).save(checks.IMG_DIR / name)
+    (checks.IMG_DIR / "100002_GD_1.jpg").write_bytes(b"not an image")
     return toy_dirs
 
 
 @pytest.fixture
 def checked_items(toy_data: Path) -> pd.DataFrame:
-    items, _ = sp.run_checks(verify_files=True)
-    return items.set_index(sp.KEY)
+    items, _ = checks.run_checks(verify_files=True)
+    return items.set_index(checks.KEY)

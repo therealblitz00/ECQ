@@ -4,19 +4,21 @@
 
 **Team:** 5 members plus AI coding agents. Agents do the work in small tasks, each with a clear owner, and a human reviews and merges every task. See [§ How agents should work](#how-agents-should-work).
 
-**Repository:** branch [`parfois`](https://github.com/therealblitz00/ECQ/tree/parfois) of `therealblitz00/ECQ`. Setup for Windows and Mac is in `README.md`.
+**Repository:** branch [`parfois`](https://github.com/therealblitz00/ECQ/tree/parfois) of `therealblitz00/ECQ`. Setup for Windows and Mac is in the [README](../README.md).
 
-**Related docs:** `problem_description.md` (the brief), `data_description.md` (data dictionary and data-quality notes), `SPRINT1_GUIDE.md` (how to do the Sprint 1 review).
+**Related docs:** [problem.md](problem.md) (the brief), [data.md](data.md) (data dictionary and data-quality notes), [review_guide.md](review_guide.md) (how to do the review), [progress.md](progress.md) (what has been done, with evidence).
+
+**Naming:** the work is organised in **phases**; code and output folders use the phase number (`src/phase1_checks.py`, `outputs/phase1b/`). **Sprints are only the calendar** (the table below shows which phases each sprint covers).
 
 ---
 
 ## Status (last updated 2026-10-10)
 
-Progress log with evidence: **[PROGRESS.md](PROGRESS.md)**.
+This is the only place that tracks the status. The evidence for each item is in [progress.md](progress.md).
 
 | Sprint | Roadmap phases | Status |
 |---|---|---|
-| **Sprint 1: data cleaning and validation** | 0, 1, 1b | 🟡 **In progress**: automatic checks ✅, image pre-screen ✅, review app ✅. Manual review by the 5 members under way, then merge |
+| **Sprint 1: data cleaning and validation** | 0, 1, 1b | 🟡 **In progress**: setup ✅, automatic checks ✅, image pre-screen ✅, review app ✅, cleaning + preview table ✅. Waiting for the manual review by the 5 members, then merge |
 | Sprint 2: features | 1 (rest), 2a, 2b | ⚪ Can start now on the Phase 1 preview table (image embeddings already computed in 1b) |
 | Sprint 3: similarity and evaluation | 3, 4 | ⚪ Not started |
 | Sprint 4: explanations and delivery | 5, 6 | ⚪ Not started |
@@ -30,24 +32,10 @@ Progress log with evidence: **[PROGRESS.md](PROGRESS.md)**.
 | 2b. Visual features | 🟡 | Image embeddings (`data/embeddings/image_clip.npy`) | Colour palettes, optional tags |
 | 3–6 | ⚪ | – | Everything |
 
-**Done in Sprint 1 so far:**
-- **Automatic checks** (`src/sprint1_preprocess.py check`, results in `outputs/sprint1/check_report.md`):
-  - no duplicate keys, and every sales row joins to a product;
-  - 10,555 colourways: 29 high, 578 medium and 351 low priority, the rest without issues.
-- **Image pre-screen (Phase 1b,** `src/phase1b_image_audit.py`, results in `outputs/phase1b/`**):**
-  - masks and CLIP embeddings for all 9,457 photos;
-  - 24 photos showing another item type, 132 another colour, 54 the same photo for another colour.
-- **Review workflow:**
-  - deterministic split into 5 batches: 1 André, 2 Pedro Correia, 3 Pedro Meireles, 4 Manuel, 5 Zé;
-  - browser review app (`src/review_app.py`) with buttons, autosave and one-click submit;
-  - `merge` applies the decisions and logs every change.
-- **Fixed after Pedro Meireles's audit** (`SPRINT1_REVIEW_AND_ROADMAP.md`): BUG-001, BUG-002, BUG-003.
-- **Repository** with data, docs and double-click scripts for Windows and Mac.
-
 **Next:**
 1. Team calibration: all 5 members review the same ~20 flagged products and agree on borderline cases.
-2. Each member reviews their batch in the app and clicks **Submit**. Then one person runs `merge`, which produces `data/processed/items_clean.parquet`, the Sprint 1 deliverable.
-3. Sprint 2: Phase 2a (tabular and text features), then Phase 3 (similarity engine).
+2. Each member reviews their batch in the app and clicks **Submit**. Then one person runs `merge`, which produces `data/processed/items_clean.parquet`, the Phase 1 deliverable.
+3. Sprint 2 doesn't have to wait: Phase 2a (tabular and text features) can start now on the preview table (`phase1_clean.load_items()`), then Phase 3 (similarity engine).
 
 ---
 
@@ -131,29 +119,19 @@ description ──[text encoder, once]──► 384–512 numbers
 - [x] Git repository: branch `parfois`, with data, docs and `.gitattributes` for Windows and Mac line endings.
 - [x] Python environment: `.venv` + `requirements.txt` (pandas, pyarrow, pillow), created by `1_setup_windows.bat` / `1_setup_mac.command`.
 - [x] `README.md` with a quick start for Windows and Mac.
-- [ ] Project layout for the next sprints:
-  ```
-  data/csv/          # original CSVs (read-only)
-  data/images/       # product images, 9,496 files (read-only)
-  data/processed/    # parquet outputs of each phase (not in git)
-  data/embeddings/   # masks + image/text embeddings, computed once, committed to git
-  src/               # sprint1_preprocess.py now; later a package: features/, retrieval/, explain/, eval/
-  notebooks/         # exploration only, never imported
-  tests/
-  outputs/
-  ```
+- [x] Project layout (reorganised 2026-10-10): docs in `docs/`, shared settings in `src/config.py`, one numbering (phases) for code and outputs. The layout is in the [README](../README.md#repository-layout). New phases add `src/phase<N>_<topic>.py` and `outputs/phase<N>/`.
 - [x] Vision packages for the computing machine (`requirements-vision.txt`: torch CPU, transformers, scipy).
 - [ ] Add packages as later phases need them: scikit-learn, sentence-transformers, faiss-cpu (optional). (`pytest` and `ruff` are in `requirements-dev.txt`.)
 - [x] `CLAUDE.md` with the project conventions agents must follow: data contracts, "never edit `data/csv` or `data/images`", how to run the tests, code style.
-- [x] CI that runs `pytest` and a linter: `.github/workflows/ci.yml` (ruff + pytest on Python 3.10 and 3.14), 42 tests in `tests/`.
+- [x] CI that runs `pytest` and a linter: `.github/workflows/ci.yml` (ruff + pytest on Python 3.10 and 3.14), tests in `tests/`.
 
 **Done when:** `pytest` passes on an empty test suite, and an agent can read `CLAUDE.md` and work out where to put new code.
 
 ## Phase 1: Data foundation
 
-- [x] Loader: UTF-8, whitespace and non-breaking-space (`\xa0`) cleanup, `COMPOSITION` split into `;`-separated materials (`sprint1_preprocess.py`). *The `�` characters reported earlier were a terminal display issue, not a data problem.*
+- [x] Loader: UTF-8, whitespace and non-breaking-space (`\xa0`) cleanup, `COMPOSITION` split into `;`-separated materials (`phase1_checks.py`). *The `�` characters reported earlier were a terminal display issue, not a data problem.*
 - [x] Date parsing for all three date formats (`phase1_clean.parse_dates`, 10 columns, 0 values lost).
-- [x] Drop the empty, constant and duplicate columns (list in `data_description.md` §3.3), plus SKU-level columns (size, barcode) that mean nothing per colourway: 61 columns dropped, 109 kept.
+- [x] Drop the empty, constant and duplicate columns (list in `data.md` §3.3), plus SKU-level columns (size, barcode) that mean nothing per colourway: 61 columns dropped, 109 kept.
 - [x] Treat placeholders as missing values, **per column**: `DIMENSION` (`UNDEFINED`, `Not Applicable`), `DISTRIBUTION_BLOCK` (`Without Block`), `CATEGORY_MATRIX*` (`Sem Categoria`). `Others` is kept where it is a real category (`PRINT_TYPE` = a print outside the list, `GFA_DES_EN`, `FINISHING`).
 - [x] Tokenise `COMPOSITION` into a canonical, sorted list of materials.
 - [x] Normalise casing: spellings that differ only in case get the most common one (`THEME` 153 values, e.g. `GOLDEN BASICS` → `Golden Basics`; `GFS_DES_EN`, `L4_DES`, `DIMENSION`). `L1_DES` had no real duplicates.
@@ -162,27 +140,36 @@ description ──[text encoder, once]──► 384–512 numbers
 - [x] Left-join the sales data.
 - [x] Add `has_sales`, `log_sales_qty`, `realised_price` (empty when 0 units) and `sales_pct_in_cat` (sales are only comparable within a category).
 - [x] Link each colourway to its image: take the stem of the last part of `PROG_IMAGE` and match it to a file stem in `data/images/` (9,455 / 10,555 = 89.6% coverage). Stored as `img_file` and `has_image`.
-- [x] Missing-value and duplicate reports (`outputs/sprint1/`).
+- [x] Missing-value and duplicate reports (`outputs/phase1/`).
 - [x] **Photo trust before the human review:** `img_trusted` (the photo shows this product) and `img_colour_trusted` (its colour is reliable too), from the automatic flags. After `merge`, the reviewer's decision overrides the flags. Currently 9,433 of 9,458 photos trusted, 9,151 for colour.
 - [x] **Preview table** `data/processed/items_preview.parquet` (`python src/phase1_clean.py`, also run by the setup scripts), so Phase 2 can start before the review. Same columns as `items_clean.parquet`; later phases read whichever exists with `phase1_clean.load_items()`. Report and schema: `outputs/phase1/clean_report.md`.
 - [x] Tests for the "done when" rule: unique key, all 10,185 sales rows joined, 10,555 rows, contract columns present (`tests/test_data_contracts.py`, `tests/test_phase1_clean.py`).
-- [ ] Apply the Sprint 1 review decisions (`merge`): fixes, dropped images, discarded items. The code is ready and tested (it also runs the Phase 1 cleaning); waiting for the 5 batches.
+- [ ] Apply the review decisions (`merge`): fixes, dropped images, discarded items. The code is ready and tested (it also runs the Phase 1 cleaning); waiting for the 5 batches.
+
+**Open findings from the 2026-10-09 audit** ([archive](archive/2026-10-09_phase1_audit.md)). None blocks Phase 2:
+- [ ] GAP-001: sanity checks on prices, costs and sales (negative values, outlet price above base price, extreme realised prices).
+- [ ] INC-002: after `merge` applies a fix, re-run the checks on the fixed rows so their old flags are cleared or confirmed.
+- [ ] WEA-001: check image size and colour mode (not only that the file opens).
+- [ ] GAP-004: list the 64 image files no item points to (probably old codes before re-coding).
+- [ ] WEA-002: a sturdier singular form for item-type words in `TYPE_CONFLICT_DESC`.
+- [ ] RED-001: lower `CLR_NOT_IN_DESC` to low severity if reviewers find it mostly noise.
+- [ ] OPP-001: profile the sales file like the product file (distribution per category, outliers).
 
 **Output:** `data/processed/items_clean.parquet`, with one row per colourway (about 10,555 rows, minus discarded items).
 **Done when:** the review is merged, and tests check that the key is unique, all sales rows are joined and the row count is stable.
 
 ## Phase 1b: Image audit and label consistency
 
-Some images don't match their row (e.g. the row says necklace, the image shows earrings). This phase finds them **before** visual features are trusted. Details and first findings are in `data_description.md` §5.
+Some images don't match their row (e.g. the row says necklace, the image shows earrings). This phase finds them **before** visual features are trusted. Details and first findings are in `data.md` §5.
 
-**Done in Sprint 1 (rule-based, `sprint1_preprocess.py check`):**
+**Done (rule-based, `phase1_checks.py check`):**
 - [x] Path validity, missing files and corrupt files.
 - [x] Image file name vs model (`PROD_REF`), colour code (`CLR_COD`) and category folder.
 - [x] Generic images (no colour in the file name).
 - [x] Images shared across colours or models (by path and by MD5 hash).
 - [x] Colour code ↔ colour name ↔ description, and description type ↔ family (`GFA_DES_EN`).
 - [x] Review app (`2_review_…` → `src/review_app.py`).
-- [ ] Human review of all images in 5 batches (`SPRINT1_GUIDE.md`) → merge.
+- [ ] Human review of all images in 5 batches (`review_guide.md`) → merge.
 
 **Done 2026-10-09 (vision model, `src/phase1b_image_audit.py`, run on one machine in 86 min):**
 - [x] **Vision stack:** `torch` (CPU), `transformers`, `scipy` (`requirements-vision.txt`, only for the computing machine).
@@ -193,7 +180,7 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 - [x] **Near-duplicates:** same model, other colour, same photo (perceptual hash + CLIP + product pixels).
 - [x] **Quality:** not-a-packshot photos (model, lifestyle, amateur sample photos).
 - [x] **Calibration on contact sheets** (`outputs/phase1b/*.jpg`): thresholds tuned after visual inspection. Flags went from 77 to 20 on a 300-item trial, and from 1,400 to about 700 on the full set.
-- [x] **Flags merged into Sprint 1:** `check` adds them to `issues`, and the review app reads `data/embeddings/image_audit.parquet` directly. No batch files changed.
+- [x] **Flags merged into the Phase 1 checks:** `check` adds them to `issues`, and the review app reads `data/embeddings/image_audit.parquet` directly. No batch files changed.
 
 | Flag | Items | Severity |
 |---|---|---|
@@ -282,7 +269,7 @@ We don't need a MAS framework to build this. The lead (a human or a main Claude 
 1. **One task = one checklist item** above, with a clear input, an output file, and tests that define "done".
 2. **Data contracts:** phases only talk to each other through files in `data/processed/` whose schemas are documented. An agent working on Phase 3 should never need to read Phase 1 code.
 3. **Tasks that can run in parallel:** 1b ∥ 2a, 2a ∥ 2b, and 4 ∥ 5. Give each agent its own branch or worktree.
-4. **Context for every agent:** `CLAUDE.md`, `data_description.md` and this roadmap. Give it the relevant phase section, not the whole history.
+4. **Context for every agent:** `CLAUDE.md`, `data.md` and this roadmap. Give it the relevant phase section, not the whole history.
 5. **Review step:** tests pass, the evaluation report doesn't get worse, and a human reads the diff before merging.
 6. **No agent edits `data/csv/` or `data/images/`, and none changes another phase's output schema without updating the contract.**
 

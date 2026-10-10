@@ -1,5 +1,14 @@
 # Sprint 1 Preprocessing: Review & Actionable Improvement Roadmap
 
+> **Archived on 2026-10-10.** This audit was written on 2026-10-09 against `src/sprint1_preprocess.py` (now `src/phase1_checks.py` + `src/config.py`) and `outputs/sprint1/` (now `outputs/phase1/`). Kept for reference. Status of each finding:
+>
+> | Finding | Status |
+> |---|---|
+> | BUG-001 size conflicts, BUG-002 unresolved items in the clean table, BUG-003 `;` in fixes | ✅ Fixed (2026-10-09) |
+> | GAP-002 placeholders and casing, GAP-003 dates, INC-001 output schema | ✅ Fixed in Phase 1 cleaning (`src/phase1_clean.py`, 2026-10-10) |
+> | OPP-002 monolithic script | 🟡 Partly: shared settings moved to `src/config.py`, cleaning to `phase1_clean.py` |
+> | GAP-001 numeric sanity checks, INC-002 fixes don't re-validate flags, WEA-001 image size/colour space, GAP-004 orphan image files, WEA-002 singular forms, RED-001 `CLR_NOT_IN_DESC` severity, OPP-001 sales profiling | ⚪ Open: tracked in [roadmap.md § Phase 1](../roadmap.md#phase-1-data-foundation) |
+
 > **Status update (2026-10-09):** **BUG-001**, **BUG-002** and **BUG-003** are fixed in `src/sprint1_preprocess.py`. The batches were regenerated. The other findings are still open.
 
 > **Document Purpose:** This document provides a complete technical audit of the current Sprint 1 preprocessing pipeline (`src/sprint1_preprocess.py`) and serves as an actionable specification for team members and subsequent AI coding agents to implement corrections.

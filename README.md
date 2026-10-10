@@ -4,15 +4,7 @@ Case study for the MADSAD Master's (FEP, University of Porto). The goal is to fi
 
 > This is the `parfois` branch. It is independent from `Projeto-I` (the default branch), which holds a different project.
 
-**Where we are (2026-10-10):** Sprint 1 (data cleaning and validation).
-- ✅ Automatic checks.
-- ✅ AI image pre-screen.
-- ✅ Review app.
-- ✅ Phase 1 cleaning: a preview table, so Sprint 2 can start before the review ends.
-- ✅ Tests and CI.
-- 🟡 Team review in progress.
-
-What has been done, with numbers and examples: **[PROGRESS.md](PROGRESS.md)**. The plan and checklist: **[ROADMAP.md](ROADMAP.md)**.
+**Where we are and what's next:** [docs/roadmap.md](docs/roadmap.md) (the only place with the project status).
 
 ---
 
@@ -33,7 +25,7 @@ Install **Python 3.10 or newer** from <https://www.python.org/downloads/>.
 - **Windows:** during installation, tick **"Add python.exe to PATH"**.
 - **Mac:** the python.org installer is the easiest option.
 
-### 3. Run the setup, by double-clicking
+### 3. Double-click
 
 | | Windows | Mac |
 |---|---|---|
@@ -41,7 +33,9 @@ Install **Python 3.10 or newer** from <https://www.python.org/downloads/>.
 | **Review my batch** (opens the review app) | `2_review_windows.bat` | `2_review_mac.command` |
 | **Merge all reviews** (one person, at the end) | `3_merge_windows.bat` | `3_merge_mac.command` |
 
-The setup creates a private Python environment (`.venv/`) in the project folder, installs the packages from `requirements.txt` (pandas, pyarrow, pillow), runs the automatic data checks and builds the cleaned preview table (`data/processed/items_preview.parquet`). Nothing is installed system-wide.
+The setup creates a private Python environment (`.venv/`) in the project folder, installs `requirements.txt` (pandas, pyarrow, pillow), runs the automatic data checks and builds the cleaned table (`data/processed/items_preview.parquet`). Nothing is installed system-wide.
+
+How to review your batch: **[docs/review_guide.md](docs/review_guide.md)**.
 
 <details>
 <summary><b>Mac: "cannot be opened" or "permission denied"?</b></summary>
@@ -57,113 +51,58 @@ The setup creates a private Python environment (`.venv/`) in the project folder,
 <summary><b>Prefer the terminal?</b></summary>
 
 ```bash
-# Windows (PowerShell)
-py -3 -m venv .venv
-.venv\Scripts\python -m pip install -r requirements.txt
-.venv\Scripts\python src\sprint1_preprocess.py check
-.venv\Scripts\python src\phase1_clean.py
-.venv\Scripts\python src\sprint1_preprocess.py batch --members 5 --id 1   # your number, see "Who reviews what"
-
-# Mac (Terminal)
-python3 -m venv .venv
+# Windows (PowerShell): use .venv\Scripts\python   ·   Mac: use .venv/bin/python
+python -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
-.venv/bin/python src/sprint1_preprocess.py check
-.venv/bin/python src/phase1_clean.py
-.venv/bin/python src/sprint1_preprocess.py batch --members 5 --id 1       # your number, see "Who reviews what"
+.venv/bin/python src/phase1_checks.py check        # automatic checks
+.venv/bin/python src/phase1_clean.py               # cleaned table for the next phases
+.venv/bin/python src/review_app.py --id 4          # review app (your number, see the review guide)
+.venv/bin/python -m pip install -r requirements-dev.txt && .venv/bin/python -m pytest   # tests
 ```
 </details>
 
 ---
 
-## Current sprint: Sprint 1 (data cleaning and validation)
+## Documentation
 
-We check that the **product data**, the **text description** and the **image** of each product all describe the same article. The work is split across the 5 team members.
+| Read this | When you want to know |
+|---|---|
+| [docs/roadmap.md](docs/roadmap.md) | **Status**, the plan by phase, the open checklist, architecture decisions |
+| [docs/progress.md](docs/progress.md) | What has been done, with numbers and examples |
+| [docs/review_guide.md](docs/review_guide.md) | How to review your batch (who reviews what, the buttons, the flags) |
+| [docs/data.md](docs/data.md) | What every column and the images mean, and the data-quality issues |
+| [docs/problem.md](docs/problem.md) | The case brief from Parfois |
+| [CLAUDE.md](CLAUDE.md) | Conventions for AI coding agents (and a good summary for humans) |
+| [docs/archive/](docs/archive/) | Older documents kept for reference (resolved audit) |
 
-### Who reviews what
-
-| Your number | Member | Your decisions are saved in |
-|---|---|---|
-| **1** | André | `outputs/sprint1/batches/batch_01_of_05.csv` |
-| **2** | Pedro Correia | `outputs/sprint1/batches/batch_02_of_05.csv` |
-| **3** | Pedro Meireles | `outputs/sprint1/batches/batch_03_of_05.csv` |
-| **4** | Manuel | `outputs/sprint1/batches/batch_04_of_05.csv` |
-| **5** | Zé | `outputs/sprint1/batches/batch_05_of_05.csv` |
-
-Each batch has 2,111 products with the same mix of categories.
-
-### Steps (no CSV editing needed)
-
-1. **Open the review app.** Double-click `2_review_windows.bat` (Windows) or `2_review_mac.command` (Mac) and type **your number** from the table. The app opens in your browser. **Keep the black window open** while you review.
-2. **Review.** For each product, click **Looks right**, **Wrong photo**, **Fix data**, **Not sure** or **Discard**. Every click is saved automatically, and you can stop and continue later. Start with the flagged products (the default view), then skim the rest. Details are in **[SPRINT1_GUIDE.md](SPRINT1_GUIDE.md)**.
-3. **Submit.** Click **Submit my review** in the app. It sends only your file to GitHub.
-4. **Merge.** When all 5 are in, one person runs `3_merge_…`. This applies the decisions, runs the Phase 1 cleaning and produces `data/processed/items_clean.parquet`, the cleaned dataset (it replaces the preview).
-   - Only resolved products go into the clean table.
-   - Flagged products nobody reviewed (`pending`) and products marked **Not sure** are listed in `outputs/sprint1/team_review.csv` until the team decides.
-
-<details><summary>Terminal equivalents</summary>
-
-```bash
-# Open the review app (replace 4 with your number)
-.venv\Scripts\python src\review_app.py --id 4      # Windows
-.venv/bin/python src/review_app.py --id 4          # Mac
-
-# Submit by hand instead of the button (example for member 4)
-git add outputs/sprint1/batches/batch_04_of_05.csv
-git commit -m "Sprint 1 review: batch 4 (Manuel)"
-git pull --rebase && git push
-```
-</details>
-
-**Automatic check results:** [outputs/sprint1/check_report.md](outputs/sprint1/check_report.md). **AI image check results:** [outputs/phase1b/image_audit_report.md](outputs/phase1b/image_audit_report.md).
-
----
+**Naming:** the work is organised in **phases** (0, 1, 1b, 2a, …), and code and output folders use the phase number (`phase1_checks.py`, `outputs/phase1b/`). Sprints are only the calendar: the roadmap shows which phases each sprint covers.
 
 ## Repository layout
 
 ```
 ├── README.md                  ← you are here
-├── problem_description.md     the case brief
-├── data_description.md        what every CSV column and the images mean, plus data-quality notes
-├── ROADMAP.md                 project phases, checklist and architecture decisions
-├── PROGRESS.md                what has been done so far, with evidence
-├── SPRINT1_GUIDE.md           how to do the Sprint 1 review
 ├── CLAUDE.md                  conventions for AI coding agents
-├── requirements.txt           Python packages (requirements-dev.txt adds pytest + ruff)
-├── pyproject.toml             pytest and ruff settings
 ├── 1_/2_/3_*.bat|.command     double-click helpers (Windows / Mac)
+├── requirements*.txt          packages: base · -dev (pytest, ruff) · -vision (one machine only)
+├── pyproject.toml             pytest and ruff settings
 ├── .github/workflows/ci.yml   CI: lint + tests on every push
+├── docs/                      roadmap, progress, review guide, data dictionary, brief, archive/
 ├── src/
-│   ├── sprint1_preprocess.py  checks, batch split and merge (check | batch | merge)
-│   ├── review_app.py          browser review app (python src/review_app.py --id K)
-│   ├── phase1_clean.py        final cleaning, preview table, load_items() for later phases
-│   └── phase1b_image_audit.py image masks, CLIP embeddings and image checks (heavy: one machine only)
-├── tests/                     pytest suite (python -m pytest)
+│   ├── config.py              shared settings: paths, item key, issue codes, team
+│   ├── phase1_checks.py       automatic checks, review batches, merge (check | batch | merge)
+│   ├── phase1_clean.py        final cleaning, load_items() for the next phases
+│   ├── phase1b_image_audit.py image masks, CLIP embeddings, image checks (heavy: one machine only)
+│   └── review_app.py          browser review app
+├── tests/                     pytest suite
 ├── data/
-│   ├── csv/                   df_product.csv (17,125 SKUs), df_sales.csv (10,185 colourways)
-│   ├── images/                9,496 product images (<code>_<n>.jpg)
-│   ├── embeddings/            image embeddings, masks and image-check flags (computed once, in git)
-│   └── processed/             generated, not in git (items_checked, items_preview, items_clean)
-├── outputs/phase1/
-│   └── clean_report.md        what the Phase 1 cleaning changed, photo trust, column schema
-└── outputs/sprint1/
-    ├── check_report.md        automatic check summary
-    ├── items_checked.csv      one row per colourway with all flags
-    ├── missing_values.csv
-    └── batches/               review batch per member (.csv to fill in, .html to look at)
+│   ├── csv/                   df_product.csv (17,125 SKUs), df_sales.csv (10,185 colourways)   READ-ONLY
+│   ├── images/                9,496 product photos                                              READ-ONLY
+│   ├── embeddings/            masks, image embeddings, image-check flags (computed once, in git)
+│   └── processed/             generated tables, not in git (items_checked, items_preview, items_clean)
+└── outputs/
+    ├── phase1/                check report, cleaning report, review batches (batches/)
+    └── phase1b/               image-check report and contact sheets
 ```
-
-## Data in one minute
-
-- **One row per SKU** (product × colour × size) in `df_product.csv`. Most work is done per **colourway** (`PROD_CLR_EQUIV`, e.g. `218792_PM`), which is the level of the sales data, the images and the expected output.
-- **Join:** `df_sales.PROD_CLR_EQUIV` ↔ `df_product.PROD_CLR_EQUIV`.
-- **Image:** the last part of `PROG_IMAGE` is the file name, so `/241/52/218792_PM_1` → `data/images/218792_PM_1.jpg`. 89.6% of colourways have one.
-- **Known issue:** some images don't match their row (e.g. the row says necklace, the photo shows earrings). Sprint 1 exists to find these.
-
-Full details: [data_description.md](data_description.md).
-
-## Roadmap
-
-See [ROADMAP.md](ROADMAP.md). The phases are: data foundation → image audit → features (product data, text, images) → similarity engine → evaluation → explanations → demo.
 
 ## Data confidentiality
 

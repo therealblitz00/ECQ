@@ -1,4 +1,4 @@
-# Sprint 1: automatic check report
+# Phase 1: automatic check report
 
 - SKU rows: 17,125 · colourways: 10,555 · with image file: 9,458
 - Colourways needing review: high 29, medium 578

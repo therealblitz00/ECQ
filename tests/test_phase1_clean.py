@@ -6,7 +6,7 @@ import pandas as pd
 import pytest
 
 import phase1_clean as p1
-import sprint1_preprocess as sp
+import phase1_checks as checks
 
 
 # --------------------------------------------------------------------------- single steps
@@ -34,7 +34,7 @@ def test_unify_casing_ignores_non_text_columns():
 
 def frame(**cols) -> pd.DataFrame:
     n = len(next(iter(cols.values())))
-    base = {sp.KEY: [f"{100000 + i}_BK" for i in range(n)], "CAT_DES_EN": ["Jewellery"] * n}
+    base = {checks.KEY: [f"{100000 + i}_BK" for i in range(n)], "CAT_DES_EN": ["Jewellery"] * n}
     return pd.DataFrame({**base, **cols})
 
 
@@ -85,7 +85,7 @@ def preview(checked_items) -> pd.DataFrame:
 
 
 def test_finalise_keeps_one_row_per_colourway_and_drops_noise_columns(preview, checked_items):
-    assert preview[sp.KEY].tolist() == sorted(checked_items.index)
+    assert preview[checks.KEY].tolist() == sorted(checked_items.index)
     for col in ["PROD_COD", "SZ_DES", "BAR_COD", "PROD_DES", "img_md5", "desc_type_word"]:
         assert col not in preview.columns
     assert {"PROD_DES_BASE", "sizes", "n_skus", "img_trusted", "log_sales_qty"} <= set(preview.columns)
@@ -97,11 +97,11 @@ def test_finalise_is_idempotent(preview):
 
 
 def test_preview_cli_writes_table_and_report(checked_items, monkeypatch):
-    items, ctx = sp.run_checks(verify_files=False)
-    sp.write_check_outputs(items, ctx)
+    items, ctx = checks.run_checks(verify_files=False)
+    checks.write_check_outputs(items, ctx)
     monkeypatch.setattr("sys.argv", ["phase1_clean.py"])
     p1.main()
-    out = pd.read_parquet(sp.PROCESSED_DIR / p1.PREVIEW_FILE)
+    out = pd.read_parquet(checks.PROCESSED_DIR / p1.PREVIEW_FILE)
     assert len(out) == 4 and set(out["review_status"]) == {"unreviewed"}
     assert "Photos the visual block may use" in (p1.REPORT_DIR / "clean_report.md").read_text(encoding="utf-8")
 
@@ -109,7 +109,7 @@ def test_preview_cli_writes_table_and_report(checked_items, monkeypatch):
 def test_load_items_prefers_the_reviewed_table(toy_dirs):
     with pytest.raises(SystemExit):
         p1.load_items()
-    pd.DataFrame({sp.KEY: ["A"]}).to_parquet(sp.PROCESSED_DIR / p1.PREVIEW_FILE)
-    assert p1.load_items()[sp.KEY].tolist() == ["A"]
-    pd.DataFrame({sp.KEY: ["B"]}).to_parquet(sp.PROCESSED_DIR / p1.CLEAN_FILE)
-    assert p1.load_items()[sp.KEY].tolist() == ["B"]
+    pd.DataFrame({checks.KEY: ["A"]}).to_parquet(checks.PROCESSED_DIR / p1.PREVIEW_FILE)
+    assert p1.load_items()[checks.KEY].tolist() == ["A"]
+    pd.DataFrame({checks.KEY: ["B"]}).to_parquet(checks.PROCESSED_DIR / p1.CLEAN_FILE)
+    assert p1.load_items()[checks.KEY].tolist() == ["B"]

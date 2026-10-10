@@ -1,33 +1,26 @@
-# Sprint 1: Preprocessing and Validation Guide
+# Phase 1 Review Guide
 
-Everyone runs the same script, `src/sprint1_preprocess.py`. The checks and the batch split are deterministic, so every member gets identical results without sending files around.
+We check that the **product data**, the **text description** and the **photo** of each product all describe the same article. The work is split across the 5 team members. Setup is in the [README](../README.md#quick-start-about-5-minutes).
 
-## Setup (once)
+## Who reviews what
 
-```bash
-pip install -r requirements.txt     # or double-click 1_setup_windows.bat / 1_setup_mac.command
-```
-
-Expected layout: `data/csv/df_product.csv`, `data/csv/df_sales.csv`, `data/images/*.jpg`.
+| Your number | Member | Your decisions are saved in |
+|---|---|---|
+| **1** | André | `outputs/phase1/batches/batch_01_of_05.csv` |
+| **2** | Pedro Correia | `outputs/phase1/batches/batch_02_of_05.csv` |
+| **3** | Pedro Meireles | `outputs/phase1/batches/batch_03_of_05.csv` |
+| **4** | Manuel | `outputs/phase1/batches/batch_04_of_05.csv` |
+| **5** | Zé | `outputs/phase1/batches/batch_05_of_05.csv` |
 
 ## Workflow
 
-| Step | Who | Command | Output |
+| Step | Who | How | Output |
 |---|---|---|---|
-| 1. Automatic checks | anyone (takes about 15 s) | `python src/sprint1_preprocess.py check` | `outputs/sprint1/check_report.md`, `items_checked.csv`, `missing_values.csv` |
-| 2. Get my batch | each member | `python src/sprint1_preprocess.py batch --members 5 --id K` | `outputs/sprint1/batches/batch_K_of_N.csv` and `.html` |
-| 3. Review | each member | double-click `2_review_…` (or `python src/review_app.py --id K`), then click through the products in the browser | your batch CSV, saved automatically |
-| 4. Merge | one person | put all reviewed CSVs in `outputs/sprint1/batches/`, run `python src/sprint1_preprocess.py merge` | `data/processed/items_clean.parquet` (decisions applied + Phase 1 cleaning), `changes_log.csv`, `discarded.csv`, `team_review.csv`, `outputs/phase1/clean_report.md` |
+| 1. Review | each member | double-click `2_review_…` and type your number (or `python src/review_app.py --id K`) | your batch CSV, saved on every click |
+| 2. Submit | each member | **Submit my review** button in the app | your CSV on GitHub |
+| 3. Merge | one person, when all 5 are in | double-click `3_merge_…` (or `python src/phase1_checks.py check` then `merge`) | `data/processed/items_clean.parquet` (decisions applied + Phase 1 cleaning), `outputs/phase1/changes_log.csv`, `discarded.csv`, `team_review.csv`, `clean_report.md` |
 
-The team has **5 members**. Everyone must use `--members 5`, otherwise the batches will not line up at merge.
-
-| `K` | Member |
-|---|---|
-| 1 | André |
-| 2 | Pedro Correia |
-| 3 | Pedro Meireles |
-| 4 | Manuel |
-| 5 | Zé |
+The batches already exist (`outputs/phase1/batches/`). If yours is missing, `2_review_…` creates it with `python src/phase1_checks.py batch --members 5 --id K`. Always use `--members 5`, otherwise the batches won't line up at merge.
 
 **How the split works:** one row per colourway (model + colour, `PROD_CLR_EQUIV`), about 2,111 items each for 5 people. All colours of a model go to the same person, and each batch gets a similar mix of categories.
 
@@ -50,7 +43,7 @@ The team has **5 members**. Everyone must use `--members 5`, otherwise the batch
 5. **Work order:** the app starts on *To check*: the flagged products you haven't decided on yet. When that list is empty, switch **Show → All products** and skim the rest. Unflagged products you don't touch count as correct. The **Mark untouched on this page as "Looks right"** button speeds this up.
 6. When you're done, click **Submit my review**. It sends only your file to GitHub. If that fails (e.g. git isn't installed), the app tells you which file to send to the team instead.
 
-Your name is filled in automatically, and every click is saved immediately to `outputs/sprint1/batches/batch_0K_of_05.csv`. You can close the app and continue later.
+Your name is filled in automatically, and every click is saved immediately to `outputs/phase1/batches/batch_0K_of_05.csv`. You can close the app and continue later.
 
 <details><summary>Editing the CSV by hand instead (advanced)</summary>
 
@@ -66,7 +59,7 @@ Your name is filled in automatically, and every click is saved immediately to `o
 Always fill in `reviewer` (your name) when you set a status. Don't edit the CSV while the review app is running.
 </details>
 
-**`fixes` syntax (for the CSV):** `COLUMN=new value`, separated by `;`. Example: `GFA_DES_EN=Bracelets; COMPOSITION=Pearl; Zinc`. A `;` only starts a new fix when it is followed by `COLUMN=`, so values such as `COMPOSITION` can contain `;`. The column must exist (see `items_checked.csv`). Every fix is logged in `changes_log.csv` with its old value and the reviewer.
+**`fixes` syntax (for the CSV):** `COLUMN=new value`, separated by `;`. Example: `GFA_DES_EN=Bracelets; COMPOSITION=Pearl; Zinc`. A `;` only starts a new fix when it is followed by `COLUMN=`, so values such as `COMPOSITION` can contain `;`. The column must exist (see `outputs/phase1/items_checked.csv`). Every fix is logged in `changes_log.csv` with its old value and the reviewer.
 
 **Rules:**
 - If you edit the CSV by hand: change only the four review columns (everything else is ignored at merge), and in Excel save with *Save As → CSV UTF-8*.

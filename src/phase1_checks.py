@@ -1,13 +1,13 @@
-"""Sprint 1: data preprocessing and alignment checks (Parfois similarity project).
+"""Phase 1: automatic data checks, review batches and merge of the review decisions.
 
 Every team member runs this same script. The checks and the batch split are
 deterministic, so everyone gets identical results without exchanging files.
 
 Usage (from the project root):
-    python src/sprint1_preprocess.py check                       # full automatic checks + report
-    python src/sprint1_preprocess.py batch --members 5 --id 2    # my review batch (CSV + HTML sheet)
-    python src/sprint1_preprocess.py batch --members 5           # all batches
-    python src/sprint1_preprocess.py merge                       # merge reviewed batches, apply fixes
+    python src/phase1_checks.py check                       # full automatic checks + report
+    python src/phase1_checks.py batch --members 5 --id 2    # my review batch (CSV + HTML sheet)
+    python src/phase1_checks.py batch --members 5           # all batches
+    python src/phase1_checks.py merge                       # merge reviewed batches, apply fixes
 
 Unit of analysis: one colourway (PROD_CLR_EQUIV = model + colour). Sizes are collapsed,
 because the description, colour, category and image are the same for every size.
@@ -23,56 +23,14 @@ from pathlib import Path
 
 import pandas as pd
 
-ROOT = Path(__file__).resolve().parents[1]
-CSV_DIR = ROOT / "data" / "csv"
-IMG_DIR = ROOT / "data" / "images"
-PROCESSED_DIR = ROOT / "data" / "processed"
-EMB_DIR = ROOT / "data" / "embeddings"  # Phase 1b results (committed, computed on one machine)
-OUT_DIR = ROOT / "outputs" / "sprint1"
-BATCH_DIR = OUT_DIR / "batches"
+from config import (BATCH_DIR, CSV_DIR, EMB_DIR, IMG_DIR, ISSUES, KEY, OUT_DIR, PROCESSED_DIR,
+                    REVIEW_COLS, REVIEW_STATUSES, SEVERITY_RANK, STR_DTYPES, TEAM)
 
-KEY = "PROD_CLR_EQUIV"
-# Sprint 1 review: batch number -> team member (used with --members 5).
-TEAM = {1: "André", 2: "Pedro Correia", 3: "Pedro Meireles", 4: "Manuel", 5: "Zé"}
-# Codes must stay strings (leading zeros, no float conversion).
-STR_DTYPES = {c: str for c in ["PROD_REF", "PROD_REF_EQUIV", "BAR_COD", "SEA_COD", "CAT_COD",
-                               "GFA_COD", "GFS_COD", "SUP_COD", "TARIFF_COD"]}
-
-# Issue code -> severity. "high" = sources contradict each other, must be reviewed.
-ISSUES = {
-    "IMG_PATH_INVALID": "high",        # PROG_IMAGE does not follow /<season>/<cat>/<file>
-    "IMG_FILE_MISSING": "info",        # no image file -> item will use tabular data only
-    "IMG_UNREADABLE": "high",          # file exists but is corrupt
-    "IMG_REF_MISMATCH": "high",        # image file name belongs to another model
-    "IMG_CAT_MISMATCH": "medium",      # category folder in path != CAT_COD (often a reclassified item)
-    "IMG_COLOUR_MISMATCH": "high",     # colour code in file name != CLR_COD
-    "IMG_GENERIC": "medium",           # file name has no colour -> colour cannot be confirmed
-    "IMG_SHARED": "medium",            # same image used by another colour or model
-    "TAB_KEY_INCONSISTENT": "high",    # PROD_CLR != PROD_REF + CLR_COD
-    "CLR_CODE_NAME_INCONSISTENT": "high",  # CLR_COD letters map to a different CLR_DES elsewhere
-    "CLR_CONFLICT_DESC": "high",       # PROD_DES names a different colour than CLR_DES
-    "CLR_NOT_IN_DESC": "medium",       # PROD_DES does not mention the colour at all
-    "TYPE_CONFLICT_DESC": "high",      # PROD_DES item type disagrees with GFA_DES_EN
-    "SALES_MISSING": "info",           # no row in df_sales
-    "SALES_ZERO_QTY": "low",           # SALES_QTY == 0
-    "SKU_ATTR_CONFLICT": "medium",     # sizes of the same colourway disagree on an attribute (see sku_conflicts)
-    # Image checks from Phase 1b (src/phase1b_image_audit.py), added when data/embeddings/image_audit.parquet exists
-    "VIS_TYPE_MISMATCH": "high",       # CLIP and the most similar photos say another item type
-    "VIS_TYPE_DOUBT": "low",           # CLIP alone says another item type
-    "VIS_COLOUR_MISMATCH": "medium",   # CLIP says another colour than CLR_DES
-    "VIS_TARGET_NOT_FOUND": "low",     # detector cannot find the expected item (mostly sample/prototype photos)
-    "IMG_NEAR_DUPLICATE": "medium",    # same photo as another colour of the same model (shows the wrong colour)
-    "IMG_NOT_PACKSHOT": "low",         # model, lifestyle or amateur photo
-}
 # Attributes that must be identical for every size of a colourway (they feed the similarity model).
 SKU_INVARIANT_COLS = ["CLR_COD", "CLR_DES", "CLR_TYPE", "CAT_DES_EN", "GFA_DES_EN", "GFS_DES_EN",
                       "CATEGORY_MATRIX", "COMPOSITION", "MATERIAL", "FINISHING", "PRINT_TYPE", "OUTFIT",
                       "DIMENSION", "NUMBER_OF_UNITS", "THEME", "FASHIONTYPE", "PROD_SEG",
                       "PRICE_BASE_W_VAT", "PROG_IMAGE"]
-SEVERITY_RANK = {"high": 3, "medium": 2, "low": 1, "info": 0}
-
-REVIEW_STATUSES = {"ok", "fix", "drop_image", "discard", "team_review"}
-REVIEW_COLS = ["review_status", "fixes", "reviewer", "notes"]
 BATCH_COLS = [KEY, "PROD_REF", "PROD_DES_BASE", "CLR_COD", "CLR_DES", "CAT_DES_EN", "GFA_DES_EN",
               "GFS_DES_EN", "COMPOSITION", "FINISHING", "MATERIAL", "PRICE_BASE_W_VAT", "PROG_IMAGE",
               "img_file", "priority", "issues", "sku_conflicts"]
@@ -361,7 +319,7 @@ def write_check_outputs(items: pd.DataFrame, ctx: dict) -> None:
             examples.append(f"**{code}**\n\n{_md_table(ex)}\n")
 
     report = [
-        "# Sprint 1: automatic check report",
+        "# Phase 1: automatic check report",
         "",
         f"- SKU rows: {len(ctx['prod']):,} · colourways: {len(items):,} · with image file: {int(items['has_image'].sum()):,}",
         f"- Colourways needing review: high {int((items['priority'] == 'high').sum())}, "
@@ -465,7 +423,7 @@ def write_batches(items: pd.DataFrame, n_members: int, only_id: int | None) -> N
         else:
             batch.to_csv(csv_path, index=False, encoding="utf-8-sig")
         owner = f" ({TEAM[b]})" if n_members == len(TEAM) else ""
-        _review_sheet(batch, f"Sprint 1 review – {name}{owner}", BATCH_DIR / f"{name}.html")
+        _review_sheet(batch, f"Phase 1 review – {name}{owner}", BATCH_DIR / f"{name}.html")
         print(f"{name}{owner}: {len(batch)} items ({int((batch['priority'] == 'high').sum())} high priority) "
               f"-> {BATCH_DIR / name}.csv / .html")
 

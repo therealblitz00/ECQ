@@ -3,7 +3,7 @@
     python src/phase1_clean.py            # preview: clean data/processed/items_checked.parquet now
 
 `finalise_items()` is the single cleaning step. It runs in two places:
-- `merge` (src/sprint1_preprocess.py) applies it after the review decisions
+- `merge` (src/phase1_checks.py) applies it after the review decisions
   -> data/processed/items_clean.parquet, the official Phase 1 output;
 - this script applies it to the automatic-check output before the human review
   -> data/processed/items_preview.parquet, so Phase 2 can start now.
@@ -24,9 +24,9 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from sprint1_preprocess import KEY, PROCESSED_DIR, ROOT  # noqa: E402
+from config import KEY, OUT_DIR, PROCESSED_DIR  # noqa: E402
 
-REPORT_DIR = ROOT / "outputs" / "phase1"
+REPORT_DIR = OUT_DIR
 CLEAN_FILE = "items_clean.parquet"
 PREVIEW_FILE = "items_preview.parquet"
 
@@ -39,7 +39,7 @@ CONTRACT_COLUMNS = [
     "sales_pct_in_cat", "img_file", "has_image", "img_trusted", "img_colour_trusted", "issues", "priority",
     "review_status",
 ]
-# Empty (< 0.1% filled) or constant in the delivered data (data_description.md §3.3). A fixed list,
+# Empty (< 0.1% filled) or constant in the delivered data (docs/data.md §3.3). A fixed list,
 # not recomputed, so the output schema does not change from one run to the next.
 EMPTY_OR_CONSTANT = [
     "PROD_DAT_CRI", "PHASE", "PHASE_COD", "DISPLAY_CLR_COD", "DISPLAY_CLR", "FLAG_FACT", "PONTAMETALICA_COD",
@@ -186,7 +186,7 @@ def load_items() -> pd.DataFrame:
         path = PROCESSED_DIR / name
         if path.exists():
             return pd.read_parquet(path)
-    raise SystemExit("No Phase 1 table. Run: python src/sprint1_preprocess.py check && python src/phase1_clean.py")
+    raise SystemExit("No Phase 1 table. Run: python src/phase1_checks.py check && python src/phase1_clean.py")
 
 
 def write_report(items: pd.DataFrame, log: dict, source: str) -> None:
@@ -252,7 +252,7 @@ def main() -> None:
     argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter).parse_args()
     path = PROCESSED_DIR / "items_checked.parquet"
     if not path.exists():
-        raise SystemExit("Run the automatic checks first: python src/sprint1_preprocess.py check")
+        raise SystemExit("Run the automatic checks first: python src/phase1_checks.py check")
     items, log = finalise_items(pd.read_parquet(path).assign(review_status="unreviewed"))
     items.to_parquet(PROCESSED_DIR / PREVIEW_FILE, index=False)
     write_report(items, log, f"data/processed/{PREVIEW_FILE}")

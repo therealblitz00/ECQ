@@ -21,7 +21,7 @@ echo Installing requirements ...
 .venv\Scripts\python -m pip install -r requirements.txt || (echo Installation failed. & pause & exit /b 1)
 
 echo Running the automatic checks ...
-.venv\Scripts\python src\sprint1_preprocess.py check || (echo Checks failed. & pause & exit /b 1)
+.venv\Scripts\python src\phase1_checks.py check || (echo Checks failed. & pause & exit /b 1)
 .venv\Scripts\python src\phase1_clean.py || (echo Cleaning failed. & pause & exit /b 1)
 
 echo.

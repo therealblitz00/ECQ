@@ -1,9 +1,9 @@
-"""Sprint 1 review app: review your batch in the browser, no CSV editing needed.
+"""Phase 1 review app: review your batch in the browser, no CSV editing needed.
 
-    python src/review_app.py --id 4          # Manuel (see TEAM in sprint1_preprocess.py)
+    python src/review_app.py --id 4          # Manuel (see TEAM in config.py)
 
 Opens http://localhost:8765 in the browser. Every click is saved straight into your
-batch CSV (outputs/sprint1/batches/batch_0K_of_05.csv), in the same format the merge
+batch CSV (outputs/phase1/batches/batch_0K_of_05.csv), in the same format the merge
 step reads. Only the Python standard library and pandas are used. Stop with Ctrl+C or
 by closing the window.
 """
@@ -24,7 +24,7 @@ from urllib.parse import unquote, urlparse
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from sprint1_preprocess import (BATCH_DIR, EMB_DIR, IMG_DIR, ISSUES, KEY, PROCESSED_DIR,  # noqa: E402
+from config import (BATCH_DIR, EMB_DIR, IMG_DIR, ISSUES, KEY, PROCESSED_DIR,  # noqa: E402
                                 REVIEW_STATUSES, ROOT, SEVERITY_RANK, TEAM)
 
 N_MEMBERS = len(TEAM)
@@ -69,7 +69,7 @@ class Batch:
         self.name = TEAM[member]
         self.path = BATCH_DIR / f"batch_{member:02d}_of_{N_MEMBERS:02d}.csv"
         if not self.path.exists():
-            raise SystemExit(f"{self.path} not found. Run: python src/sprint1_preprocess.py "
+            raise SystemExit(f"{self.path} not found. Run: python src/phase1_checks.py "
                              f"batch --members {N_MEMBERS} --id {member}")
         self.df = pd.read_csv(self.path, dtype=str, encoding="utf-8-sig", keep_default_na=False)
         self.lock = threading.Lock()
@@ -107,7 +107,8 @@ class Batch:
         out = []
         for r in self.df.to_dict("records"):
             codes = [c for c in r["issues"].split(";") if c]
-            r["issue_labels"] = [ISSUE_LABELS.get(c, c) for c in codes]
+            # Image-check codes (VIS_*, ...) have no label here: their plain-language note is added below.
+            r["issue_labels"] = [ISSUE_LABELS[c] for c in codes if c in ISSUE_LABELS]
             r.update(self.extra.get(r[KEY], {}))
             if r[KEY] in self.vision:  # add image-check flags and raise the priority if needed
                 vis_codes, note = self.vision[r[KEY]]
@@ -144,11 +145,11 @@ class Batch:
         """git add/commit/push this member's CSV only."""
         if not shutil.which("git"):
             return False, (f"Git is not installed. Send the file {self.path.name} "
-                           f"(folder outputs/sprint1/batches) to the team instead.")
+                           f"(folder outputs/phase1/batches) to the team instead.")
         rel = self.path.relative_to(ROOT).as_posix()
         log = []
         steps = [["git", "add", rel],
-                 ["git", "commit", "-m", f"Sprint 1 review: batch {self.member} ({self.name})", "--", rel],
+                 ["git", "commit", "-m", f"Phase 1 review: batch {self.member} ({self.name})", "--", rel],
                  ["git", "pull", "--rebase", "--autostash"],
                  ["git", "push"]]
         for cmd in steps:
@@ -383,7 +384,7 @@ document.addEventListener("click",async e=>{
     if(left&&!confirm(`${left} flagged products are still unchecked. Submit anyway? (You can submit again later.)`))return;
     $("#submitDlg").style.display="grid";$("#submitMsg").textContent="Sending to GitHub…";
     const r=await (await fetch("/api/submit",{method:"POST",body:"{}"})).json();
-    $("#submitMsg").innerHTML=(r.ok?"<p>✅ Your review was sent to GitHub.</p>":"<p>⚠️ It could not be sent automatically. Send your file to the team instead: <b>"+esc(D.file)+"</b> (folder outputs/sprint1/batches).</p>")+`<pre>${esc(r.log||r.error||"")}</pre>`;return}
+    $("#submitMsg").innerHTML=(r.ok?"<p>✅ Your review was sent to GitHub.</p>":"<p>⚠️ It could not be sent automatically. Send your file to the team instead: <b>"+esc(D.file)+"</b> (folder outputs/phase1/batches).</p>")+`<pre>${esc(r.log||r.error||"")}</pre>`;return}
   if(t.id==="closeDlg"){$("#submitDlg").style.display="none"}
 });
 document.addEventListener("change",async e=>{

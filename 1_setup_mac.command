@@ -17,7 +17,7 @@ echo "Installing requirements ..."
 .venv/bin/python -m pip install -r requirements.txt || { echo "Installation failed."; read -r -p "Press Enter..."; exit 1; }
 
 echo "Running the automatic checks ..."
-.venv/bin/python src/sprint1_preprocess.py check || { echo "Checks failed."; read -r -p "Press Enter..."; exit 1; }
+.venv/bin/python src/phase1_checks.py check || { echo "Checks failed."; read -r -p "Press Enter..."; exit 1; }
 .venv/bin/python src/phase1_clean.py || { echo "Cleaning failed."; read -r -p "Press Enter..."; exit 1; }
 
 echo

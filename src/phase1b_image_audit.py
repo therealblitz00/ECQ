@@ -33,9 +33,9 @@ import pandas as pd
 from PIL import Image, ImageDraw, ImageOps
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from sprint1_preprocess import IMG_DIR, KEY, ROOT, run_checks  # noqa: E402
+from config import EMB_DIR, IMG_DIR, KEY, ROOT  # noqa: E402
+from phase1_checks import run_checks  # noqa: E402
 
-EMB_DIR = ROOT / "data" / "embeddings"
 REPORT_DIR = ROOT / "outputs" / "phase1b"
 CLIP_MODEL = "openai/clip-vit-base-patch32"
 DETECTOR_MODEL = "google/owlv2-base-patch16-ensemble"

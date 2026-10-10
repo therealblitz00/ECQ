@@ -1,3 +1,5 @@
+> **Archived on 2026-10-10.** The prompt given to an AI agent to produce [2026-10-09_phase1_audit.md](2026-10-09_phase1_audit.md). File names in it refer to the old layout (`src/sprint1_preprocess.py`, `outputs/sprint1/`). Kept for reference only: not instructions for current work.
+
 # AGENT INSTRUCTIONS — Sprint 1 Pipeline Review
 
 ## 1. Role

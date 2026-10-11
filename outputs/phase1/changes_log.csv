@@ -1,0 +1,271 @@
+﻿PROD_CLR_EQUIV,column,old,new,reviewer,source_file
+140428_BN,CLR_DES,Brown,Silver,Pedro Meireles,batch_03_of_05.csv
+158685_MT,CLR_DES,Mint,Purple,Zé,batch_05_of_05.csv
+166363_PK,CLR_DES,Pink,Red,Pedro Correia,batch_02_of_05.csv
+169622_PK,CLR_DES,Pink,White,Manuel,batch_04_of_05.csv
+170562_BU,CLR_DES,Burgundy,Navy,Pedro Meireles,batch_03_of_05.csv
+192473_BL,CLR_DES,Blue,Red,Zé,batch_05_of_05.csv
+193076_PU,CLR_DES,Purple,Teal,Pedro Correia,batch_02_of_05.csv
+193166_BR,CLR_DES,Brick Red,Blue,André,batch_01_of_05.csv
+196653_MA,CLR_DES,Magenta,White,Pedro Meireles,batch_03_of_05.csv
+197623_TK,CLR_DES,Pastel Pink,Turquoise,André,batch_01_of_05.csv
+201255_AM,CLR_DES,Amethyst,Orange,Zé,batch_05_of_05.csv
+201255_MN,CLR_DES,Maroon,Midnight Blue,Zé,batch_05_of_05.csv
+201255_PU,CLR_DES,Purple,Orange,Zé,batch_05_of_05.csv
+201255_TG,CLR_DES,Pastel Green,Purple,Zé,batch_05_of_05.csv
+201884_ID,CLR_DES,Indigo Dye,Pastel Multicolor,Pedro Correia,batch_02_of_05.csv
+204971_OR,CLR_DES,Orange,Bronze,Manuel,batch_04_of_05.csv
+204972_BU,CLR_DES,Burgundy,Turquoise,Zé,batch_05_of_05.csv
+205235_GD,CLR_DES,Gold,Ivory,Manuel,batch_04_of_05.csv
+205345_HM,CLR_DES,Halftone Multicolor,Gold,Pedro Meireles,batch_03_of_05.csv
+205683_RY,CLR_DES,Raspberry,Violet,Manuel,batch_04_of_05.csv
+206044_EC,CLR_DES,Ecru,Bright Multicolor,André,batch_01_of_05.csv
+206296_BU,CLR_DES,Burgundy,Pink,Manuel,batch_04_of_05.csv
+207937_TK,CLR_DES,Pastel Pink,Turquoise,André,batch_01_of_05.csv
+208071_EC,CLR_DES,Ecru,Yellow,André,batch_01_of_05.csv
+208203_EC,CLR_DES,Ecru,White,Pedro Meireles,batch_03_of_05.csv
+208619_CA,CLR_DES,Camel,Black,Zé,batch_05_of_05.csv
+208621_BK,CLR_DES,Black,Silver,André,batch_01_of_05.csv
+209024_BL,CLR_DES,Blue,Green,Manuel,batch_04_of_05.csv
+209726_LL,CLR_DES,Lilac,Magenta,Manuel,batch_04_of_05.csv
+209788_BN,CLR_DES,Brown,Orange,Pedro Correia,batch_02_of_05.csv
+210982_LG,CLR_DES,Light Grey,Light Pink,Manuel,batch_04_of_05.csv
+211095_BL,CLR_DES,Blue,Gold,Zé,batch_05_of_05.csv
+211157_MD,CLR_DES,Mustard,Blue,Pedro Meireles,batch_03_of_05.csv
+211159_GD,GFA_DES_EN,Earrings,Rings,Zé,batch_05_of_05.csv
+211159_GD,GFS_DES_EN,Ear Cuff,Other Rings,Zé,batch_05_of_05.csv
+211176_GD,GFA_DES_EN,Earrings,Rings,Zé,batch_05_of_05.csv
+211176_GD,GFS_DES_EN,Ear Cuff,Other Rings,Zé,batch_05_of_05.csv
+211226_NV,CLR_DES,Navy,White,Zé,batch_05_of_05.csv
+211241_NV,CLR_DES,Navy,White,Zé,batch_05_of_05.csv
+211413_OX,CLR_DES,Oxford Blue,Burgundy,André,batch_01_of_05.csv
+211666_PU,CLR_DES,Purple,Blue,Pedro Correia,batch_02_of_05.csv
+211725_GN,CLR_DES,Green,Blue,Manuel,batch_04_of_05.csv
+211732_BL,CLR_DES,Blue,Turquoise,Manuel,batch_04_of_05.csv
+211743_GN,CLR_DES,Green,White,André,batch_01_of_05.csv
+211754_GN,CLR_DES,Green,Teal,Manuel,batch_04_of_05.csv
+211958_ID,CLR_DES,Indigo Dye,Mint,Manuel,batch_04_of_05.csv
+211965_GN,CLR_DES,Green,Orange,André,batch_01_of_05.csv
+212065_SV,CLR_DES,Silver,Blue Jeans,Manuel,batch_04_of_05.csv
+212203_EC,CLR_DES,Ecru,Green,Pedro Correia,batch_02_of_05.csv
+212257_BL,CLR_DES,Blue,Peach,André,batch_01_of_05.csv
+212264_GN,CLR_DES,Green,Blue,Pedro Meireles,batch_03_of_05.csv
+212265_GN,CLR_DES,Green,Gold,Manuel,batch_04_of_05.csv
+212283_TO,CLR_DES,Pastel Orange,Light Blue,Pedro Correia,batch_02_of_05.csv
+212324_TO,CLR_DES,Pastel Orange,Pastel Blue,Zé,batch_05_of_05.csv
+212349_DM,CLR_DES,Dark Multicolor,Bright Multicolor,Pedro Meireles,batch_03_of_05.csv
+212528_DN,CLR_DES,Dark Green,White,Pedro Meireles,batch_03_of_05.csv
+212653_WT,CLR_DES,Ecru,White,Zé,batch_05_of_05.csv
+212793_BK,CLR_DES,Black,Khaki,Zé,batch_05_of_05.csv
+212971_PK,CLR_DES,Pink,Navy,André,batch_01_of_05.csv
+213006_MI,CLR_DES,Midnight Blue,Red,André,batch_01_of_05.csv
+213422_KK,CLR_DES,Khaki,Green,Zé,batch_05_of_05.csv
+213740_DM,CLR_DES,Dark Multicolor,Pastel Multicolor,André,batch_01_of_05.csv
+213832_EC,CLR_DES,Ecru,White,Pedro Meireles,batch_03_of_05.csv
+213838_PU,CLR_DES,Purple,Gold,André,batch_01_of_05.csv
+213986_SW,CLR_DES,Straw,Green,Pedro Meireles,batch_03_of_05.csv
+213986_SW,FINISHING,Golden,Other,Pedro Meireles,batch_03_of_05.csv
+214129_BL,CLR_DES,Blue,Black,Zé,batch_05_of_05.csv
+214144_BL,CLR_DES,Blue,Green,Pedro Meireles,batch_03_of_05.csv
+214273_AQ,CLR_DES,Aquamarine,White,André,batch_01_of_05.csv
+214280_AQ,CLR_DES,Aquamarine,Silver,Zé,batch_05_of_05.csv
+214313_PK,CLR_DES,Pink,Green,Zé,batch_05_of_05.csv
+214464_GN,CLR_DES,Green,Beige,Zé,batch_05_of_05.csv
+214499_KK,CLR_DES,Khaki,Green,Zé,batch_05_of_05.csv
+214781_TU,CLR_DES,Taupe,Ecru,Zé,batch_05_of_05.csv
+214794_TU,CLR_DES,Taupe,Ecru,Zé,batch_05_of_05.csv
+214813_MD,CLR_DES,Mustard,Copper,Manuel,batch_04_of_05.csv
+214938_BN,CLR_DES,Brown,Neutral Multicolor,Pedro Meireles,batch_03_of_05.csv
+215119_BL,CLR_DES,Blue,Dark Green,Manuel,batch_04_of_05.csv
+215202_BL,CLR_DES,Blue,Turquoise,Manuel,batch_04_of_05.csv
+215202_TK,CLR_DES,Pastel Pink,Lilac,Manuel,batch_04_of_05.csv
+215508_HM,CLR_DES,Halftone Multicolor,Gold,André,batch_01_of_05.csv
+215825_FU,CLR_DES,Fuchsia,Purple,Zé,batch_05_of_05.csv
+216060_EC,CLR_DES,Ecru,Beige,Zé,batch_05_of_05.csv
+216201_YL,CLR_DES,Yellow,Olive,Manuel,batch_04_of_05.csv
+216252_BL,CLR_DES,Blue,Navy,Manuel,batch_04_of_05.csv
+216666_BU,CLR_DES,Burgundy,Halftone Multicolor,Pedro Meireles,batch_03_of_05.csv
+216667_BU,CLR_DES,Burgundy,Purple,Manuel,batch_04_of_05.csv
+216721_WI,CLR_DES,Wine,Blue,Manuel,batch_04_of_05.csv
+216724_BU,CLR_DES,Burgundy,Gold,Pedro Correia,batch_02_of_05.csv
+216780_FU,CLR_DES,Fuchsia,Aubergine,Manuel,batch_04_of_05.csv
+216994_BM,CLR_DES,Bright Multicolor,Brick Red,Pedro Meireles,batch_03_of_05.csv
+217174_BL,CLR_DES,Blue,Turquoise,Manuel,batch_04_of_05.csv
+217302_PK,CLR_DES,Pink,Light Blue,André,batch_01_of_05.csv
+217306_VT,CLR_DES,Violet,Grey,Manuel,batch_04_of_05.csv
+217307_TQ,CLR_DES,Turquoise,Brown,Zé,batch_05_of_05.csv
+217426_EC,CLR_DES,Ecru,White,André,batch_01_of_05.csv
+217480_MV,CLR_DES,Mauve,Green,André,batch_01_of_05.csv
+217553_GN,CLR_DES,Green,Taupe,Zé,batch_05_of_05.csv
+217936_GN,CLR_DES,Green,Yellow,André,batch_01_of_05.csv
+218167_BL,CLR_DES,Blue,Dark Green,Manuel,batch_04_of_05.csv
+218167_BN,CLR_DES,Brown,Beige,Manuel,batch_04_of_05.csv
+218365_WT,CLR_DES,White,Nude,Manuel,batch_04_of_05.csv
+218388_BL,CLR_DES,Blue,Blue Jeans,André,batch_01_of_05.csv
+218470_BK,CLR_DES,Black,Bright Multicolor,Pedro Correia,batch_02_of_05.csv
+218591_GD,GFA_DES_EN,Bracelets,Necklaces,Pedro Meireles,batch_03_of_05.csv
+218591_GD,GFS_DES_EN,Adjustable Bracelet,Beaded Necklace,Pedro Meireles,batch_03_of_05.csv
+218664_BU,CLR_DES,Burgundy,Purple,Pedro Meireles,batch_03_of_05.csv
+218666_IC,CLR_DES,Ice,Pastel Green,Manuel,batch_04_of_05.csv
+218751_PK,CLR_DES,Pink,Burgundy,Manuel,batch_04_of_05.csv
+218771_GN,GFA_DES_EN,Sweater,T-shirt,Zé,batch_05_of_05.csv
+218771_NV,GFA_DES_EN,Sweater,T-shirt,Zé,batch_05_of_05.csv
+218858_BL,CLR_DES,Blue,Green,Manuel,batch_04_of_05.csv
+218864_BL,CLR_DES,Blue,Forest Green,Zé,batch_05_of_05.csv
+218866_BL,CLR_DES,Blue,Light Green,André,batch_01_of_05.csv
+218928_PK,CLR_DES,Pink,Pastel Multicolor,Zé,batch_05_of_05.csv
+218930_PK,CLR_DES,Pink,White,André,batch_01_of_05.csv
+218947_GN,CLR_DES,Green,Gold,André,batch_01_of_05.csv
+219283_RD,CLR_DES,Red,Green,Zé,batch_05_of_05.csv
+219763_GD,GFA_DES_EN,Bracelets,Rings,André,batch_01_of_05.csv
+219763_GD,GFS_DES_EN,Cuff,Other Rings,André,batch_01_of_05.csv
+219973_BL,CLR_DES,Blue,Turquoise,Manuel,batch_04_of_05.csv
+219983_BL,CLR_DES,Blue,Bright Multicolor,Pedro Meireles,batch_03_of_05.csv
+220035_BL,CLR_DES,Blue,Turquoise,Manuel,batch_04_of_05.csv
+220040_BL,CLR_DES,Blue,Red,André,batch_01_of_05.csv
+220327_BL,CLR_DES,Blue,Turquoise,Manuel,batch_04_of_05.csv
+220334_BL,CLR_DES,Blue,Turquoise,Manuel,batch_04_of_05.csv
+220397_BL,CLR_DES,Blue,Turquoise,Manuel,batch_04_of_05.csv
+220431_BL,CLR_DES,Blue,Turquoise,Manuel,batch_04_of_05.csv
+220488_PU,CLR_DES,Purple,Red,Pedro Meireles,batch_03_of_05.csv
+220489_OR,CLR_DES,Orange,Fuchsia,Manuel,batch_04_of_05.csv
+220893_TU,CLR_DES,Taupe,Cognac,Manuel,batch_04_of_05.csv
+221141_SV,CLR_DES,Silver,Champagne,Pedro Meireles,batch_03_of_05.csv
+221162_CL,CLR_DES,Coral,Mustard,Manuel,batch_04_of_05.csv
+221180_LK,CLR_DES,Light Pink,Khaki,Pedro Meireles,batch_03_of_05.csv
+221744_BL,CLR_DES,Blue,Blue Jeans,Pedro Meireles,batch_03_of_05.csv
+222695_BM,CLR_DES,Bright Multicolor,White,Zé,batch_05_of_05.csv
+223384_BM,CLR_DES,Bright Multicolor,Neutral Multicolor,Pedro Meireles,batch_03_of_05.csv
+223401_BM,CLR_DES,Bright Multicolor,Light Blue,Manuel,batch_04_of_05.csv
+223455_BM,CLR_DES,Bright Multicolor,Neutral Multicolor,Pedro Meireles,batch_03_of_05.csv
+223704_LB,CLR_DES,Light Blue,Lilac,Pedro Meireles,batch_03_of_05.csv
+223758_LB,CLR_DES,Light Blue,White,André,batch_01_of_05.csv
+223888_BK,CLR_DES,Black,Gold,Zé,batch_05_of_05.csv
+224263_LL,CLR_DES,Lilac,Light Pink,Manuel,batch_04_of_05.csv
+224304_GN,CLR_DES,Green,Brown,Zé,batch_05_of_05.csv
+224390_BU,CLR_DES,Burgundy,Mint,Pedro Correia,batch_02_of_05.csv
+224733_BL,CLR_DES,Blue,White,Pedro Correia,batch_02_of_05.csv
+224740_BL,CLR_DES,Blue,Light Green,Manuel,batch_04_of_05.csv
+224740_FG,CLR_DES,Forest Green,Silver,Manuel,batch_04_of_05.csv
+224746_LB,CLR_DES,Light Blue,Lilac,Manuel,batch_04_of_05.csv
+224752_TB,CLR_DES,Pastel Blue,Teal,Manuel,batch_04_of_05.csv
+224772_TL,CLR_DES,Teal,Gold,Pedro Correia,batch_02_of_05.csv
+224789_TB,CLR_DES,Pastel Blue,Grey,Pedro Correia,batch_02_of_05.csv
+166730_AU,img_file,166730_1.jpg,,Pedro Meireles,batch_03_of_05.csv
+166730_BR,img_file,166730_BR_1.jpg,,Pedro Meireles,batch_03_of_05.csv
+181831_BL,img_file,181831_1.jpg,,André,batch_01_of_05.csv
+197623_TL,img_file,197623_TL_1.jpg,,André,batch_01_of_05.csv
+208038_BL,img_file,208038_BL_1.jpg,,Manuel,batch_04_of_05.csv
+209003_GD,img_file,209003_GD_1.jpg,,Zé,batch_05_of_05.csv
+209928_SV,img_file,,,Zé,batch_05_of_05.csv
+210216_GD,img_file,210216_1.jpg,,Manuel,batch_04_of_05.csv
+210301_BL,img_file,210301_1.jpg,,Pedro Correia,batch_02_of_05.csv
+211381_YL,img_file,211381_1.jpg,,Pedro Correia,batch_02_of_05.csv
+211880_LM,img_file,211880_1.png,,André,batch_01_of_05.csv
+211994_TG,img_file,211994_TG_1.jpg,,André,batch_01_of_05.csv
+212067_SV,img_file,212067_SV_1.jpg,,Pedro Correia,batch_02_of_05.csv
+212384_EC,img_file,212384_1.jpg,,André,batch_01_of_05.csv
+212962_BK,img_file,212962_BK_1.jpg,,Manuel,batch_04_of_05.csv
+213704_BL,img_file,213704_1.jpg,,Manuel,batch_04_of_05.csv
+213704_WT,img_file,213704_1.jpg,,Manuel,batch_04_of_05.csv
+214201_HM,img_file,214201_1.jpg,,André,batch_01_of_05.csv
+214516_BU,img_file,214516_1.jpg,,Manuel,batch_04_of_05.csv
+214627_MM,img_file,,,Zé,batch_05_of_05.csv
+214651_PK,img_file,,,André,batch_01_of_05.csv
+215315_MD,img_file,215315_MDXS-S_3.jpg,,Zé,batch_05_of_05.csv
+215514_PK,img_file,215514_1.jpg,,André,batch_01_of_05.csv
+216201_NV,img_file,216201_1.jpg,,Manuel,batch_04_of_05.csv
+216726_DM,img_file,216726_DM_1.jpg,,Pedro Meireles,batch_03_of_05.csv
+217651_TL,img_file,217651_1.jpg,,Pedro Meireles,batch_03_of_05.csv
+217956_FU,img_file,217956_1.jpg,,Manuel,batch_04_of_05.csv
+217956_GN,img_file,217956_1.jpg,,Manuel,batch_04_of_05.csv
+218168_BK,img_file,218168_1.jpg,,Manuel,batch_04_of_05.csv
+219039_BL,img_file,219039_2.jpg,,André,batch_01_of_05.csv
+219039_YL,img_file,219039_2.jpg,,André,batch_01_of_05.csv
+219907_PK,img_file,219907_1.jpg,,Manuel,batch_04_of_05.csv
+221976_BK,img_file,221976_1.jpg,,Zé,batch_05_of_05.csv
+221976_EC,img_file,221976_1.jpg,,Zé,batch_05_of_05.csv
+221979_EC,img_file,221979_1.jpg,,Manuel,batch_04_of_05.csv
+221982_BK,img_file,221982_1.jpg,,André,batch_01_of_05.csv
+221982_TU,img_file,221982_1.jpg,,André,batch_01_of_05.csv
+222233_BK,img_file,222233_1.jpg,,Pedro Meireles,batch_03_of_05.csv
+222233_TU,img_file,222233_1.jpg,,Pedro Meireles,batch_03_of_05.csv
+222539_LB,img_file,222539_1.jpg,,Pedro Meireles,batch_03_of_05.csv
+222686_BK,img_file,222686_BK_1.jpg,,Pedro Correia,batch_02_of_05.csv
+222811_BM,img_file,222811_BM_1.jpg,,Pedro Correia,batch_02_of_05.csv
+222812_BM,img_file,222812_BM_1.jpg,,Pedro Meireles,batch_03_of_05.csv
+222937_EC,img_file,,,Pedro Meireles,batch_03_of_05.csv
+224036_GY,img_file,224036_GY_1.jpg,,André,batch_01_of_05.csv
+224889_LG,img_file,224889_1.jpg,,Pedro Meireles,batch_03_of_05.csv
+225227_GD,img_file,,,Pedro Meireles,batch_03_of_05.csv
+225264_PE,img_file,,,André,batch_01_of_05.csv
+225313_KK,img_file,,,André,batch_01_of_05.csv
+225665_HM,img_file,,,Zé,batch_05_of_05.csv
+225776_BK,img_file,,,André,batch_01_of_05.csv
+225872_EC,img_file,,,André,batch_01_of_05.csv
+225912_BK,img_file,,,Pedro Meireles,batch_03_of_05.csv
+225913_BK,img_file,,,Pedro Meireles,batch_03_of_05.csv
+225913_CA,img_file,,,Pedro Meireles,batch_03_of_05.csv
+226220_PE,img_file,,,Pedro Meireles,batch_03_of_05.csv
+226222_PE,img_file,,,Zé,batch_05_of_05.csv
+226354_BU,img_file,,,André,batch_01_of_05.csv
+226380_GD,img_file,,,André,batch_01_of_05.csv
+226385_MI,img_file,,,André,batch_01_of_05.csv
+226475_GD,img_file,,,Pedro Meireles,batch_03_of_05.csv
+226533_BK,img_file,,,Zé,batch_05_of_05.csv
+226533_BU,img_file,,,Zé,batch_05_of_05.csv
+226535_BK,img_file,,,Pedro Meireles,batch_03_of_05.csv
+226535_BU,img_file,,,Pedro Meireles,batch_03_of_05.csv
+226578_MI,img_file,,,Pedro Meireles,batch_03_of_05.csv
+226582_MI,img_file,,,André,batch_01_of_05.csv
+226699_MI,img_file,,,André,batch_01_of_05.csv
+226703_DM,img_file,,,Pedro Meireles,batch_03_of_05.csv
+226706_MI,img_file,,,André,batch_01_of_05.csv
+226713_KN,img_file,,,André,batch_01_of_05.csv
+226739_NM,img_file,,,Zé,batch_05_of_05.csv
+226742_NM,img_file,,,Pedro Meireles,batch_03_of_05.csv
+226812_NM,img_file,,,Pedro Meireles,batch_03_of_05.csv
+226889_DB,img_file,,,Pedro Meireles,batch_03_of_05.csv
+227032_GN,img_file,,,André,batch_01_of_05.csv
+227040_DB,img_file,,,Pedro Meireles,batch_03_of_05.csv
+227068_GD,img_file,,,Pedro Meireles,batch_03_of_05.csv
+227077_RD,img_file,,,Pedro Meireles,batch_03_of_05.csv
+227085_GD,img_file,,,André,batch_01_of_05.csv
+227194_BM,img_file,,,André,batch_01_of_05.csv
+227302_WT,img_file,,,Pedro Meireles,batch_03_of_05.csv
+227352_BN,img_file,,,Pedro Meireles,batch_03_of_05.csv
+227414_KK,img_file,,,Zé,batch_05_of_05.csv
+227511_BK,img_file,,,André,batch_01_of_05.csv
+227511_GN,img_file,,,André,batch_01_of_05.csv
+227512_DM,img_file,,,André,batch_01_of_05.csv
+227516_PK,img_file,,,Pedro Meireles,batch_03_of_05.csv
+227519_BM,img_file,,,Pedro Meireles,batch_03_of_05.csv
+227519_DM,img_file,,,Pedro Meireles,batch_03_of_05.csv
+227690_BK,img_file,,,Pedro Meireles,batch_03_of_05.csv
+227690_BU,img_file,,,Pedro Meireles,batch_03_of_05.csv
+227690_EC,img_file,,,Pedro Meireles,batch_03_of_05.csv
+227692_BK,img_file,,,André,batch_01_of_05.csv
+227692_BU,img_file,,,André,batch_01_of_05.csv
+227692_EC,img_file,,,André,batch_01_of_05.csv
+227782_BK,img_file,,,André,batch_01_of_05.csv
+227825_BK,img_file,,,André,batch_01_of_05.csv
+227825_EC,img_file,,,André,batch_01_of_05.csv
+227927_DG,img_file,,,André,batch_01_of_05.csv
+228160_KK,img_file,,,Zé,batch_05_of_05.csv
+228160_NV,img_file,,,Zé,batch_05_of_05.csv
+228190_GN,img_file,,,Pedro Meireles,batch_03_of_05.csv
+228194_EC,img_file,,,André,batch_01_of_05.csv
+228728_BN,img_file,,,Pedro Meireles,batch_03_of_05.csv
+228728_EC,img_file,,,Pedro Meireles,batch_03_of_05.csv
+228728_GY,img_file,,,Pedro Meireles,batch_03_of_05.csv
+228891_BK,img_file,,,André,batch_01_of_05.csv
+229443_BN,img_file,,,Pedro Meireles,batch_03_of_05.csv
+229443_EC,img_file,,,Pedro Meireles,batch_03_of_05.csv
+229443_GY,img_file,,,Pedro Meireles,batch_03_of_05.csv
+229911_BN,img_file,,,André,batch_01_of_05.csv
+229911_EC,img_file,,,André,batch_01_of_05.csv
+229911_GY,img_file,,,André,batch_01_of_05.csv
+229937_BU,img_file,,,Pedro Meireles,batch_03_of_05.csv
+229937_NV,img_file,,,Pedro Meireles,batch_03_of_05.csv
+230255_BM,img_file,,,Zé,batch_05_of_05.csv
+230256_BM,img_file,,,André,batch_01_of_05.csv

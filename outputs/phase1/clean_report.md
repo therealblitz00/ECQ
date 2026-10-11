@@ -1,6 +1,6 @@
 # Phase 1: clean colourway table
 
-Source: `data/processed/items_preview.parquet` · 10,555 colourways · 109 columns · review status: unreviewed 10,555
+Source: `data/processed/items_clean.parquet` · 10,555 colourways · 112 columns · review status: ok 10,290, fix 147, drop_image 118
 
 Produced by `src/phase1_clean.py` (`finalise_items`). Later phases load it with `load_items()`.
 
@@ -22,12 +22,12 @@ Produced by `src/phase1_clean.py` (`finalise_items`). Later phases load it with 
 
 | Category | Items | With photo | Photo trusted | Colour trusted |
 |---|---|---|---|---|
-| Apparel | 2,259 | 1,889 | 1,883 | 1,829 |
-| Footwear | 435 | 425 | 423 | 412 |
-| Hand Bag | 1,971 | 1,813 | 1,813 | 1,775 |
-| Jewellery | 4,639 | 4,169 | 4,154 | 3,995 |
-| Wallet | 1,251 | 1,195 | 1,193 | 1,170 |
-| **Total** | 10,555 | 9,491 | 9,466 | 9,181 |
+| Apparel | 2,259 | 1,871 | 1,871 | 1,871 |
+| Footwear | 435 | 424 | 424 | 424 |
+| Hand Bag | 1,971 | 1,805 | 1,805 | 1,805 |
+| Jewellery | 4,639 | 4,158 | 4,158 | 4,158 |
+| Wallet | 1,251 | 1,191 | 1,191 | 1,191 |
+| **Total** | 10,555 | 9,449 | 9,449 | 9,449 |
 
 ## Schema
 
@@ -41,7 +41,7 @@ Produced by `src/phase1_clean.py` (`finalise_items`). Later phases load it with 
 | `PROD_YEAR_SEA` | str | 100.0 |
 | `SEA_COD` | str | 100.0 |
 | `PROD_REF` | str | 100.0 |
-| `PROG_IMAGE` | str | 100.0 |
+| `PROG_IMAGE` | str | 98.9 |
 | `COMPOSITION` | str | 100.0 |
 | `NET_WEIGHT` | float64 | 97.7 |
 | `PROD_SEG` | str | 100.0 |
@@ -130,12 +130,15 @@ Produced by `src/phase1_clean.py` (`finalise_items`). Later phases load it with 
 | `SALES_QTY` | float64 | 96.5 |
 | `SALES_AMT_FX_RATE` | float64 | 96.5 |
 | `issues` | str | 100.0 |
-| `img_file` | str | 89.9 |
+| `img_file` | str | 89.5 |
 | `has_image` | bool | 100.0 |
 | `img_shared_with` | str | 100.0 |
 | `vis_note` | str | 100.0 |
 | `priority` | str | 100.0 |
 | `review_status` | str | 100.0 |
+| `fixes` | str | 100.0 |
+| `reviewer` | str | 100.0 |
+| `notes` | str | 100.0 |
 | `has_sales` | bool | 100.0 |
 | `log_sales_qty` | float64 | 96.5 |
 | `realised_price` | float64 | 96.4 |

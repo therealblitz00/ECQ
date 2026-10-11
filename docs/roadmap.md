@@ -18,17 +18,17 @@ This is the only place that tracks the status. The evidence for each item is in 
 
 | Sprint | Roadmap phases | Status |
 |---|---|---|
-| **Sprint 1: data cleaning and validation** | 0, 1, 1b | 🟡 **In progress**: setup ✅, automatic checks ✅, image pre-screen ✅, review app ✅, cleaning + preview table ✅. Waiting for the manual review by the 5 members, then merge |
-| Sprint 2: features | 1 (rest), 2a, 2b | 🟡 **Started** on the Phase 1 preview table: categorical block ✅ (image embeddings already computed in 1b). Rerun Phase 2a after the review merge |
+| **Sprint 1: data cleaning and validation** | 0, 1, 1b | ✅ **Done**: setup, automatic checks, image pre-screen, review app, cleaning, manual review by the 5 members and merge (`items_clean.parquet`) |
+| Sprint 2: features | 1 (rest), 2a, 2b | 🟡 **Started**: categorical block ✅, rebuilt on the merged table (image embeddings already computed in 1b) |
 | Sprint 3: similarity and evaluation | 3, 4 | ⚪ Not started |
 | Sprint 4: explanations and delivery | 5, 6 | ⚪ Not started |
 
 | Phase | Status | Done | Still to do |
 |---|---|---|---|
 | 0. Setup | ✅ | Repo, environments, README, double-click scripts, `CLAUDE.md`, tests and CI | – |
-| 1. Data foundation | 🟡 | Loader, colourway table, sales join, image link, size-conflict check, reports, final cleaning (`phase1_clean.py`), preview table, photo trust | Merge the review (waiting for the team) |
+| 1. Data foundation | ✅ | Loader, colourway table, sales join, image link, size-conflict check, reports, final cleaning (`phase1_clean.py`), photo trust, review merged → `items_clean.parquet` | Open audit findings (none blocking) |
 | 1b. Image audit | 🟡 | Masks, CLIP embeddings, type/colour/duplicate/quality flags, review app | Human review; measure the flags' precision afterwards |
-| 2a. Tabular/text features | 🟡 | Categorical block (`phase2a_features.py`) | Composition, numeric and text blocks; rerun after the merge |
+| 2a. Tabular/text features | 🟡 | Categorical block (`phase2a_features.py`) | Composition, numeric and text blocks |
 | 2b. Visual features | 🟡 | Image embeddings (`data/embeddings/image_clip.npy`) | Colour palettes, optional tags |
 | 3–6 | ⚪ | – | Everything |
 
@@ -141,11 +141,11 @@ description ──[text encoder, once]──► 384–512 numbers
 - [x] Add `has_sales`, `log_sales_qty`, `realised_price` (empty when 0 units) and `sales_pct_in_cat` (sales are only comparable within a category).
 - [x] Link each colourway to its image: take the stem of the last part of `PROG_IMAGE` and match it to a file stem in `data/images/` (9,491 / 10,555 = 89.9% coverage, after repairing 33 wrong paths: `IMG_PATH_REPAIRED`). Stored as `img_file` and `has_image`.
 - [x] Missing-value and duplicate reports (`outputs/phase1/`).
-- [x] **Photo trust before the human review:** `img_trusted` (the photo shows this product) and `img_colour_trusted` (its colour is reliable too), from the automatic flags. After `merge`, the reviewer's decision overrides the flags. Currently 9,466 of 9,491 photos trusted, 9,181 for colour.
+- [x] **Photo trust before the human review:** `img_trusted` (the photo shows this product) and `img_colour_trusted` (its colour is reliable too), from the automatic flags. After `merge`, the reviewer's decision overrides the flags. Before the review: 9,466 of 9,491 photos trusted, 9,181 for colour; after the merge: 9,449 photos, all trusted (the 42 wrong photos are unlinked).
 - [x] **Preview table** `data/processed/items_preview.parquet` (`python src/phase1_clean.py`, also run by the setup scripts), so Phase 2 can start before the review. Same columns as `items_clean.parquet`; later phases read whichever exists with `phase1_clean.load_items()`. Report and schema: `outputs/phase1/clean_report.md`.
 - [x] Tests for the "done when" rule: unique key, all 10,185 sales rows joined, 10,555 rows, contract columns present (`tests/test_data_contracts.py`, `tests/test_phase1_clean.py`).
 - [x] **Fixed lists for review fixes** (`src/phase1_vocab.py`): a fix can only use values that exist in the data (colour, category › family › sub-family combination, finishing/material per category, materials). The app shows lists, `merge` rejects anything else, and `check` writes `outputs/phase1/review_vocabulary.csv`.
-- [ ] Apply the review decisions (`merge`): fixes, dropped images, discarded items. The code is ready and tested (it also runs the Phase 1 cleaning); waiting for the 5 batches.
+- [x] Apply the review decisions (`merge`, 2026-10-11): 10,290 ok, 147 fixed, 118 wrong photos unlinked, 0 discarded, 0 unresolved. 270 changes in `outputs/phase1/changes_log.csv` (141 colours, 10 family/sub-family, 1 finishing, 118 image links). → `data/processed/items_clean.parquet` (10,555 rows) and `outputs/phase1/items_clean.csv`.
 
 **Open findings from the 2026-10-09 audit** ([archive](archive/2026-10-09_phase1_audit.md)). None blocks Phase 2:
 - [ ] GAP-001: sanity checks on prices, costs and sales (negative values, outlet price above base price, extreme realised prices).
@@ -170,7 +170,7 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 - [x] Images shared across colours or models (by path and by MD5 hash).
 - [x] Colour code ↔ colour name ↔ description, and description type ↔ family (`GFA_DES_EN`).
 - [x] Review app (`2_review_…` → `src/review_app.py`).
-- [ ] Human review of all images in 5 batches (`review_guide.md`) → merge.
+- [x] Human review of all images in 5 batches (`review_guide.md`) → merged 2026-10-11.
 
 **Done 2026-10-09 (vision model, `src/phase1b_image_audit.py`, run on one machine in 86 min):**
 - [x] **Vision stack:** `torch` (CPU), `transformers`, `scipy` (`requirements-vision.txt`, only for the computing machine).
@@ -204,7 +204,7 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 
 ## Phase 2a: Tabular and text features
 
-- [x] **Categorical block:** hierarchy (CAT › GFA › GFS, `CATEGORY_MATRIX`), colour (`CLR_DES`, `CLR_TYPE`), `FINISHING`, `MATERIAL`, `PRINT_TYPE`, `DIMENSION`, `OUTFIT`, `THEME`, `FASHIONTYPE`, `PROD_SEG`, `NUMBER_OF_UNITS`. Use one-hot or weighted encodings, and give the hierarchy levels larger weights. *(2026-10-10: weighted one-hot, 10,555 × 1,620, rows L2-normalised; family and sub-family are encoded as paths under their category; report in `outputs/phase2a/features_report.md`.)*
+- [x] **Categorical block:** hierarchy (CAT › GFA › GFS, `CATEGORY_MATRIX`), colour (`CLR_DES`, `CLR_TYPE`), `FINISHING`, `MATERIAL`, `PRINT_TYPE`, `DIMENSION`, `OUTFIT`, `THEME`, `FASHIONTYPE`, `PROD_SEG`, `NUMBER_OF_UNITS`. Use one-hot or weighted encodings, and give the hierarchy levels larger weights. *(2026-10-10: weighted one-hot, 10,555 × 1,619 on the merged table, rows L2-normalised; family and sub-family are encoded as paths under their category; report in `outputs/phase2a/features_report.md`.)*
 - [ ] **Composition block:** multi-hot vector of material tokens.
 - [ ] **Numeric block:** price band, launch season and date.
 - [ ] **Text block:** sentence embedding of a description assembled from the attributes, e.g. *"Hoop earring, golden finish, pearl and zinc, Golden Delicates theme"*.

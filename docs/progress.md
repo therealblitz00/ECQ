@@ -14,7 +14,8 @@ What has been done so far, with evidence, in date order. **Status and next steps
 | Image AI | 9,490 photos masked and embedded (512 numbers each): 9,457 in 86 min on one laptop CPU, plus 33 repaired paths in 98 s |
 | Image flags | **24** photos of another item type, **135** of another colour, **54** same photo for another colour |
 | Review | 5 balanced batches (2,111 products each), browser app, autosave, one-click submit |
-| Features (Phase 2a) | Categorical block: 15 attributes, 1,620 columns, built in about 1 s |
+| Review merged | 10,290 ok, **147 fixed**, **118 wrong photos** unlinked, 0 discarded → `items_clean.parquet` (10,555 colourways) |
+| Features (Phase 2a) | Categorical block: 15 attributes, 1,619 columns, built in about 1 s |
 
 ---
 
@@ -170,3 +171,23 @@ Phase 2a starts on the preview table, without waiting for the photo review: it u
 - Sanity check in `outputs/phase2a/features_report.md`: the neighbours of 3 random items share sub-family and mostly colour and theme (e.g. silver pendant `217529_SV` → 4 silver pendants of the same theme, score 0.83–0.87).
 - `NUMBER_OF_UNITS` added to the Phase 1 contract columns (it is used here).
 - Tests: 86 (7 new).
+
+## 11. Review merged: Phase 1 done (2026-10-11)
+
+All 5 batches were submitted. Before the merge, the decisions were made consistent with the team rule agreed on 2026-10-10:
+- **If the photo shows this product in another colour → Fix data with the photo's colour** (more labelled examples for the model). Wrong photo only when the photo shows another article, a sketch, a swatch or a damaged file, or the colour of a sibling colourway of the same model.
+- 48 doubtful decisions in batches 2, 3 and 5 were re-checked on the photos: 22 became colour fixes, 8 became Looks right (flag was a false alarm), the others stayed Wrong photo. Every changed row has a note (`[2026-10-11, Manuel: X -> Y, team rule]`); the original reviewer is kept.
+- All 7 Not sure items and the 1 Discard were resolved, so nothing is left out of the clean table.
+- No colour fix creates two colourways of one model with the same colour, except 4 models in batch 5 that the team kept on purpose.
+
+**`merge` result** (`python src/phase1_checks.py merge`):
+
+| | Items |
+|---|---|
+| Looks right | 10,290 |
+| Fix data | 147 (141 colours, 10 family/sub-family, 1 finishing) |
+| Wrong photo (image unlinked) | 118 (76 of them had no photo file anyway) |
+| Discarded / unresolved | 0 / 0 |
+
+- `data/processed/items_clean.parquet`: 10,555 colourways, 9,449 with a trusted photo. Every change is in `outputs/phase1/changes_log.csv` (270 rows, with old value, new value and reviewer); report in `outputs/phase1/clean_report.md`.
+- `load_items()` now returns the merged table. Phase 2a was rebuilt on it: categorical block 10,555 × 1,619 (one colour value fewer after the fixes).

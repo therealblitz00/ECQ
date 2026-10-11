@@ -15,7 +15,9 @@ What has been done so far, with evidence, in date order. **Status and next steps
 | Image flags | **24** photos of another item type, **135** of another colour, **54** same photo for another colour |
 | Review | 5 balanced batches (2,111 products each), browser app, autosave, one-click submit |
 | Review merged | 10,290 ok, **147 fixed**, **118 wrong photos** unlinked, 0 discarded → `items_clean.parquet` (10,555 colourways) |
-| Features (Phase 2a) | Categorical block: 15 attributes, 1,619 columns, built in about 1 s |
+| Image flag precision | Colour flag **70%**, type mismatch 17%; image flags caught 47% of the problems in the fully reviewed batch |
+| Features (Phase 2a) | 4 blocks: categorical (1,619 columns), composition (95 materials), numeric (price, launch, season), text (384-number sentence embedding) |
+| Visual features (Phase 2b) | CLIP image embeddings + colour palettes for the 9,449 photos kept by the review |
 
 ---
 
@@ -191,3 +193,69 @@ All 5 batches were submitted. Before the merge, the decisions were made consiste
 
 - `data/processed/items_clean.parquet`: 10,555 colourways, 9,449 with a trusted photo. Every change is in `outputs/phase1/changes_log.csv` (270 rows, with old value, new value and reviewer); report in `outputs/phase1/clean_report.md`.
 - `load_items()` now returns the merged table. Phase 2a was rebuilt on it: categorical block 10,555 × 1,619 (one colour value fewer after the fixes).
+
+## 12. Image flag precision (Phase 1b, 2026-10-11)
+
+`python src/phase1b_precision.py` → `outputs/phase1b/flag_precision.md`. A flag is confirmed when the reviewer dropped the photo or fixed what it points at.
+
+| Flag | Flagged | Precision | Target |
+|---|---|---|---|
+| `VIS_TYPE_MISMATCH` (high) | 24 | 17% | 80% ❌ |
+| `VIS_COLOUR_MISMATCH` (medium) | 135 | **70%** | 50% ✅ |
+| `IMG_NEAR_DUPLICATE` (medium) | 54 | 33% | 50% (about half expected: the shared photo is right for one colourway) |
+| `VIS_TARGET_NOT_FOUND` (low) | 46 | 50% | – |
+
+- **Colour flag: useful.** On batch 4 (every photo looked at), a looser cut (0.02 instead of 0.005) keeps precision at 51% and raises recall from 36% to 48%.
+- **Type flags: mostly false alarms.** The 20 unconfirmed ones were checked on a contact sheet: feathers, fringes, beads, macramé and lifestyle photos that CLIP misreads. The reviewers were right.
+- **Recall:** any image flag caught 47% of the 58 problems found in batch 4; the rest were found by eye (mostly close colours, e.g. blue vs turquoise).
+- Thresholds were **not** changed: new flags on items already reviewed would be left pending by a new `merge`. The report gives the settings to use on a future dataset.
+
+## 13. Phase 2a: composition and numeric blocks (2026-10-11)
+
+`python src/phase2a_features.py` now builds 3 blocks in about 1 s (report: `outputs/phase2a/features_report.md`):
+
+| Block | Shape | What it encodes |
+|---|---|---|
+| categorical | 10,555 × 1,619 | 15 product attributes, weighted one-hot |
+| composition | 10,555 × 95 | materials, weighted by rarity (IDF): sharing "Pearl" counts more than sharing "Polyester" |
+| numeric | 10,555 × 79 | price percentile **within the category** (weight 2), launch month (1), season (0.5) |
+
+- Price and launch date are soft bands (Gaussian bumps): 10 price percentile points apart → similarity ≈ 0.78; 1 month apart → ≈ 0.89, 3 months → ≈ 0.37.
+- Same contract for every block: unit-length rows (dot product = cosine) and named attribute slices that add up to the score, so Phase 5 can say e.g. "shares Zinc and Pearl, same price band".
+- A data contract test now builds every block on the real data and checks it; it caught one block stored as float64 instead of float32.
+- Tests: 93 (7 new).
+
+## 14. Phase 2a: text block, Phase 2a done (2026-10-11)
+
+- **`src/phase2a_text.py`** builds one English sentence per item from the reviewed attributes, e.g. *"Cocktail (Rings, Jewellery). Colour: Pastel Multicolor. Finish: Worn Gold. Made of Stone, Zinc. Theme: Nile. Fashion, Woman."*, and embeds it with `sentence-transformers/all-MiniLM-L6-v2` (384 numbers, mean pooling, unit length).
+- Run once on the vision machine (54 s on CPU) → `data/embeddings/text.npy` (10,555 × 384, float16, 8 MB) + `text.json` (model, commit, template, row order). Committed, so nobody else needs torch.
+- `phase2a_features.py` loads it as the 4th block (`text`), in the same row order as the others; it is skipped with a message if the file is missing.
+- Why it helps on top of the categorical block: it sees that close labels are close (e.g. "Printed Fake Nylon" and "Fake Nylon", or theme names written differently), where one-hot only matches identical labels.
+- Tests: 96 (3 new), including a data contract for `text.npy` vs its sidecar and the Phase 1 table.
+
+## 15. Phase 2b: colour palettes, Phase 2b done (2026-10-11)
+
+- **`src/phase2b_palettes.py`**: for each photo kept by the review, k-means (k = 4, fixed seed) in CIELAB on the product pixels: inside the Phase 1b item box, without the near-white background. Clusters under 5% are dropped.
+- 9,449 photos in 2.5 min on the light environment (no torch) → `data/embeddings/palettes.parquet` + `.json` (committed). Per item: colours as hex and LAB, their shares, the nearest of 24 colour names, and a `palette_vector` (shares per name, unit length) whose dot product is a palette similarity that can be explained ("both mostly black and white").
+- Checked by eye on `outputs/phase2b/palettes_sample.jpg`: the swatches match the photos. 9,197 palettes come from packshots (`reliable`); the others (model / lifestyle photos) keep some background.
+- **Limitation:** metals look like light neutrals (a gold item's main cluster is its highlights: L 86, b 15, like beige or ecru), so a colour name can't tell gold from beige. The metal comes from `FINISHING` in the CSV; palette similarity is unaffected.
+- Tests: 101 (5 new), including a data contract for `palettes.parquet`.
+
+**Every input of Phase 3 is now ready:** 4 tabular/text blocks (`data/processed/features_*.npy`), CLIP image embeddings and colour palettes (`data/embeddings/`), and the photo trust columns of `items_clean.parquet`.
+
+## 16. Missing attributes filled where reliable (Phase 2a, 2026-10-11)
+
+Only items **with a trusted photo** are filled; items without a photo are left out. Fields are filled only in the categories where they exist: `FINISHING` is empty for apparel and footwear because it doesn't apply to them, and `MATERIAL` only exists for apparel.
+
+| Gap (items with a photo) | How | Measured precision | Filled |
+|---|---|---|---|
+| `MATERIAL`, apparel (778) | 1. another colourway of the same model has it · 2. the composition is a single material · 3. vote of the 15 most similar items (vote share ≥ 0.8) | 99.7% · 98% · 92–95% | **581** (75%) |
+| `FINISH_FAMILY`, jewellery (417) | vote of the 15 most similar items, accepted only if the photo agrees (gold must look yellowish, silver must not) | 97% (gold 97%, silver 91%) | **266** (64%) |
+| Detailed `FINISHING`, jewellery | – | ≈ 88% on only 30% | not filled |
+| `FINISHING`, hand bags | – | ≈ 77% | not filled |
+
+- Precision is measured by 5-fold cross-validation **grouped by model**, so a colourway never learns from its own siblings. A value is only filled if its own precision is ≥ 90% (e.g. Linen 81% and Polyamide 71% are not filled by the neighbours).
+- Checked by eye on a sample sheet: two silver items first filled as gold led to the photo check (gold is 79% of the jewellery, so the vote leaned to gold).
+- `FINISH_FAMILY` is also a new categorical attribute (weight 1): two items with "Golden" and "Worn Gold" now get partial credit.
+- Nothing in the CSV or in `items_clean.parquet` changes: the values live in `data/processed/attributes_inferred.parquet` with method and confidence, and `phase2a_features.py` uses them where the CSV is empty.
+- Tests: 108 (7 new), including a data contract (never replaces a value, only items with a photo, only known values).

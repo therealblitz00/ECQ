@@ -63,7 +63,11 @@ Current scripts in `src/`:
 | `review_app.py` | Browser app for the manual review (standard library + pandas only) |
 | `phase1_vocab.py` | Allowed values for review fixes (`build_vocabulary`, `normalise_fixes`). Used by the review app and `merge`; never accept a fix value that isn't in it |
 | `phase1_clean.py` | Final cleaning (`finalise_items`), the preview table and `load_items()`. Its `CONTRACT_COLUMNS` are the columns later phases may rely on |
-| `phase2a_features.py` | Feature blocks (`features_<block>.npy` + `feature_meta.json`, same row order). So far: categorical (weighted one-hot, rows L2-normalised) |
+| `phase1b_precision.py` | Precision of the image flags from the merged review → `outputs/phase1b/flag_precision.md` (no vision packages) |
+| `phase2a_features.py` | Feature blocks (`features_<block>.npy` + `feature_meta.json`, same row order): categorical, composition, numeric, text. Every block has unit-length rows and named attribute slices that add up to the score |
+| `phase2a_impute.py` | Fills `MATERIAL` (apparel) and `FINISH_FAMILY` (jewellery) where the CSV is empty and the inference is reliable → `data/processed/attributes_inferred.parquet`. Run by `phase2a_features.py`; never changes the CSV values |
+| `phase2a_text.py` | Sentence embedding of a description built from the attributes → `data/embeddings/text.npy` + `.json`. Heavy; vision machine only |
+| `phase2b_palettes.py` | Dominant colours per trusted photo (k-means in LAB on the product pixels) → `data/embeddings/palettes.parquet` + `.json`. Light environment, ~2.5 min |
 
 New code goes into `src/phase<N>_<topic>.py`, one module per roadmap phase (move to a package
 only when a phase outgrows one file). Import paths and constants from `config.py` instead of
@@ -109,11 +113,16 @@ python -m venv .venv
 
 # Phase 2a (rerun after merge)
 .venv/Scripts/python src/phase2a_features.py                       # -> data/processed/features_*.npy + outputs/phase2a/features_report.md
+.venv/Scripts/python src/phase2a_text.py --show 5                  # preview the descriptions (the embedding itself needs the vision environment)
+
+# Phase 2b (computed once, results committed)
+.venv/Scripts/python src/phase2b_palettes.py --limit 60            # trial + outputs/phase2b/palettes_sample.jpg; without --limit: all photos
 
 # Phase 1b (vision environment only)
 .venv/Scripts/python src/phase1b_image_audit.py --limit 300   # quick trial
 .venv/Scripts/python src/phase1b_image_audit.py --reflag      # recompute flags from stored scores
 .venv/Scripts/python src/phase1b_image_audit.py --add-missing # embed only items not in data/embeddings yet
+.venv/Scripts/python src/phase1b_precision.py                # flag precision from the merged review (light environment)
 ```
 
 `data/processed/` is not in git: run `check` and then `python src/phase1_clean.py` after cloning

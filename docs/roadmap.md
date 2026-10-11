@@ -19,17 +19,17 @@ This is the only place that tracks the status. The evidence for each item is in 
 | Sprint | Roadmap phases | Status |
 |---|---|---|
 | **Sprint 1: data cleaning and validation** | 0, 1, 1b | ✅ **Done**: setup, automatic checks, image pre-screen, review app, cleaning, manual review by the 5 members and merge (`items_clean.parquet`) |
-| Sprint 2: features | 1 (rest), 2a, 2b | 🟡 **Started**: categorical block ✅, rebuilt on the merged table (image embeddings already computed in 1b) |
-| Sprint 3: similarity and evaluation | 3, 4 | ⚪ Not started |
+| Sprint 2: features | 1 (rest), 2a, 2b | ✅ **Done**: Phase 2a (4 tabular/text blocks on the merged table) and Phase 2b (image embeddings, colour palettes) |
+| Sprint 3: similarity and evaluation | 3, 4 | ⚪ Next: every input of Phase 3 is ready |
 | Sprint 4: explanations and delivery | 5, 6 | ⚪ Not started |
 
 | Phase | Status | Done | Still to do |
 |---|---|---|---|
 | 0. Setup | ✅ | Repo, environments, README, double-click scripts, `CLAUDE.md`, tests and CI | – |
 | 1. Data foundation | ✅ | Loader, colourway table, sales join, image link, size-conflict check, reports, final cleaning (`phase1_clean.py`), photo trust, review merged → `items_clean.parquet` | Open audit findings (none blocking) |
-| 1b. Image audit | 🟡 | Masks, CLIP embeddings, type/colour/duplicate/quality flags, review app | Human review; measure the flags' precision afterwards |
-| 2a. Tabular/text features | 🟡 | Categorical block (`phase2a_features.py`) | Composition, numeric and text blocks |
-| 2b. Visual features | 🟡 | Image embeddings (`data/embeddings/image_clip.npy`) | Colour palettes, optional tags |
+| 1b. Image audit | ✅ | Masks, CLIP embeddings, type/colour/duplicate/quality flags, review app, human review, flag precision (`phase1b_precision.py`) | Optional: SAM outlines |
+| 2a. Tabular/text features | ✅ | Categorical, composition, numeric and text blocks (`phase2a_features.py`, `phase2a_text.py`) | – |
+| 2b. Visual features | ✅ | Image embeddings (`data/embeddings/image_clip.npy`), colour palettes (`phase2b_palettes.py`) | Optional: DINOv2, CLIP tags |
 | 3–6 | ⚪ | – | Everything |
 
 **Next:**
@@ -193,7 +193,7 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 | `IMG_NOT_PACKSHOT` | 272 | low |
 
 **Still to do:**
-- [ ] Measure the precision of each flag from the reviewers' decisions after the merge (target ≥ 80% for high, ≥ 50% for medium), and adjust the thresholds with `python src/phase1b_image_audit.py --reflag` (seconds, no models needed).
+- [x] Measure the precision of each flag from the reviewers' decisions after the merge (2026-10-11, `python src/phase1b_precision.py` → `outputs/phase1b/flag_precision.md`). Colour flag 70% (target 50% ✅); type mismatch 17% (target 80% ❌: CLIP misreads unusual products and lifestyle photos, and no threshold separates the real cases); near-duplicate 33% (expected: the shared photo is right for one colourway). Any image flag caught 47% of the problems found in the fully reviewed batch 4. Thresholds are **not** changed now, because new flags on already reviewed items would be left pending by a new `merge`; the report gives the recommended settings for a future dataset.
 - [ ] Optional: SAM outlines, if the colour check needs product-only pixels on model photos.
 
 - [x] Image checks and embeddings for the 33 photos linked by `IMG_PATH_REPAIRED` (2026-10-10, `phase1b_image_audit.py --add-missing`, 98 s on CPU). 3 new colour flags; no flag changed on the 9,457 photos already embedded. Only `216726_DM` (damaged file) has no embedding.
@@ -205,10 +205,11 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 ## Phase 2a: Tabular and text features
 
 - [x] **Categorical block:** hierarchy (CAT › GFA › GFS, `CATEGORY_MATRIX`), colour (`CLR_DES`, `CLR_TYPE`), `FINISHING`, `MATERIAL`, `PRINT_TYPE`, `DIMENSION`, `OUTFIT`, `THEME`, `FASHIONTYPE`, `PROD_SEG`, `NUMBER_OF_UNITS`. Use one-hot or weighted encodings, and give the hierarchy levels larger weights. *(2026-10-10: weighted one-hot, 10,555 × 1,619 on the merged table, rows L2-normalised; family and sub-family are encoded as paths under their category; report in `outputs/phase2a/features_report.md`.)*
-- [ ] **Composition block:** multi-hot vector of material tokens.
-- [ ] **Numeric block:** price band, launch season and date.
-- [ ] **Text block:** sentence embedding of a description assembled from the attributes, e.g. *"Hoop earring, golden finish, pearl and zinc, Golden Delicates theme"*.
-- [ ] Keep each block as a separate matrix with the same row order, so the score can later be broken down by block.
+- [x] **Fill missing attributes where reliable** (`src/phase2a_impute.py`, 2026-10-11): `MATERIAL` for apparel (sibling colourway, single-material composition, or a neighbours' vote) and a new `FINISH_FAMILY` (gold / silver / other) for jewellery (neighbours' vote checked against the photo's palette). Only items with a trusted photo, only values with ≥ 90% cross-validated precision: 581 materials and 266 finishing families filled → `data/processed/attributes_inferred.parquet`, report `outputs/phase2a/impute_report.md`. Detailed finishing and hand bag finishing are not reliable enough and stay empty. The CSV and `items_clean.parquet` are not changed.
+- [x] **Composition block:** multi-hot vector of material tokens. *(2026-10-11: 95 materials, weighted by rarity (IDF) so sharing a pearl counts more than sharing polyester; one attribute per material.)*
+- [x] **Numeric block:** price band, launch season and date. *(2026-10-11: price percentile within the category and launch month as soft bands (Gaussian), season one-hot; weights 2 / 1 / 0.5.)*
+- [x] **Text block:** sentence embedding of a description assembled from the attributes, e.g. *"Hoop earring, golden finish, pearl and zinc, Golden Delicates theme"*. *(2026-10-11: `src/phase2a_text.py`, all-MiniLM-L6-v2, 384 numbers per item, 54 s on CPU → `data/embeddings/text.npy` + `text.json`; loaded as the `text` block.)*
+- [x] Keep each block as a separate matrix with the same row order, so the score can later be broken down by block. *(Every block: rows L2-normalised and split into named attribute slices that add up to the score; row order and slices in `feature_meta.json`; contract test in `tests/test_data_contracts.py`.)*
 
 **Output:** `data/processed/features_{block}.npy` and `feature_meta.json`. The text embedding goes to `data/embeddings/text.npy` (committed, computed once).
 
@@ -216,7 +217,7 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 
 - [x] Image embeddings with a pretrained vision model (CLIP ViT-B/32), computed on the **masked crop of the target item** (Phase 1b), so a model's face, clothes or other jewellery don't drive the similarity → `data/embeddings/image_clip.npy`.
 - [ ] Optional: compare a DINOv2 embedding (closer to shape and texture) with CLIP (closer to meaning) in the Phase 4 ablations.
-- [ ] Dominant colour palette for each image (k-means in LAB colour space, on the masked pixels only), so explanations can say things like *"same colour palette"*.
+- [x] Dominant colour palette for each image (k-means in LAB colour space, on the masked pixels only), so explanations can say things like *"same colour palette"*. *(2026-10-11: `src/phase2b_palettes.py`, 9,449 trusted photos in 2.5 min on the light environment → `data/embeddings/palettes.parquet` + `.json`: up to 4 colours with share and name, plus a 24-name `palette_vector` for similarity. Metals look like light neutrals, so the metal comes from `FINISHING`, not the palette.)*
 - [ ] Optional: zero-shot CLIP tags (shape, style, motif) to fill sparse attributes such as `SHAPE` and `PRODUCT_DETAILS`.
 
 **Output:** `data/embeddings/image_clip.npy` + `.json` (committed), `palettes.parquet`, `image_tags.parquet`.

@@ -214,7 +214,9 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 - [x] **Text block:** sentence embedding of a description assembled from the attributes, e.g. *"Hoop earring, golden finish, pearl and zinc, Golden Delicates theme"*. *(2026-10-11: `src/phase2a_text.py`, all-MiniLM-L6-v2, 384 numbers per item, 54 s on CPU → `data/embeddings/text.npy` + `text.json`; loaded as the `text` block.)*
 - [x] Keep each block as a separate matrix with the same row order, so the score can later be broken down by block. *(Every block: rows L2-normalised and split into named attribute slices that add up to the score; row order and slices in `feature_meta.json`; contract test in `tests/test_data_contracts.py`.)*
 
-**Output:** `data/processed/features_{block}.npy` and `feature_meta.json`. The text embedding goes to `data/embeddings/text.npy` (committed, computed once).
+- [x] **Colour names measured on the photos** (`src/phase2a_colour.py`, 2026-10-12): each `CLR_DES` name gets a reference colour (median LAB of the dominant palette colour of its trusted packshots), so close names can be compared ("Navy" ≈ "Midnight Blue" 0.87). 64 of 99 names measured; multicolour and metallic names (37% of the items) and names with under 5 photos only match themselves. → `data/processed/colour_reference.parquet` + `.json`; swatch sheet `outputs/phase2a/colour_reference.jpg` + `.csv` for the team to check. *Not used by the engine:* a soft colour match in the categorical block changed none of the Phase 4 numbers at the same colour weight, and more colour weight traded sub-family and material for colour ([progress](progress.md), entry 22). Used by Phase 5 to explain close colours.
+
+**Output:** `data/processed/features_{block}.npy` and `feature_meta.json`; `colour_reference.parquet` (columns `CLR_DES, items, photos, L, a, b, no_reference, hex`). The text embedding goes to `data/embeddings/text.npy` (committed, computed once).
 
 ## Phase 2b: Visual features *(only images that pass the 1b audit)*
 
@@ -261,7 +263,7 @@ There is no labelled ground truth, so combine several signals:
 - [ ] **Explanation for each match**, calculated from the data:
   - the blocks that contributed most to the score (e.g. *visual 0.45, category 0.30, material 0.15*);
   - attributes shared with the query (*same family: Hoop Earrings; same finish: Golden; shared materials: Zinc, Pearl*);
-  - the main difference (*price €8.99 vs €12.99, different colour*);
+  - the main difference (*price €8.99 vs €12.99, different colour*); two different colour names that look alike are reported as close colours from `colour_reference.parquet` (*Navy ≈ Midnight Blue*);
   - visual evidence: palette swatches, and an optional Grad-CAM image or patch-similarity overlay.
 - [ ] Optional: an LLM writes a one-sentence summary **using only the computed facts** (no new claims).
 - [ ] Output in the format the brief requires: query → ≥4 SKUs, each with its matching attributes. Export as JSON and CSV.

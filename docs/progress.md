@@ -340,3 +340,27 @@ six block weights are fitted to them (Bradley-Terry, the logistic model of RankN
 - Launchers `4_feedback_windows.bat` / `4_feedback_mac.command`; the submit button commits only the member's file
   (`git_submit`, shared with the Phase 1 review app).
 - Tests: 147 (10 new: 9 unit tests, incl. gradient vs finite differences and engine-score equivalence, + a contract on the pool and the answers).
+
+## 22. Colour names measured on the photos (Phase 2a, 2026-10-12)
+
+`CLR_DES` has 99 names and many are shades of one colour. As a one-hot, "Navy" vs "Midnight Blue" scores 0, like "Navy" vs "Red". `src/phase2a_colour.py` gives each name a reference colour measured on the photos instead of a hand-made colour grouping.
+
+- **Reference colour:** median CIELAB of the dominant palette colour (Phase 2b) of the trusted packshots with that name. A refinement that picked, in each photo, the palette colour nearest the reference drifted pale colours to white (Aquamarine, Pastel Blue) and was dropped.
+- **Similarity of two names:** exp(−d² / 2τ²), d = LAB distance with lightness counted half (CMC 2:1), τ = 8. Examples: Navy–Midnight Blue 0.87, Ecru–White 0.87, Blue–Light Blue 0.33, Navy–Blue 0.10, Red–Burgundy 0.
+- **Coverage:** 64 of 99 names measured (63% of the items). Multicolour names (one colour means nothing for a print), metallic names (gold measures as light beige on a photo, and gold vs silver is a key distinction) and names with under 5 photos only match themselves.
+- **Automatic colour families** (k-means on the reference colours) were tried for wording like "both blues" and dropped: Grey and Lilac fell into the blues, and the groups changed with the number of families.
+
+**Engine test** (current weights, test half; τ chosen on the tune half):
+
+| Categorical colour encoding | hit@4 | Sub-family | Colour (exact name) | Material | Close colour (sim ≥ 0.5) | Objective |
+|---|---|---|---|---|---|---|
+| Before: exact name, weight 2 | 90.9% | 89.9% | 58.4% | 74.5% | 60.9% | 0.601 |
+| Exact name 1 + measured tone 1 (τ 6 / 8 / 10) | 90.5–90.6% | 89.9–90.0% | 57.2–57.8% | 74.4–74.8% | 61.3–61.5% | 0.600–0.601 |
+| Exact name 1 + tone 2 | 92.0% | 88.0% | 63.9% | 73.3% | 68.4% | 0.606 |
+| Exact name 1 + tone 3 | 93.2% | 86.0% | 69.1% | 71.5% | 73.9% | 0.607 |
+
+- At the same colour weight the measured tone changes nothing (objective ±0.001): the photo-based blocks (image, palette) and the text already carry most of this signal.
+- More colour weight raises colour agreement but costs sub-family (up to −3.9 points) and material: a trade-off the Phase 4 rule refuses (no metric may drop more than 1 point). Whether buyers want colour first or type first is a question for the team's sorting, not for the proxies.
+- **Decision:** the engine is unchanged (`features_categorical.npy` is identical). The reference table is kept for Phase 5, which can say "close colours: Navy ≈ Midnight Blue" instead of "different colour".
+- **For the team (optional, 2 min):** check `outputs/phase2a/colour_reference.jpg`. Two names look off: "Blue" is a greyish blue (denim and neutral parts in the photos) and "Coffee" is grey (5 photos only).
+- Tests: 155 (8 new: 7 unit tests on hand-made palettes, incl. the exact factorisation of the similarity, + a contract on `colour_reference.parquet`).

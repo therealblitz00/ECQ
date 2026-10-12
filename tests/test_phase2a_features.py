@@ -79,6 +79,9 @@ def test_main_writes_matrix_meta_and_report(checked_items, toy_dirs, monkeypatch
     monkeypatch.setattr(f2a, "REPORT_DIR", toy_dirs / "outputs" / "phase2a")
     monkeypatch.setattr(f2a, "NEEDS_FILE", {"text": checks.EMB_DIR / "text.npy"})  # not in the toy data: skipped
     monkeypatch.setattr(f2a.phase2a_impute, "run", lambda: pd.DataFrame(columns=[checks.KEY, "column", "value"]))
+    monkeypatch.setattr(f2a.phase2a_colour, "PALETTES_FILE", checks.EMB_DIR / "palettes.parquet")  # not in the toy data
+    monkeypatch.setattr(f2a.phase2a_colour, "REFERENCE_FILE", checks.PROCESSED_DIR / "colour_reference.parquet")
+    monkeypatch.setattr(f2a.phase2a_colour, "REPORT_DIR", toy_dirs / "outputs" / "phase2a")
     monkeypatch.setattr("sys.argv", ["phase2a_features.py"])
     f2a.main()
 
@@ -88,6 +91,8 @@ def test_main_writes_matrix_meta_and_report(checked_items, toy_dirs, monkeypatch
     assert meta["source"] == "items_preview" and meta["keys"] == sorted(preview[checks.KEY])
     assert meta["blocks"]["categorical"]["shape"] == list(m.shape) == [len(preview), len(meta["blocks"]["categorical"]["columns"])]
     assert (toy_dirs / "outputs" / "phase2a" / "features_report.md").exists()
+    ref = pd.read_parquet(checks.PROCESSED_DIR / "colour_reference.parquet")
+    assert set(ref["CLR_DES"]) == set(preview["CLR_DES"].dropna()) and ref["hex"].eq("").all()  # no palettes: no colour
 
 
 # --------------------------------------------------------------------------- composition and numeric blocks

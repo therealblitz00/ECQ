@@ -200,3 +200,13 @@ def test_feedback_pool_and_answers_are_valid():
     for r in fb.read_feedback():
         assert r["member"] in by_q[r["query"]]["members"], (r["member"], r["query"])
         fb.check_answer(by_q[r["query"]], r["similar"], r["not"])
+
+
+def test_colour_reference_covers_every_colour_name():
+    """data/processed/colour_reference.parquet (phase2a_colour): one row per CLR_DES name, a colour or a reason."""
+    ref = pd.read_parquet(require(config.PROCESSED_DIR / "colour_reference.parquet"))
+    items = p1.load_items()
+    assert ref["CLR_DES"].is_unique and set(ref["CLR_DES"]) == set(items["CLR_DES"].dropna())
+    measured = ref["no_reference"].isna()
+    assert ref.loc[measured, ["L", "a", "b"]].notna().all().all() and ref.loc[measured, "hex"].str.match(r"^#[0-9a-f]{6}$").all()
+    assert ref.loc[~measured, ["L", "a", "b"]].isna().all().all()

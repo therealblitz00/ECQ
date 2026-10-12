@@ -22,6 +22,9 @@ Blocks:
 
 Before the blocks are built, phase2a_impute fills MATERIAL (apparel) and FINISH_FAMILY (jewellery) where the
 CSV is empty and the inference is reliable (see outputs/phase2a/impute_report.md). CSV values are never replaced.
+It also writes the colour reference of phase2a_colour (colour names measured on the photos), used by Phase 5 to
+say that two different names are close colours. A soft colour match in the categorical block was tried and
+left out: it changed none of the Phase 4 numbers (docs/progress.md, entry 22).
 
 Weights are starting values; Phase 4 tunes them.
 """
@@ -38,6 +41,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import phase1_clean  # noqa: E402
+import phase2a_colour  # noqa: E402
 import phase2a_impute  # noqa: E402
 from config import EMB_DIR, KEY, PROCESSED_DIR, ROOT  # noqa: E402
 
@@ -321,6 +325,7 @@ def main() -> None:
     items = phase1_clean.load_items().sort_values(KEY, kind="stable").reset_index(drop=True)
     source = items_source()
     inferred = phase2a_impute.run()
+    phase2a_colour.write_outputs(phase2a_colour.reference_colours(items, phase2a_colour.load_palettes()))
     items = phase2a_impute.apply_inferred(items, inferred)
     print(f"inferred attributes: {len(inferred):,} values filled (outputs/phase2a/impute_report.md)")
     built = {}

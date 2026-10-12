@@ -146,6 +146,7 @@ description ──[text encoder, once]──► 384–512 numbers
 - [x] Tests for the "done when" rule: unique key, all 10,185 sales rows joined, 10,555 rows, contract columns present (`tests/test_data_contracts.py`, `tests/test_phase1_clean.py`).
 - [x] **Fixed lists for review fixes** (`src/phase1_vocab.py`): a fix can only use values that exist in the data (colour, category › family › sub-family combination, finishing/material per category, materials). The app shows lists, `merge` rejects anything else, and `check` writes `outputs/phase1/review_vocabulary.csv`.
 - [x] Apply the review decisions (`merge`, 2026-10-11): 10,290 ok, 147 fixed, 118 wrong photos unlinked, 0 discarded, 0 unresolved. 270 changes in `outputs/phase1/changes_log.csv` (141 colours, 10 family/sub-family, 1 finishing, 118 image links). → `data/processed/items_clean.parquet` (10,555 rows) and `outputs/phase1/items_clean.csv`.
+- [x] **Every photo checked, not only the flagged ones** (2026-10-12): the 6,912 photos of batches 1, 2, 3 and 5 that nobody had looked at were checked one by one (batch 4 already was). 314 more colour fixes and 4 more wrong photos. Merge now: 9,972 ok, 461 fixed, 122 wrong photos; 588 changes (455 colours).
 
 **Open findings from the 2026-10-09 audit** ([archive](archive/2026-10-09_phase1_audit.md)). None blocks Phase 2:
 - [ ] GAP-001: sanity checks on prices, costs and sales (negative values, outlet price above base price, extreme realised prices).
@@ -193,7 +194,7 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 | `IMG_NOT_PACKSHOT` | 272 | low |
 
 **Still to do:**
-- [x] Measure the precision of each flag from the reviewers' decisions after the merge (2026-10-11, `python src/phase1b_precision.py` → `outputs/phase1b/flag_precision.md`). Colour flag 70% (target 50% ✅); type mismatch 17% (target 80% ❌: CLIP misreads unusual products and lifestyle photos, and no threshold separates the real cases); near-duplicate 33% (expected: the shared photo is right for one colourway). Any image flag caught 47% of the problems found in the fully reviewed batch 4. Thresholds are **not** changed now, because new flags on already reviewed items would be left pending by a new `merge`; the report gives the recommended settings for a future dataset.
+- [x] Measure the precision of each flag from the reviewers' decisions after the merge (2026-10-11, `python src/phase1b_precision.py` → `outputs/phase1b/flag_precision.md`). Colour flag 70% (target 50% ✅); type mismatch 17% (target 80% ❌: CLIP misreads unusual products and lifestyle photos, and no threshold separates the real cases); near-duplicate 33% (expected: the shared photo is right for one colourway). After the full photo check (2026-10-12), any image flag caught only 28% of the 506 problems found by eye. Thresholds are **not** changed now, because new flags on already reviewed items would be left pending by a new `merge`; the report gives the recommended settings for a future dataset.
 - [ ] Optional: SAM outlines, if the colour check needs product-only pixels on model photos.
 
 - [x] Image checks and embeddings for the 33 photos linked by `IMG_PATH_REPAIRED` (2026-10-10, `phase1b_image_audit.py --add-missing`, 98 s on CPU). 3 new colour flags; no flag changed on the 9,457 photos already embedded. Only `216726_DM` (damaged file) has no embedding.

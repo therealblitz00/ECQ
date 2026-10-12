@@ -259,3 +259,14 @@ Only items **with a trusted photo** are filled; items without a photo are left o
 - `FINISH_FAMILY` is also a new categorical attribute (weight 1): two items with "Golden" and "Worn Gold" now get partial credit.
 - Nothing in the CSV or in `items_clean.parquet` changes: the values live in `data/processed/attributes_inferred.parquet` with method and confidence, and `phase2a_features.py` uses them where the CSV is empty.
 - Tests: 108 (7 new), including a data contract (never replaces a value, only items with a photo, only known values).
+
+## 17. Every photo checked (Phase 1, 2026-10-12)
+
+Before, only flagged photos had been looked at in batches 1, 2, 3 and 5 (6,912 photos never seen). Batch 4 had shown that about 3% of unflagged photos have a problem, so all 6,912 were checked one by one on contact sheets of 12.
+
+- **Rule used:** fix only clear colour-family changes (e.g. CSV "Blue", photo turquoise; CSV "Pink", photo fuchsia; CSV "Midnight Blue", photo light pink stone). Close shades (ecru / beige / white, taupe / brown / camel, grey shades) were left as they are, so the fixes stay reliable.
+- **Result:** 314 colour fixes and 4 wrong photos (3 show a sibling colourway's colour, 1 a different article); the rest are ok. Every changed row has a note `[2026-10-12, Manuel: full photo check, team rule]`.
+- Most common errors: "Blue" for turquoise or teal items (jewellery and wallets), "Pink" for fuchsia, "Green" for lime or teal, and pastel names for strong colours.
+- **Merge now:** 9,972 ok, **461 fixed**, 122 wrong photos, 0 unresolved; 588 changes in `changes_log.csv` (455 colours). 9,445 photos trusted.
+- **What it says about the automatic flags:** they caught only 28% of the 506 photo problems found by eye (`outputs/phase1b/flag_precision.md`). A review of flagged items alone would have missed most of them.
+- Phase 2a features, inferred attributes and Phase 2b palettes were rebuilt on the new table. Tests: 108.

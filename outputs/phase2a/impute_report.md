@@ -20,20 +20,20 @@ overall 79%, majority class 24%.
 | ≥ 0.8 | 66% | 92% |
 | ≥ 0.9 | 51% | 95% |
 
-Precision per predicted value at a vote share ≥ 0.8: Viscose 93% (n=268), Cotton 95% (n=206), Polyester 94% (n=148), Lyocell 95% (n=130), Linen 81% (n=59), Modal 83% (n=29), Polyamide 71% (n=14), Acrylic 100% (n=1).
+Precision per predicted value at a vote share ≥ 0.8: Viscose 93% (n=269), Cotton 95% (n=204), Polyester 94% (n=148), Lyocell 95% (n=130), Linen 81% (n=59), Modal 83% (n=29), Polyamide 71% (n=14), Acrylic 100% (n=1).
 Only values with precision ≥ 90% on ≥ 10 predictions are filled by the neighbours:
 Cotton, Lyocell, Polyester, Viscose.
 
-Filled: **581 of 778** items with a photo and no value
-(178 more have no photo and are not filled). Neighbours are kept at a vote share ≥ 0.8.
+Filled: **580 of 777** items with a photo and no value
+(179 more have no photo and are not filled). Neighbours are kept at a vote share ≥ 0.8.
 
 | Method | Items |
 |---|---|
-| composition | 325 |
+| composition | 324 |
 | neighbours | 195 |
 | sibling | 61 |
 
-Values: Cotton 210, Viscose 205, Polyester 59, Lyocell 59, Modal 18, Linen 14, Polyamide 9, Acrylic 5, Wool 2.
+Values: Cotton 210, Viscose 204, Polyester 59, Lyocell 59, Modal 18, Linen 14, Polyamide 9, Acrylic 5, Wool 2.
 
 ## FINISH_FAMILY (Jewellery)
 
@@ -45,10 +45,10 @@ overall 88%, majority class 79%.
 | ≥ 0.5 | 74% | 93% |
 | ≥ 0.6 | 71% | 95% |
 | ≥ 0.7 | 67% | 96% |
-| ≥ 0.8 | 64% | 97% |
+| ≥ 0.8 | 63% | 97% |
 | ≥ 0.9 | 56% | 98% |
 
-Precision per predicted value at a vote share ≥ 0.8: gold 97% (n=2415), silver 95% (n=146), other 97% (n=72), black 100% (n=5).
+Precision per predicted value at a vote share ≥ 0.8: gold 97% (n=2413), silver 95% (n=146), other 97% (n=71), black 100% (n=5).
 Only values with precision ≥ 90% on ≥ 10 predictions are filled by the neighbours:
 gold, other, silver.
 

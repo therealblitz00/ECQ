@@ -1,6 +1,6 @@
 # Phase 1: clean colourway table
 
-Source: `data/processed/items_clean.parquet` · 10,555 colourways · 112 columns · review status: ok 10,290, fix 147, drop_image 118
+Source: `data/processed/items_clean.parquet` · 10,555 colourways · 112 columns · review status: ok 9,972, fix 461, drop_image 122
 
 Produced by `src/phase1_clean.py` (`finalise_items`). Later phases load it with `load_items()`.
 
@@ -22,12 +22,12 @@ Produced by `src/phase1_clean.py` (`finalise_items`). Later phases load it with 
 
 | Category | Items | With photo | Photo trusted | Colour trusted |
 |---|---|---|---|---|
-| Apparel | 2,259 | 1,871 | 1,871 | 1,871 |
+| Apparel | 2,259 | 1,869 | 1,869 | 1,869 |
 | Footwear | 435 | 424 | 424 | 424 |
 | Hand Bag | 1,971 | 1,805 | 1,805 | 1,805 |
-| Jewellery | 4,639 | 4,158 | 4,158 | 4,158 |
+| Jewellery | 4,639 | 4,156 | 4,156 | 4,156 |
 | Wallet | 1,251 | 1,191 | 1,191 | 1,191 |
-| **Total** | 10,555 | 9,449 | 9,449 | 9,449 |
+| **Total** | 10,555 | 9,445 | 9,445 | 9,445 |
 
 ## Schema
 
@@ -41,7 +41,7 @@ Produced by `src/phase1_clean.py` (`finalise_items`). Later phases load it with 
 | `PROD_YEAR_SEA` | str | 100.0 |
 | `SEA_COD` | str | 100.0 |
 | `PROD_REF` | str | 100.0 |
-| `PROG_IMAGE` | str | 98.9 |
+| `PROG_IMAGE` | str | 98.8 |
 | `COMPOSITION` | str | 100.0 |
 | `NET_WEIGHT` | float64 | 97.7 |
 | `PROD_SEG` | str | 100.0 |

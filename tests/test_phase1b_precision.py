@@ -47,4 +47,4 @@ def test_recall_uses_only_fully_reviewed_items(review):
     items, audit = review
     audit.loc[audit[KEY] == "A", "vis_issues"] = ""  # the colour problem of A was found by eye
     t = fp.precision_table(audit, fp.outcomes(items, {"A", "B", "E"}))
-    assert t.attrs["batch4_problems"] == 1 and t.attrs["any_recall"] == 0.0
+    assert t.attrs["problems"] == 1 and t.attrs["any_recall"] == 0.0

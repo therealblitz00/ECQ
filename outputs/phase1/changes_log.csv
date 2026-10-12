@@ -1,18 +1,25 @@
 ﻿PROD_CLR_EQUIV,column,old,new,reviewer,source_file
 140428_BN,CLR_DES,Brown,Silver,Pedro Meireles,batch_03_of_05.csv
 158685_MT,CLR_DES,Mint,Purple,Zé,batch_05_of_05.csv
+158816_LN,CLR_DES,Light Green,Teal,Manuel,batch_01_of_05.csv
+160035_FU,CLR_DES,Fuchsia,Red,Manuel,batch_02_of_05.csv
+166354_ID,CLR_DES,Indigo Dye,Teal,Manuel,batch_02_of_05.csv
 166363_PK,CLR_DES,Pink,Red,Pedro Correia,batch_02_of_05.csv
 169622_PK,CLR_DES,Pink,White,Manuel,batch_04_of_05.csv
 170562_BU,CLR_DES,Burgundy,Navy,Pedro Meireles,batch_03_of_05.csv
+172276_TQ,CLR_DES,Turquoise,Light Blue,Manuel,batch_01_of_05.csv
 192473_BL,CLR_DES,Blue,Red,Zé,batch_05_of_05.csv
 193076_PU,CLR_DES,Purple,Teal,Pedro Correia,batch_02_of_05.csv
 193166_BR,CLR_DES,Brick Red,Blue,André,batch_01_of_05.csv
+1953801PK,CLR_DES,Pink,Coral,Manuel,batch_02_of_05.csv
+1966531FU,CLR_DES,Fuchsia,Red,Manuel,batch_03_of_05.csv
 196653_MA,CLR_DES,Magenta,White,Pedro Meireles,batch_03_of_05.csv
 197623_TK,CLR_DES,Pastel Pink,Turquoise,André,batch_01_of_05.csv
 201255_AM,CLR_DES,Amethyst,Orange,Zé,batch_05_of_05.csv
 201255_MN,CLR_DES,Maroon,Midnight Blue,Zé,batch_05_of_05.csv
 201255_PU,CLR_DES,Purple,Orange,Zé,batch_05_of_05.csv
 201255_TG,CLR_DES,Pastel Green,Purple,Zé,batch_05_of_05.csv
+201841_RY,CLR_DES,Raspberry,Lilac,Manuel,batch_03_of_05.csv
 201884_ID,CLR_DES,Indigo Dye,Pastel Multicolor,Pedro Correia,batch_02_of_05.csv
 204971_OR,CLR_DES,Orange,Bronze,Manuel,batch_04_of_05.csv
 204972_BU,CLR_DES,Burgundy,Turquoise,Zé,batch_05_of_05.csv
@@ -21,136 +28,443 @@
 205683_RY,CLR_DES,Raspberry,Violet,Manuel,batch_04_of_05.csv
 206044_EC,CLR_DES,Ecru,Bright Multicolor,André,batch_01_of_05.csv
 206296_BU,CLR_DES,Burgundy,Pink,Manuel,batch_04_of_05.csv
+207560_PU,CLR_DES,Purple,Lilac,Manuel,batch_02_of_05.csv
+207560_RD,CLR_DES,Red,Coral,Manuel,batch_02_of_05.csv
+207600_DG,CLR_DES,Dark Grey,Dark Green,Manuel,batch_02_of_05.csv
+207808_PK,CLR_DES,Pink,Red,Manuel,batch_05_of_05.csv
+207923_LM,CLR_DES,Lime,Mint,Manuel,batch_01_of_05.csv
+207923_TK,CLR_DES,Pastel Pink,Pink,Manuel,batch_01_of_05.csv
 207937_TK,CLR_DES,Pastel Pink,Turquoise,André,batch_01_of_05.csv
+208021_BL,CLR_DES,Blue,Light Blue,Manuel,batch_05_of_05.csv
+208031_GN,CLR_DES,Green,Turquoise,Manuel,batch_01_of_05.csv
 208071_EC,CLR_DES,Ecru,Yellow,André,batch_01_of_05.csv
+208078_GN,CLR_DES,Green,Light Green,Manuel,batch_03_of_05.csv
+208147_BL,CLR_DES,Blue,Bright Multicolor,Manuel,batch_02_of_05.csv
 208203_EC,CLR_DES,Ecru,White,Pedro Meireles,batch_03_of_05.csv
+208532_GN,CLR_DES,Green,Lime,Manuel,batch_05_of_05.csv
 208619_CA,CLR_DES,Camel,Black,Zé,batch_05_of_05.csv
 208621_BK,CLR_DES,Black,Silver,André,batch_01_of_05.csv
+208692_BL,CLR_DES,Blue,Turquoise,Manuel,batch_01_of_05.csv
+208692_GN,CLR_DES,Green,Lime,Manuel,batch_01_of_05.csv
+208692_PK,CLR_DES,Pink,Fuchsia,Manuel,batch_01_of_05.csv
+208708_GN,CLR_DES,Green,Lime,Manuel,batch_05_of_05.csv
+208709_GN,CLR_DES,Green,Lime,Manuel,batch_01_of_05.csv
+208713_GN,CLR_DES,Green,Lime,Manuel,batch_05_of_05.csv
+208715_PU,CLR_DES,Purple,Violet,Manuel,batch_01_of_05.csv
+208716_GN,CLR_DES,Green,Lime,Manuel,batch_02_of_05.csv
+208722_BL,CLR_DES,Blue,Teal,Manuel,batch_03_of_05.csv
+208729_GN,CLR_DES,Green,Mint,Manuel,batch_01_of_05.csv
+208952_BL,CLR_DES,Blue,Violet,Manuel,batch_03_of_05.csv
+209009_HM,CLR_DES,Halftone Multicolor,Magenta,Manuel,batch_02_of_05.csv
 209024_BL,CLR_DES,Blue,Green,Manuel,batch_04_of_05.csv
+209066_BL,CLR_DES,Blue,White,Manuel,batch_05_of_05.csv
+209219_PU,CLR_DES,Purple,Lilac,Manuel,batch_05_of_05.csv
+209221_PU,CLR_DES,Purple,Lilac,Manuel,batch_01_of_05.csv
+209526_GN,CLR_DES,Green,White,Manuel,batch_02_of_05.csv
+209725_BB,CLR_DES,Bright Blue,Turquoise,Manuel,batch_05_of_05.csv
 209726_LL,CLR_DES,Lilac,Magenta,Manuel,batch_04_of_05.csv
+209746_BL,CLR_DES,Blue,Light Blue,Manuel,batch_01_of_05.csv
+209765_BM,CLR_DES,Bright Multicolor,Fuchsia,Manuel,batch_01_of_05.csv
 209788_BN,CLR_DES,Brown,Orange,Pedro Correia,batch_02_of_05.csv
+210027_CA,CLR_DES,Camel,Nude,Manuel,batch_05_of_05.csv
+210212_GN,CLR_DES,Green,Turquoise,Manuel,batch_05_of_05.csv
+210213_AQ,CLR_DES,Aquamarine,Mint,Manuel,batch_01_of_05.csv
+210213_PK,CLR_DES,Pink,Fuchsia,Manuel,batch_01_of_05.csv
+210214_GN,CLR_DES,Green,Turquoise,Manuel,batch_02_of_05.csv
+210219_GN,CLR_DES,Green,Turquoise,Manuel,batch_02_of_05.csv
+210222_PK,CLR_DES,Pink,Fuchsia,Manuel,batch_01_of_05.csv
+210240_PK,CLR_DES,Pink,Fuchsia,Manuel,batch_02_of_05.csv
+210319_NV,CLR_DES,Navy,Bright Blue,Manuel,batch_01_of_05.csv
+210404_LM,CLR_DES,Lime,Yellow,Manuel,batch_02_of_05.csv
+210432_TB,CLR_DES,Pastel Blue,Turquoise,Manuel,batch_03_of_05.csv
+210434_TB,CLR_DES,Pastel Blue,Turquoise,Manuel,batch_05_of_05.csv
+210435_TB,CLR_DES,Pastel Blue,Turquoise,Manuel,batch_01_of_05.csv
+210438_TB,CLR_DES,Pastel Blue,Turquoise,Manuel,batch_03_of_05.csv
+210441_TB,CLR_DES,Pastel Blue,Turquoise,Manuel,batch_05_of_05.csv
+210442_TB,CLR_DES,Pastel Blue,Turquoise,Manuel,batch_01_of_05.csv
+210547_BK,CLR_DES,Black,Dark Grey,Manuel,batch_03_of_05.csv
+210547_KK,CLR_DES,Khaki,Pastel Green,Manuel,batch_03_of_05.csv
+210587_KK,CLR_DES,Khaki,Mint,Manuel,batch_03_of_05.csv
+210596_PU,CLR_DES,Purple,Fuchsia,Manuel,batch_01_of_05.csv
+210597_PU,CLR_DES,Purple,Fuchsia,Manuel,batch_05_of_05.csv
+210647_BG,CLR_DES,Beige,Bright Multicolor,Manuel,batch_03_of_05.csv
+210788_CA,CLR_DES,Camel,Peach,Manuel,batch_01_of_05.csv
+210788_KK,CLR_DES,Khaki,Pastel Green,Manuel,batch_01_of_05.csv
+210850_AU,CLR_DES,Aubergine,Magenta,Manuel,batch_03_of_05.csv
+210855_GN,CLR_DES,Green,Lime,Manuel,batch_01_of_05.csv
+210857_AU,CLR_DES,Aubergine,Magenta,Manuel,batch_03_of_05.csv
+210894_GN,CLR_DES,Green,Olive,Manuel,batch_02_of_05.csv
+210928_PU,CLR_DES,Purple,Aubergine,Manuel,batch_02_of_05.csv
+210931_TU,CLR_DES,Taupe,Nude,Manuel,batch_05_of_05.csv
+210964_BL,CLR_DES,Blue,Pastel Multicolor,Manuel,batch_02_of_05.csv
 210982_LG,CLR_DES,Light Grey,Light Pink,Manuel,batch_04_of_05.csv
 211095_BL,CLR_DES,Blue,Gold,Zé,batch_05_of_05.csv
+211102_GN,CLR_DES,Green,Light Green,Manuel,batch_03_of_05.csv
 211157_MD,CLR_DES,Mustard,Blue,Pedro Meireles,batch_03_of_05.csv
 211159_GD,GFA_DES_EN,Earrings,Rings,Zé,batch_05_of_05.csv
 211159_GD,GFS_DES_EN,Ear Cuff,Other Rings,Zé,batch_05_of_05.csv
 211176_GD,GFA_DES_EN,Earrings,Rings,Zé,batch_05_of_05.csv
 211176_GD,GFS_DES_EN,Ear Cuff,Other Rings,Zé,batch_05_of_05.csv
 211226_NV,CLR_DES,Navy,White,Zé,batch_05_of_05.csv
+211238_MT,CLR_DES,Mint,Green,Manuel,batch_01_of_05.csv
 211241_NV,CLR_DES,Navy,White,Zé,batch_05_of_05.csv
+211306_YL,CLR_DES,Yellow,Lime,Manuel,batch_03_of_05.csv
+211358_YL,CLR_DES,Yellow,Lime,Manuel,batch_03_of_05.csv
 211413_OX,CLR_DES,Oxford Blue,Burgundy,André,batch_01_of_05.csv
+211434_PU,CLR_DES,Purple,Lilac,Manuel,batch_01_of_05.csv
+211528_YL,CLR_DES,Yellow,Lime,Manuel,batch_03_of_05.csv
+211550_BL,CLR_DES,Blue,Turquoise,Manuel,batch_02_of_05.csv
+211553_BL,CLR_DES,Blue,Turquoise,Manuel,batch_01_of_05.csv
+211557_BL,CLR_DES,Blue,Turquoise,Manuel,batch_03_of_05.csv
 211666_PU,CLR_DES,Purple,Blue,Pedro Correia,batch_02_of_05.csv
+211667_GN,CLR_DES,Green,Teal,Manuel,batch_03_of_05.csv
+211694_PK,CLR_DES,Pink,Fuchsia,Manuel,batch_05_of_05.csv
 211725_GN,CLR_DES,Green,Blue,Manuel,batch_04_of_05.csv
+211729_GN,CLR_DES,Green,Teal,Manuel,batch_03_of_05.csv
 211732_BL,CLR_DES,Blue,Turquoise,Manuel,batch_04_of_05.csv
 211743_GN,CLR_DES,Green,White,André,batch_01_of_05.csv
 211754_GN,CLR_DES,Green,Teal,Manuel,batch_04_of_05.csv
+211755_PK,CLR_DES,Pink,Red,Manuel,batch_01_of_05.csv
+211758_GN,CLR_DES,Green,Teal,Manuel,batch_01_of_05.csv
+211764_GN,CLR_DES,Green,Teal,Manuel,batch_05_of_05.csv
+211813_BL,CLR_DES,Blue,Navy,Manuel,batch_02_of_05.csv
+211813_KK,CLR_DES,Khaki,Pastel Green,Manuel,batch_02_of_05.csv
+211914_BL,CLR_DES,Blue,Turquoise,Manuel,batch_01_of_05.csv
+211925_YL,CLR_DES,Yellow,Lime,Manuel,batch_03_of_05.csv
 211958_ID,CLR_DES,Indigo Dye,Mint,Manuel,batch_04_of_05.csv
 211965_GN,CLR_DES,Green,Orange,André,batch_01_of_05.csv
+212052_TU,CLR_DES,Taupe,Cognac,Manuel,batch_02_of_05.csv
 212065_SV,CLR_DES,Silver,Blue Jeans,Manuel,batch_04_of_05.csv
+212109_KK,CLR_DES,Khaki,Pastel Green,Manuel,batch_01_of_05.csv
+212114_BL,CLR_DES,Blue,Bright Multicolor,Manuel,batch_05_of_05.csv
+212123_NM,CLR_DES,Neutral Multicolor,Pink,Manuel,batch_05_of_05.csv
+212156_BL,CLR_DES,Blue,Light Blue,Manuel,batch_01_of_05.csv
+212156_FU,CLR_DES,Fuchsia,Purple,Manuel,batch_01_of_05.csv
 212203_EC,CLR_DES,Ecru,Green,Pedro Correia,batch_02_of_05.csv
 212257_BL,CLR_DES,Blue,Peach,André,batch_01_of_05.csv
 212264_GN,CLR_DES,Green,Blue,Pedro Meireles,batch_03_of_05.csv
 212265_GN,CLR_DES,Green,Gold,Manuel,batch_04_of_05.csv
 212283_TO,CLR_DES,Pastel Orange,Light Blue,Pedro Correia,batch_02_of_05.csv
+212294_GN,CLR_DES,Green,Teal,Manuel,batch_02_of_05.csv
 212324_TO,CLR_DES,Pastel Orange,Pastel Blue,Zé,batch_05_of_05.csv
+212347_OR,CLR_DES,Orange,Red,Manuel,batch_01_of_05.csv
 212349_DM,CLR_DES,Dark Multicolor,Bright Multicolor,Pedro Meireles,batch_03_of_05.csv
+212355_PU,CLR_DES,Purple,Lilac,Manuel,batch_03_of_05.csv
+212362_MD,CLR_DES,Mustard,Pastel Orange,Manuel,batch_02_of_05.csv
+212443_PP,CLR_DES,Papaya,Grey,Manuel,batch_05_of_05.csv
+212482_MT,CLR_DES,Mint,Light Grey,Manuel,batch_01_of_05.csv
 212528_DN,CLR_DES,Dark Green,White,Pedro Meireles,batch_03_of_05.csv
+212624_BL,CLR_DES,Blue,Teal,Manuel,batch_03_of_05.csv
+212624_GN,CLR_DES,Green,Khaki,Manuel,batch_03_of_05.csv
+212626_BL,CLR_DES,Blue,Teal,Manuel,batch_01_of_05.csv
+212645_TU,CLR_DES,Taupe,Light Grey,Manuel,batch_02_of_05.csv
 212653_WT,CLR_DES,Ecru,White,Zé,batch_05_of_05.csv
+212719_PH,CLR_DES,Peach,Red,Manuel,batch_01_of_05.csv
+212792_BL,CLR_DES,Blue,Violet,Manuel,batch_02_of_05.csv
 212793_BK,CLR_DES,Black,Khaki,Zé,batch_05_of_05.csv
+212809_LM,CLR_DES,Lime,Light Yellow,Manuel,batch_01_of_05.csv
+212823_GN,CLR_DES,Green,Teal,Manuel,batch_05_of_05.csv
+212852_HM,CLR_DES,Halftone Multicolor,Burgundy,Manuel,batch_01_of_05.csv
 212971_PK,CLR_DES,Pink,Navy,André,batch_01_of_05.csv
+212997_MI,CLR_DES,Midnight Blue,Light Pink,Manuel,batch_05_of_05.csv
+212997_TQ,CLR_DES,Turquoise,Mint,Manuel,batch_05_of_05.csv
 213006_MI,CLR_DES,Midnight Blue,Red,André,batch_01_of_05.csv
+213199_PK,CLR_DES,Pink,Taupe,Manuel,batch_05_of_05.csv
+213206_GY,CLR_DES,Grey,Bright Multicolor,Manuel,batch_02_of_05.csv
+213257_GN,CLR_DES,Green,Teal,Manuel,batch_03_of_05.csv
 213422_KK,CLR_DES,Khaki,Green,Zé,batch_05_of_05.csv
+213667_YL,CLR_DES,Yellow,Mustard,Manuel,batch_01_of_05.csv
+213668_BL,CLR_DES,Blue,Navy,Manuel,batch_02_of_05.csv
+213668_YL,CLR_DES,Yellow,Mustard,Manuel,batch_02_of_05.csv
+213691_LM,CLR_DES,Lime,Mustard,Manuel,batch_05_of_05.csv
 213740_DM,CLR_DES,Dark Multicolor,Pastel Multicolor,André,batch_01_of_05.csv
 213832_EC,CLR_DES,Ecru,White,Pedro Meireles,batch_03_of_05.csv
+213837_PU,CLR_DES,Purple,Lilac,Manuel,batch_03_of_05.csv
 213838_PU,CLR_DES,Purple,Gold,André,batch_01_of_05.csv
+213892_PU,CLR_DES,Purple,Violet,Manuel,batch_05_of_05.csv
+213977_OR,CLR_DES,Orange,Brick Red,Manuel,batch_05_of_05.csv
 213986_SW,CLR_DES,Straw,Green,Pedro Meireles,batch_03_of_05.csv
 213986_SW,FINISHING,Golden,Other,Pedro Meireles,batch_03_of_05.csv
+214000_BL,CLR_DES,Blue,Turquoise,Manuel,batch_02_of_05.csv
 214129_BL,CLR_DES,Blue,Black,Zé,batch_05_of_05.csv
+214133_GN,CLR_DES,Green,Navy,Manuel,batch_02_of_05.csv
 214144_BL,CLR_DES,Blue,Green,Pedro Meireles,batch_03_of_05.csv
+214194_PU,CLR_DES,Purple,Bright Blue,Manuel,batch_01_of_05.csv
+214198_PU,CLR_DES,Purple,Bright Blue,Manuel,batch_02_of_05.csv
+214225_AQ,CLR_DES,Aquamarine,Mint,Manuel,batch_01_of_05.csv
+214228_BL,CLR_DES,Blue,Teal,Manuel,batch_01_of_05.csv
+214237_BM,CLR_DES,Bright Multicolor,Bright Blue,Manuel,batch_03_of_05.csv
+214242_EC,CLR_DES,Ecru,White,Manuel,batch_03_of_05.csv
 214273_AQ,CLR_DES,Aquamarine,White,André,batch_01_of_05.csv
 214280_AQ,CLR_DES,Aquamarine,Silver,Zé,batch_05_of_05.csv
+214311_PK,CLR_DES,Pink,Lilac,Manuel,batch_03_of_05.csv
 214313_PK,CLR_DES,Pink,Green,Zé,batch_05_of_05.csv
+214342_MD,CLR_DES,Mustard,Camel,Manuel,batch_03_of_05.csv
+214346_BL,CLR_DES,Blue,Turquoise,Manuel,batch_02_of_05.csv
+214422_PK,CLR_DES,Pink,Fuchsia,Manuel,batch_05_of_05.csv
+214438_LM,CLR_DES,Lime,Olive,Manuel,batch_02_of_05.csv
 214464_GN,CLR_DES,Green,Beige,Zé,batch_05_of_05.csv
 214499_KK,CLR_DES,Khaki,Green,Zé,batch_05_of_05.csv
+214499_LM,CLR_DES,Lime,Light Yellow,Manuel,batch_05_of_05.csv
 214781_TU,CLR_DES,Taupe,Ecru,Zé,batch_05_of_05.csv
 214794_TU,CLR_DES,Taupe,Ecru,Zé,batch_05_of_05.csv
+214811_LL,CLR_DES,Lilac,Mauve,Manuel,batch_01_of_05.csv
 214813_MD,CLR_DES,Mustard,Copper,Manuel,batch_04_of_05.csv
 214938_BN,CLR_DES,Brown,Neutral Multicolor,Pedro Meireles,batch_03_of_05.csv
+214981_KK,CLR_DES,Khaki,Pastel Green,Manuel,batch_02_of_05.csv
+215014_PU,CLR_DES,Purple,Lilac,Manuel,batch_05_of_05.csv
+215030_GY,CLR_DES,Grey,Black,Manuel,batch_02_of_05.csv
+215108_BM,CLR_DES,Bright Multicolor,Red,Manuel,batch_05_of_05.csv
+215116_BL,CLR_DES,Blue,Dark Green,Manuel,batch_02_of_05.csv
 215119_BL,CLR_DES,Blue,Dark Green,Manuel,batch_04_of_05.csv
+215165_LM,CLR_DES,Lime,Mustard,Manuel,batch_05_of_05.csv
 215202_BL,CLR_DES,Blue,Turquoise,Manuel,batch_04_of_05.csv
 215202_TK,CLR_DES,Pastel Pink,Lilac,Manuel,batch_04_of_05.csv
+215411_GN,CLR_DES,Green,Dark Grey,Manuel,batch_02_of_05.csv
+215440_BR,CLR_DES,Brick Red,Cognac,Manuel,batch_02_of_05.csv
+215464_PK,CLR_DES,Pink,Fuchsia,Manuel,batch_01_of_05.csv
 215508_HM,CLR_DES,Halftone Multicolor,Gold,André,batch_01_of_05.csv
+215522_GN,CLR_DES,Green,Teal,Manuel,batch_03_of_05.csv
+215631_GN,CLR_DES,Green,Lime,Manuel,batch_03_of_05.csv
 215825_FU,CLR_DES,Fuchsia,Purple,Zé,batch_05_of_05.csv
+216009_BL,CLR_DES,Blue,Turquoise,Manuel,batch_01_of_05.csv
 216060_EC,CLR_DES,Ecru,Beige,Zé,batch_05_of_05.csv
+216097_BL,CLR_DES,Blue,Teal,Manuel,batch_01_of_05.csv
+216120_PK,CLR_DES,Pink,Mauve,Manuel,batch_03_of_05.csv
 216201_YL,CLR_DES,Yellow,Olive,Manuel,batch_04_of_05.csv
 216252_BL,CLR_DES,Blue,Navy,Manuel,batch_04_of_05.csv
+216277_BL,CLR_DES,Blue,Teal,Manuel,batch_03_of_05.csv
+216309_BL,CLR_DES,Blue,Navy,Manuel,batch_03_of_05.csv
+216367_GY,CLR_DES,Grey,Pastel Green,Manuel,batch_01_of_05.csv
+216465_GN,CLR_DES,Green,Olive,Manuel,batch_01_of_05.csv
+216557_FU,CLR_DES,Fuchsia,Bright Multicolor,Manuel,batch_05_of_05.csv
+216578_GN,CLR_DES,Green,Dark Green,Manuel,batch_01_of_05.csv
+216600_GN,CLR_DES,Green,Dark Grey,Manuel,batch_03_of_05.csv
+216611_BL,CLR_DES,Blue,Teal,Manuel,batch_05_of_05.csv
+216614_GN,CLR_DES,Green,Mustard,Manuel,batch_05_of_05.csv
 216666_BU,CLR_DES,Burgundy,Halftone Multicolor,Pedro Meireles,batch_03_of_05.csv
 216667_BU,CLR_DES,Burgundy,Purple,Manuel,batch_04_of_05.csv
 216721_WI,CLR_DES,Wine,Blue,Manuel,batch_04_of_05.csv
 216724_BU,CLR_DES,Burgundy,Gold,Pedro Correia,batch_02_of_05.csv
+216757_BG,CLR_DES,Beige,Burgundy,Manuel,batch_02_of_05.csv
 216780_FU,CLR_DES,Fuchsia,Aubergine,Manuel,batch_04_of_05.csv
+216875_FU,CLR_DES,Fuchsia,Purple,Manuel,batch_05_of_05.csv
+216877_LM,CLR_DES,Lime,Mustard,Manuel,batch_03_of_05.csv
+216911_TG,CLR_DES,Pastel Green,Red,Manuel,batch_02_of_05.csv
 216994_BM,CLR_DES,Bright Multicolor,Brick Red,Pedro Meireles,batch_03_of_05.csv
+217007_BL,CLR_DES,Blue,Navy,Manuel,batch_03_of_05.csv
+217007_KK,CLR_DES,Khaki,Brown,Manuel,batch_03_of_05.csv
+217036_DG,CLR_DES,Dark Grey,Navy,Manuel,batch_02_of_05.csv
+217044_PK,CLR_DES,Pink,Magenta,Manuel,batch_03_of_05.csv
 217174_BL,CLR_DES,Blue,Turquoise,Manuel,batch_04_of_05.csv
+217180_BL,CLR_DES,Blue,Teal,Manuel,batch_02_of_05.csv
+217184_PK,CLR_DES,Pink,Fuchsia,Manuel,batch_01_of_05.csv
+217185_PK,CLR_DES,Pink,Fuchsia,Manuel,batch_02_of_05.csv
+217244_PK,CLR_DES,Pink,Fuchsia,Manuel,batch_05_of_05.csv
+217279_AQ,CLR_DES,Aquamarine,Mint,Manuel,batch_03_of_05.csv
 217302_PK,CLR_DES,Pink,Light Blue,André,batch_01_of_05.csv
+217303_GN,CLR_DES,Green,Lime,Manuel,batch_03_of_05.csv
+217304_PK,CLR_DES,Pink,Gold,Manuel,batch_02_of_05.csv
 217306_VT,CLR_DES,Violet,Grey,Manuel,batch_04_of_05.csv
 217307_TQ,CLR_DES,Turquoise,Brown,Zé,batch_05_of_05.csv
+217324_MI,CLR_DES,Midnight Blue,Gold,Manuel,batch_01_of_05.csv
+217357_GN,CLR_DES,Green,White,Manuel,batch_01_of_05.csv
+217360_AQ,CLR_DES,Aquamarine,Pastel Green,Manuel,batch_02_of_05.csv
+217405_GN,CLR_DES,Green,White,Manuel,batch_01_of_05.csv
 217426_EC,CLR_DES,Ecru,White,André,batch_01_of_05.csv
+217480_DN,CLR_DES,Dark Green,Lilac,Manuel,batch_01_of_05.csv
 217480_MV,CLR_DES,Mauve,Green,André,batch_01_of_05.csv
 217553_GN,CLR_DES,Green,Taupe,Zé,batch_05_of_05.csv
+217560_GN,CLR_DES,Green,Bright Multicolor,Manuel,batch_01_of_05.csv
+217797_PK,CLR_DES,Pink,Coral,Manuel,batch_03_of_05.csv
+217866_BK,CLR_DES,Black,Dark Grey,Manuel,batch_03_of_05.csv
+217924_BU,CLR_DES,Burgundy,Pink,Manuel,batch_05_of_05.csv
+217924_GN,CLR_DES,Green,Light Blue,Manuel,batch_05_of_05.csv
+217930_RD,CLR_DES,Red,Orange,Manuel,batch_05_of_05.csv
 217936_GN,CLR_DES,Green,Yellow,André,batch_01_of_05.csv
+217943_LM,CLR_DES,Lime,Mustard,Manuel,batch_01_of_05.csv
+218127_GN,CLR_DES,Green,Lime,Manuel,batch_02_of_05.csv
+218163_PK,CLR_DES,Pink,Fuchsia,Manuel,batch_03_of_05.csv
+218166_BL,CLR_DES,Blue,Dark Green,Manuel,batch_02_of_05.csv
 218167_BL,CLR_DES,Blue,Dark Green,Manuel,batch_04_of_05.csv
 218167_BN,CLR_DES,Brown,Beige,Manuel,batch_04_of_05.csv
+218170_BL,CLR_DES,Blue,Light Blue,Manuel,batch_03_of_05.csv
+218260_BU,CLR_DES,Burgundy,Raspberry,Manuel,batch_05_of_05.csv
+218261_BU,CLR_DES,Burgundy,Raspberry,Manuel,batch_03_of_05.csv
+218268_YL,CLR_DES,Yellow,Pastel Multicolor,Manuel,batch_02_of_05.csv
+218272_BL,CLR_DES,Blue,Light Blue,Manuel,batch_03_of_05.csv
 218365_WT,CLR_DES,White,Nude,Manuel,batch_04_of_05.csv
 218388_BL,CLR_DES,Blue,Blue Jeans,André,batch_01_of_05.csv
+218394_BL,CLR_DES,Blue,Navy,Manuel,batch_01_of_05.csv
+218398_OR,CLR_DES,Orange,Coral,Manuel,batch_02_of_05.csv
+218459_LL,CLR_DES,Lilac,Purple,Manuel,batch_05_of_05.csv
+218465_FU,CLR_DES,Fuchsia,Light Pink,Manuel,batch_01_of_05.csv
 218470_BK,CLR_DES,Black,Bright Multicolor,Pedro Correia,batch_02_of_05.csv
+218474_DG,CLR_DES,Dark Grey,Turquoise,Manuel,batch_03_of_05.csv
+218492_ID,CLR_DES,Indigo Dye,Bright Blue,Manuel,batch_02_of_05.csv
 218591_GD,GFA_DES_EN,Bracelets,Necklaces,Pedro Meireles,batch_03_of_05.csv
 218591_GD,GFS_DES_EN,Adjustable Bracelet,Beaded Necklace,Pedro Meireles,batch_03_of_05.csv
+218609_RD,CLR_DES,Red,Brick Red,Manuel,batch_03_of_05.csv
+218631_PU,CLR_DES,Purple,Pink,Manuel,batch_03_of_05.csv
 218664_BU,CLR_DES,Burgundy,Purple,Pedro Meireles,batch_03_of_05.csv
 218666_IC,CLR_DES,Ice,Pastel Green,Manuel,batch_04_of_05.csv
+218667_LM,CLR_DES,Lime,Mustard,Manuel,batch_01_of_05.csv
+218748_BL,CLR_DES,Blue,Green,Manuel,batch_01_of_05.csv
+218748_PK,CLR_DES,Pink,Burgundy,Manuel,batch_01_of_05.csv
 218751_PK,CLR_DES,Pink,Burgundy,Manuel,batch_04_of_05.csv
 218771_GN,GFA_DES_EN,Sweater,T-shirt,Zé,batch_05_of_05.csv
 218771_NV,GFA_DES_EN,Sweater,T-shirt,Zé,batch_05_of_05.csv
+218803_BN,CLR_DES,Brown,Khaki,Manuel,batch_02_of_05.csv
+218840_MI,CLR_DES,Midnight Blue,Teal,Manuel,batch_05_of_05.csv
 218858_BL,CLR_DES,Blue,Green,Manuel,batch_04_of_05.csv
 218864_BL,CLR_DES,Blue,Forest Green,Zé,batch_05_of_05.csv
 218866_BL,CLR_DES,Blue,Light Green,André,batch_01_of_05.csv
+218867_BL,CLR_DES,Blue,Light Grey,Manuel,batch_02_of_05.csv
+218892_BL,CLR_DES,Blue,Mint,Manuel,batch_01_of_05.csv
+218911_PK,CLR_DES,Pink,White,Manuel,batch_02_of_05.csv
+218912_PK,CLR_DES,Pink,White,Manuel,batch_03_of_05.csv
+218918_PK,CLR_DES,Pink,White,Manuel,batch_05_of_05.csv
 218928_PK,CLR_DES,Pink,Pastel Multicolor,Zé,batch_05_of_05.csv
 218930_PK,CLR_DES,Pink,White,André,batch_01_of_05.csv
 218947_GN,CLR_DES,Green,Gold,André,batch_01_of_05.csv
+219098_WT,CLR_DES,White,Pastel Multicolor,Manuel,batch_01_of_05.csv
+219099_FG,CLR_DES,Forest Green,Turquoise,Manuel,batch_01_of_05.csv
+219234_BN,CLR_DES,Brown,Light Blue,Manuel,batch_02_of_05.csv
+219246_DB,CLR_DES,Dark Brown,Silver,Manuel,batch_05_of_05.csv
 219283_RD,CLR_DES,Red,Green,Zé,batch_05_of_05.csv
+219321_PU,CLR_DES,Purple,Burgundy,Manuel,batch_01_of_05.csv
+219322_IC,CLR_DES,Ice,Blue,Manuel,batch_02_of_05.csv
+219343_YL,CLR_DES,Yellow,Lime,Manuel,batch_02_of_05.csv
+219434_BL,CLR_DES,Blue,Teal,Manuel,batch_02_of_05.csv
+219434_GN,CLR_DES,Green,Lime,Manuel,batch_02_of_05.csv
+219436_NV,CLR_DES,Navy,Blue Jeans,Manuel,batch_02_of_05.csv
+219442_GN,CLR_DES,Green,Khaki,Manuel,batch_02_of_05.csv
+219442_MD,CLR_DES,Mustard,Light Yellow,Manuel,batch_02_of_05.csv
+219649_GN,CLR_DES,Green,Mint,Manuel,batch_01_of_05.csv
+219729_BL,CLR_DES,Blue,Light Blue,Manuel,batch_03_of_05.csv
+219758_LM,CLR_DES,Lime,Mustard,Manuel,batch_05_of_05.csv
 219763_GD,GFA_DES_EN,Bracelets,Rings,André,batch_01_of_05.csv
 219763_GD,GFS_DES_EN,Cuff,Other Rings,André,batch_01_of_05.csv
+219824_GN,CLR_DES,Green,Mint,Manuel,batch_01_of_05.csv
+219859_PU,CLR_DES,Purple,Lilac,Manuel,batch_02_of_05.csv
+219862_BL,CLR_DES,Blue,Turquoise,Manuel,batch_02_of_05.csv
+219863_YL,CLR_DES,Yellow,Lime,Manuel,batch_01_of_05.csv
+219972_BL,CLR_DES,Blue,Teal,Manuel,batch_03_of_05.csv
 219973_BL,CLR_DES,Blue,Turquoise,Manuel,batch_04_of_05.csv
+219974_BL,CLR_DES,Blue,Navy,Manuel,batch_05_of_05.csv
 219983_BL,CLR_DES,Blue,Bright Multicolor,Pedro Meireles,batch_03_of_05.csv
+220000_YL,CLR_DES,Yellow,Mustard,Manuel,batch_05_of_05.csv
+220001_YL,CLR_DES,Yellow,Mustard,Manuel,batch_03_of_05.csv
 220035_BL,CLR_DES,Blue,Turquoise,Manuel,batch_04_of_05.csv
 220040_BL,CLR_DES,Blue,Red,André,batch_01_of_05.csv
+220302_GN,CLR_DES,Green,Teal,Manuel,batch_02_of_05.csv
 220327_BL,CLR_DES,Blue,Turquoise,Manuel,batch_04_of_05.csv
+220332_BL,CLR_DES,Blue,Turquoise,Manuel,batch_02_of_05.csv
 220334_BL,CLR_DES,Blue,Turquoise,Manuel,batch_04_of_05.csv
+220335_BL,CLR_DES,Blue,Turquoise,Manuel,batch_05_of_05.csv
+220374_PU,CLR_DES,Purple,Fuchsia,Manuel,batch_01_of_05.csv
+220375_BL,CLR_DES,Blue,Turquoise,Manuel,batch_02_of_05.csv
+220380_BL,CLR_DES,Blue,Teal,Manuel,batch_05_of_05.csv
+220381_BL,CLR_DES,Blue,Turquoise,Manuel,batch_01_of_05.csv
+220383_BL,CLR_DES,Blue,Turquoise,Manuel,batch_03_of_05.csv
+220393_BL,CLR_DES,Blue,Teal,Manuel,batch_01_of_05.csv
+220395_BL,CLR_DES,Blue,Turquoise,Manuel,batch_02_of_05.csv
+220396_BL,CLR_DES,Blue,Turquoise,Manuel,batch_03_of_05.csv
 220397_BL,CLR_DES,Blue,Turquoise,Manuel,batch_04_of_05.csv
+220412_GN,CLR_DES,Green,Mint,Manuel,batch_02_of_05.csv
+220424_BL,CLR_DES,Blue,Teal,Manuel,batch_01_of_05.csv
 220431_BL,CLR_DES,Blue,Turquoise,Manuel,batch_04_of_05.csv
+220433_BL,CLR_DES,Blue,Turquoise,Manuel,batch_05_of_05.csv
+220438_BL,CLR_DES,Blue,Teal,Manuel,batch_05_of_05.csv
+220442_PK,CLR_DES,Pink,Fuchsia,Manuel,batch_03_of_05.csv
 220488_PU,CLR_DES,Purple,Red,Pedro Meireles,batch_03_of_05.csv
 220489_OR,CLR_DES,Orange,Fuchsia,Manuel,batch_04_of_05.csv
+220506_BL,CLR_DES,Blue,Pastel Multicolor,Manuel,batch_03_of_05.csv
+220564_YL,CLR_DES,Yellow,Light Yellow,Manuel,batch_02_of_05.csv
+220590_BL,CLR_DES,Blue,Turquoise,Manuel,batch_03_of_05.csv
+220829_PU,CLR_DES,Purple,Violet,Manuel,batch_01_of_05.csv
+220891_BL,CLR_DES,Blue,Light Blue,Manuel,batch_05_of_05.csv
 220893_TU,CLR_DES,Taupe,Cognac,Manuel,batch_04_of_05.csv
+220904_BL,CLR_DES,Blue,Teal,Manuel,batch_02_of_05.csv
+220939_BU,CLR_DES,Burgundy,Brown,Manuel,batch_02_of_05.csv
+220946_PK,CLR_DES,Pink,Fuchsia,Manuel,batch_02_of_05.csv
+221060_YL,CLR_DES,Yellow,Lime,Manuel,batch_01_of_05.csv
+221133_GN,CLR_DES,Green,Dark Green,Manuel,batch_05_of_05.csv
+221133_OR,CLR_DES,Orange,Red,Manuel,batch_05_of_05.csv
 221141_SV,CLR_DES,Silver,Champagne,Pedro Meireles,batch_03_of_05.csv
 221162_CL,CLR_DES,Coral,Mustard,Manuel,batch_04_of_05.csv
 221180_LK,CLR_DES,Light Pink,Khaki,Pedro Meireles,batch_03_of_05.csv
+221197_PK,CLR_DES,Pink,Fuchsia,Manuel,batch_01_of_05.csv
+221507_BL,CLR_DES,Blue,Mint,Manuel,batch_01_of_05.csv
+221517_BL,CLR_DES,Blue,Mint,Manuel,batch_01_of_05.csv
+221648_GN,CLR_DES,Green,White,Manuel,batch_01_of_05.csv
+221649_GN,CLR_DES,Green,White,Manuel,batch_02_of_05.csv
+221737_PK,CLR_DES,Pink,Raspberry,Manuel,batch_03_of_05.csv
 221744_BL,CLR_DES,Blue,Blue Jeans,Pedro Meireles,batch_03_of_05.csv
+221778_BL,CLR_DES,Blue,Navy,Manuel,batch_05_of_05.csv
+221780_BL,CLR_DES,Blue,Navy,Manuel,batch_05_of_05.csv
+221811_FU,CLR_DES,Fuchsia,Coral,Manuel,batch_01_of_05.csv
+221820_OL,CLR_DES,Olive,Light Green,Manuel,batch_01_of_05.csv
+222004_PK,CLR_DES,Pink,Orange,Manuel,batch_05_of_05.csv
+222007_OX,CLR_DES,Oxford Blue,Turquoise,Manuel,batch_03_of_05.csv
+222285_BL,CLR_DES,Blue,Teal,Manuel,batch_01_of_05.csv
+222286_PK,CLR_DES,Pink,Raspberry,Manuel,batch_03_of_05.csv
+222472_BL,CLR_DES,Blue,Teal,Manuel,batch_05_of_05.csv
+222563_PK,CLR_DES,Pink,Old Rose,Manuel,batch_03_of_05.csv
+222579_BL,CLR_DES,Blue,Bright Blue,Manuel,batch_01_of_05.csv
+222585_PK,CLR_DES,Pink,Fuchsia,Manuel,batch_02_of_05.csv
+222672_YL,CLR_DES,Yellow,Mustard,Manuel,batch_05_of_05.csv
+222673_YL,CLR_DES,Yellow,Mustard,Manuel,batch_03_of_05.csv
+222692_BL,CLR_DES,Blue,Light Blue,Manuel,batch_05_of_05.csv
 222695_BM,CLR_DES,Bright Multicolor,White,Zé,batch_05_of_05.csv
+222735_GN,CLR_DES,Green,White,Manuel,batch_02_of_05.csv
+222783_GN,CLR_DES,Green,Dark Grey,Manuel,batch_03_of_05.csv
+222794_BL,CLR_DES,Blue,Teal,Manuel,batch_01_of_05.csv
+223102_BL,CLR_DES,Blue,Light Blue,Manuel,batch_02_of_05.csv
+223127_TU,CLR_DES,Taupe,Bright Multicolor,Manuel,batch_03_of_05.csv
+2233011BU,CLR_DES,Burgundy,Aubergine,Manuel,batch_01_of_05.csv
+223301_BL,CLR_DES,Blue,Teal,Manuel,batch_01_of_05.csv
 223384_BM,CLR_DES,Bright Multicolor,Neutral Multicolor,Pedro Meireles,batch_03_of_05.csv
 223401_BM,CLR_DES,Bright Multicolor,Light Blue,Manuel,batch_04_of_05.csv
 223455_BM,CLR_DES,Bright Multicolor,Neutral Multicolor,Pedro Meireles,batch_03_of_05.csv
+223477_OR,CLR_DES,Orange,Brick Red,Manuel,batch_01_of_05.csv
+223516_FU,CLR_DES,Fuchsia,Coral,Manuel,batch_02_of_05.csv
 223704_LB,CLR_DES,Light Blue,Lilac,Pedro Meireles,batch_03_of_05.csv
 223758_LB,CLR_DES,Light Blue,White,André,batch_01_of_05.csv
 223888_BK,CLR_DES,Black,Gold,Zé,batch_05_of_05.csv
+223920_BL,CLR_DES,Blue,Grey,Manuel,batch_01_of_05.csv
+223926_LK,CLR_DES,Light Pink,Peach,Manuel,batch_03_of_05.csv
+224005_BL,CLR_DES,Blue,Grey,Manuel,batch_03_of_05.csv
 224263_LL,CLR_DES,Lilac,Light Pink,Manuel,batch_04_of_05.csv
+224272_LL,CLR_DES,Lilac,Light Pink,Manuel,batch_03_of_05.csv
 224304_GN,CLR_DES,Green,Brown,Zé,batch_05_of_05.csv
+224307_GN,CLR_DES,Green,Mint,Manuel,batch_03_of_05.csv
 224390_BU,CLR_DES,Burgundy,Mint,Pedro Correia,batch_02_of_05.csv
+224470_GN,CLR_DES,Green,Teal,Manuel,batch_01_of_05.csv
+224491_GN,CLR_DES,Green,Pastel Green,Manuel,batch_02_of_05.csv
+224710_LB,CLR_DES,Light Blue,Light Grey,Manuel,batch_02_of_05.csv
+224717_LB,CLR_DES,Light Blue,Light Grey,Manuel,batch_05_of_05.csv
 224733_BL,CLR_DES,Blue,White,Pedro Correia,batch_02_of_05.csv
+224739_LB,CLR_DES,Light Blue,Light Grey,Manuel,batch_03_of_05.csv
 224740_BL,CLR_DES,Blue,Light Green,Manuel,batch_04_of_05.csv
 224740_FG,CLR_DES,Forest Green,Silver,Manuel,batch_04_of_05.csv
 224746_LB,CLR_DES,Light Blue,Lilac,Manuel,batch_04_of_05.csv
+224751_LB,CLR_DES,Light Blue,Lilac,Manuel,batch_05_of_05.csv
 224752_TB,CLR_DES,Pastel Blue,Teal,Manuel,batch_04_of_05.csv
+224754_OX,CLR_DES,Oxford Blue,Turquoise,Manuel,batch_01_of_05.csv
 224772_TL,CLR_DES,Teal,Gold,Pedro Correia,batch_02_of_05.csv
 224789_TB,CLR_DES,Pastel Blue,Grey,Pedro Correia,batch_02_of_05.csv
+224794_TQ,CLR_DES,Turquoise,Navy,Manuel,batch_03_of_05.csv
+224796_BL,CLR_DES,Blue,Teal,Manuel,batch_05_of_05.csv
+224822_LM,CLR_DES,Lime,Light Green,Manuel,batch_02_of_05.csv
+224859_BL,CLR_DES,Blue,Teal,Manuel,batch_05_of_05.csv
+224859_NV,CLR_DES,Navy,Blue,Manuel,batch_05_of_05.csv
+224864_BL,CLR_DES,Blue,Teal,Manuel,batch_02_of_05.csv
+224864_NV,CLR_DES,Navy,Blue,Manuel,batch_02_of_05.csv
+224874_CA,CLR_DES,Camel,Khaki,Manuel,batch_05_of_05.csv
+224945_BL,CLR_DES,Blue,Navy,Manuel,batch_05_of_05.csv
+224994_BL,CLR_DES,Blue,Grey,Manuel,batch_02_of_05.csv
+225053_BL,CLR_DES,Blue,Turquoise,Manuel,batch_05_of_05.csv
 166730_AU,img_file,166730_1.jpg,,Pedro Meireles,batch_03_of_05.csv
 166730_BR,img_file,166730_BR_1.jpg,,Pedro Meireles,batch_03_of_05.csv
 181831_BL,img_file,181831_1.jpg,,André,batch_01_of_05.csv
@@ -174,15 +488,18 @@
 214651_PK,img_file,,,André,batch_01_of_05.csv
 215315_MD,img_file,215315_MDXS-S_3.jpg,,Zé,batch_05_of_05.csv
 215514_PK,img_file,215514_1.jpg,,André,batch_01_of_05.csv
+215896_BL,img_file,215896_BL_1.jpg,,Manuel,batch_03_of_05.csv
 216201_NV,img_file,216201_1.jpg,,Manuel,batch_04_of_05.csv
 216726_DM,img_file,216726_DM_1.jpg,,Pedro Meireles,batch_03_of_05.csv
 217651_TL,img_file,217651_1.jpg,,Pedro Meireles,batch_03_of_05.csv
 217956_FU,img_file,217956_1.jpg,,Manuel,batch_04_of_05.csv
 217956_GN,img_file,217956_1.jpg,,Manuel,batch_04_of_05.csv
 218168_BK,img_file,218168_1.jpg,,Manuel,batch_04_of_05.csv
+218926_GN,img_file,218926_GN_1.jpg,,Manuel,batch_01_of_05.csv
 219039_BL,img_file,219039_2.jpg,,André,batch_01_of_05.csv
 219039_YL,img_file,219039_2.jpg,,André,batch_01_of_05.csv
 219907_PK,img_file,219907_1.jpg,,Manuel,batch_04_of_05.csv
+220008_MI,img_file,220008_MI_1.jpg,,Manuel,batch_05_of_05.csv
 221976_BK,img_file,221976_1.jpg,,Zé,batch_05_of_05.csv
 221976_EC,img_file,221976_1.jpg,,Zé,batch_05_of_05.csv
 221979_EC,img_file,221979_1.jpg,,Manuel,batch_04_of_05.csv
@@ -190,6 +507,7 @@
 221982_TU,img_file,221982_1.jpg,,André,batch_01_of_05.csv
 222233_BK,img_file,222233_1.jpg,,Pedro Meireles,batch_03_of_05.csv
 222233_TU,img_file,222233_1.jpg,,Pedro Meireles,batch_03_of_05.csv
+222256_BM,img_file,222256_BM_1.jpg,,Manuel,batch_03_of_05.csv
 222539_LB,img_file,222539_1.jpg,,Pedro Meireles,batch_03_of_05.csv
 222686_BK,img_file,222686_BK_1.jpg,,Pedro Correia,batch_02_of_05.csv
 222811_BM,img_file,222811_BM_1.jpg,,Pedro Correia,batch_02_of_05.csv

@@ -1,0 +1,3 @@
+# Packages for notebooks/ (on top of requirements.txt). Install with: pip install -r requirements-notebook.txt
+jupyter
+matplotlib>=3.7

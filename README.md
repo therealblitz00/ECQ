@@ -111,6 +111,7 @@ the app replaces them.
 | [docs/problem.md](docs/problem.md) | The case brief from Parfois |
 | [CLAUDE.md](CLAUDE.md) | Conventions for AI coding agents (and a good summary for humans) |
 | [docs/archive/](docs/archive/) | Older documents kept for reference (resolved audit) |
+| [notebooks/phase1_preprocessing.ipynb](notebooks/phase1_preprocessing.ipynb) | Sprint 1 preprocessing step by step, with tables and charts (needs `requirements-notebook.txt`) |
 
 **Naming:** the work is organised in **phases** (0, 1, 1b, 2a, …), and code and output folders use the phase number (`phase1_checks.py`, `outputs/phase1b/`). Sprints are only the calendar: the roadmap shows which phases each sprint covers.
 

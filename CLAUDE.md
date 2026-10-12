@@ -46,7 +46,7 @@ src/               pipeline scripts (see below)
 outputs/phase<N>/  reports, review batches, contact sheets of each phase
 tests/             pytest suite (toy fixtures + data contracts)
 docs/              roadmap (status), progress log, review guide, data dictionary, brief, archive/
-notebooks/         exploration only, never imported
+notebooks/         self-contained notebooks (deliverables), never imported and never importing src/
 ```
 
 **Naming: phases only.** Code and output folders use the roadmap phase number
@@ -95,6 +95,11 @@ redefining them.
    attributes); an LLM may only rephrase them. See `docs/roadmap.md` § Architecture decision.
 7. **Restrict candidates to like-for-like items** (same `CAT_DES_EN`, or `GFA_DES_EN`) unless a
    task says otherwise.
+8. **A notebook never calls a project Python file.** No `import` of anything in `src/`, no `sys.path` tricks,
+   no `%run`, no `subprocess`/`!python`. Every step is written in the notebook itself with pandas, NumPy,
+   matplotlib and Pillow, reading only data files (`data/`, `outputs/`). Steps that were not done in code
+   (the manual review) or are too heavy to rerun (CLIP, embeddings) are **described**, and their saved
+   results are loaded as data. Notebooks are course deliverables: a reader must be able to follow every step.
 
 ## Environment and commands
 

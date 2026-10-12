@@ -35,7 +35,7 @@ This is the only place that tracks the status. The evidence for each item is in 
 | 5–6 | ⚪ | – | Everything |
 
 **Next:**
-1. **Team:** fill `outputs/phase4/human_review.csv` (sheet *n* = member *n*, 10 queries each, 60–70 pairs): `verdict` = `similar`, `partly` or `not`, looking at `human_review_<n>.jpg`. Edit only your own rows. Then one person runs `python src/phase4_eval.py run --apply`, which picks the image weight with the best human precision, and `python src/phase3_engine.py build`.
+1. **Team:** each member fills `outputs/phase4/human_review_<n>.csv` (10 queries, 60–70 pairs): `verdict` = `similar`, `partly` or `not`, looking at `human_review_<n>.jpg`. Steps in the README. Then one person runs `python src/phase4_eval.py run --apply`, which picks the image weight with the best human precision, and `python src/phase3_engine.py build`.
 2. Phase 5 can start now: the explanations read `sim_<block>` / `contrib_<block>` from `neighbours.parquet`.
 
 ---
@@ -242,10 +242,10 @@ There is no labelled ground truth, so combine several signals:
 - [x] **Attribute agreement:** for the top-k results, the share with the same family, colour, finish or material. *(Top 4: family 98%, sub-family 90%, colour 58%, finishing 84%, material 74%; plus `visual@4`: share among the query's 20 nearest photos, 39%.)*
 - [x] **Commercial sanity check:** similar items should have similar prices and sales profiles (correlation of log sales). *(Spearman 0.62 between the query's sales percentile and its top 4 (random 0.00); median price ratio 1.00.)*
 - [x] **Ablations:** tabular only, visual only, and combined. Tune the block weights. *(Each block alone and left out; tuned on half of the models, reported on the other half. A change is kept only if no metric drops by more than 1 point, because every proxy is circular for one block: an unconstrained search put 88% of the weight on the image and lost a third of the material agreement. The image weight itself is left to the human review.)*
-- [ ] **Human review set:** about 50 query items × top-5 results in a scoring sheet for buyers or the team. *(Sheet ready: `outputs/phase4/human_review.csv`, 50 queries (10 per category, 2 without a photo), blind pool of the top 5 at image weights 0, 0.3 and 0.6 = 319 pairs; waiting for the team's verdicts.)*
+- [ ] **Human review set:** about 50 query items × top-5 results in a scoring sheet for buyers or the team. *(Sheets ready: `outputs/phase4/human_review_<n>.csv`, one per member, 50 queries (10 per category, 2 without a photo), blind pool of the top 5 at image weights 0, 0.3 and 0.6 = 319 pairs; waiting for the team's verdicts.)*
 - [x] A fixed evaluation script, so every change reports the same numbers. *(`src/phase4_eval.py run`, ~3 min, fixed split and seeds.)*
 
-**Output:** `outputs/phase4/eval_report.md`, `eval_metrics.csv`, `weight_search.csv`, `human_review.csv` + `.json` + contact sheets.
+**Output:** `outputs/phase4/eval_report.md`, `eval_metrics.csv`, `weight_search.csv`, `human_review_<n>.csv` + `.jpg` (one per member) + `human_review.json`.
 **Done when:** an `outputs/phase4/eval_report.md` is generated automatically, and the chosen weights are justified by the ablations.
 
 ## Phase 5: Explainability and output

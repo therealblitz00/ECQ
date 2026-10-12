@@ -107,4 +107,4 @@ The current weights already come from an earlier tuning (phase4_eval.py run --ap
 
 ## Human review
 
-No verdicts yet. The team fills `outputs/phase4/human_review.csv` (`similar` / `partly` / `not`) using the contact sheets `human_review_<n>.jpg`, then reruns `run`. The sheet pools the top 5 of image weights 0, 0.3, 0.6, so the verdicts score each of them.
+No verdicts yet. Each member fills `outputs/phase4/human_review_<n>.csv` (`similar` / `partly` / `not`) using the contact sheet `human_review_<n>.jpg`, then reruns `run`. The sheet pools the top 5 of image weights 0, 0.3, 0.6, so the verdicts score each of them.

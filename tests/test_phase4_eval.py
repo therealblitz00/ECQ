@@ -84,3 +84,10 @@ def test_the_sheet_is_blind_deduplicated_and_never_overwritten(items, tmp_path):
     assert ev.has_verdicts(path)
     v = ev.read_verdicts(path)
     assert v["value"].tolist() == [1.0]
+
+
+def test_a_sheet_saved_by_excel_in_portuguese_is_read(tmp_path):
+    path = tmp_path / "human_review_1.csv"
+    path.write_bytes("sheet;query;candidate;verdict;notes\n1;A_BK;B_BK;partly;cor diferente, preço\n".encode("cp1252"))
+    s = ev.read_sheet(path)
+    assert s.loc[0, "verdict"] == "partly" and s.loc[0, "notes"] == "cor diferente, preço"

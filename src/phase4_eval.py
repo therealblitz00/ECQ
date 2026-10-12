@@ -2,7 +2,7 @@
 
     python src/phase4_eval.py run            # -> outputs/phase4/eval_report.md + eval_metrics.csv + weight_search.csv
     python src/phase4_eval.py run --apply    # also writes the chosen weights to src/phase3_weights.json
-    python src/phase4_eval.py sheet          # -> outputs/phase4/human_review.csv + contact sheets for the team
+    python src/phase4_eval.py sheet          # -> outputs/phase4/human_review_<n>.csv + .jpg, one per team member
 
 There is no ground truth, so three families of signals are combined:
 
@@ -27,6 +27,7 @@ other half. `sheet` never overwrites a sheet that already has verdicts.
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import string
 import sys
@@ -43,7 +44,7 @@ import phase3_engine as engine  # noqa: E402
 from config import IMG_DIR, KEY, ROOT  # noqa: E402
 
 REPORT_DIR = ROOT / "outputs" / "phase4"
-SHEET_FILE = REPORT_DIR / "human_review.csv"
+SHEET_PATTERN = "human_review_*.csv"  # one file per member, so nobody's save conflicts with another's
 SHEET_META = REPORT_DIR / "human_review.json"
 K = engine.MIN_K
 VISUAL_POOL = 20         # a candidate is a "visual neighbour" if it is among the query's 20 nearest photos
@@ -243,11 +244,26 @@ def describe(items: pd.DataFrame, keys) -> list[str]:
             f"{r.FINISHING if pd.notna(r.FINISHING) else '-'} | {r.PRICE_BASE_W_VAT:.2f} €" for r in it.itertuples()]
 
 
-def has_verdicts(path: Path = SHEET_FILE) -> bool:
-    if not path.exists():
-        return False
-    s = pd.read_csv(path, dtype=str, encoding="utf-8-sig", keep_default_na=False)
-    return s["verdict"].str.strip().ne("").any()
+def sheet_paths(paths: Path | list[Path] | None = None) -> list[Path]:
+    if paths is None:
+        return sorted(REPORT_DIR.glob(SHEET_PATTERN))
+    return [paths] if isinstance(paths, Path) else list(paths)
+
+
+def read_sheet(path: Path) -> pd.DataFrame:
+    """A review sheet as saved by anyone: Excel in Portuguese saves with ';' and sometimes not in UTF-8."""
+    raw = path.read_bytes()
+    try:
+        text = raw.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        text = raw.decode("cp1252")
+    first = text.split("\n", 1)[0]
+    sep = ";" if first.count(";") > first.count(",") else ","
+    return pd.read_csv(io.StringIO(text), sep=sep, dtype=str, keep_default_na=False)
+
+
+def has_verdicts(paths: Path | list[Path] | None = None) -> bool:
+    return any(read_sheet(p)["verdict"].str.strip().ne("").any() for p in sheet_paths(paths) if p.exists())
 
 
 def make_sheet(items: pd.DataFrame, pooled: pd.DataFrame, queries: list[str], per_sheet: int = 10) -> pd.DataFrame:
@@ -298,10 +314,10 @@ def review_contact_sheet(items: pd.DataFrame, rows: pd.DataFrame, path: Path, ce
     sheet.save(path, quality=85)
 
 
-def read_verdicts(path: Path = SHEET_FILE) -> pd.DataFrame | None:
-    if not has_verdicts(path):
+def read_verdicts(paths: Path | list[Path] | None = None) -> pd.DataFrame | None:
+    if not has_verdicts(paths):
         return None
-    s = pd.read_csv(path, dtype=str, encoding="utf-8-sig", keep_default_na=False)
+    s = pd.concat([read_sheet(p) for p in sheet_paths(paths) if p.exists()], ignore_index=True)
     s["value"] = s["verdict"].str.strip().str.lower().map(VERDICTS)
     return s.dropna(subset=["value"])[["query", "candidate", "value"]]
 
@@ -343,8 +359,8 @@ def write_report(res: pd.DataFrame, sweep: pd.DataFrame, search: pd.DataFrame, c
     steps = search[["step", "change"] + FAMILY_COLS].set_index("step")
     main = res.loc[["random (same category)", "current weights", "chosen weights"]]
     abl = res.drop(index=["random (same category)", "chosen weights"])
-    human_text = (f"No verdicts yet. The team fills `outputs/phase4/human_review.csv` (`similar` / `partly` / `not`) "
-                  f"using the contact sheets `human_review_<n>.jpg`, then reruns `run`. The sheet pools the top "
+    human_text = (f"No verdicts yet. Each member fills `outputs/phase4/human_review_<n>.csv` (`similar` / `partly` / `not`) "
+                  f"using the contact sheet `human_review_<n>.jpg`, then reruns `run`. The sheet pools the top "
                   f"{SHEET_TOP} of image weights {', '.join(f'{w:g}' for w in SHEET_IMAGE)}, so the verdicts score each "
                   f"of them." if human is None else table(human, list(human.columns)))
     text = f"""# Phase 4: evaluation report
@@ -478,7 +494,7 @@ def cmd_run(args: argparse.Namespace) -> None:
 
 def cmd_sheet(args: argparse.Namespace) -> None:
     if has_verdicts():
-        raise SystemExit(f"{SHEET_FILE} already has verdicts: not overwritten (the team's work).")
+        raise SystemExit("outputs/phase4/human_review_*.csv already have verdicts: not overwritten (the team's work).")
     items, blocks = load()
     current = engine.load_weights()
     queries = sheet_queries(items)
@@ -486,13 +502,14 @@ def cmd_sheet(args: argparse.Namespace) -> None:
     pooled = pd.concat([engine.neighbours(items, blocks, w, k=SHEET_TOP, queries=queries) for w in configs.values()])
     s = make_sheet(items, pooled, queries)
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
-    s.to_csv(SHEET_FILE, index=False, encoding="utf-8-sig")
     SHEET_META.write_text(json.dumps({"queries": queries, "top": SHEET_TOP, "configs": configs, "seed": SEED,
                                       "created": datetime.now(timezone.utc).isoformat(timespec="seconds")},
                                      indent=1), encoding="utf-8")
     for n, grp in s.groupby("sheet"):
+        grp.to_csv(REPORT_DIR / f"human_review_{n}.csv", index=False, encoding="utf-8-sig")
         review_contact_sheet(items, grp, REPORT_DIR / f"human_review_{n}.jpg")
-    print(f"{len(queries)} queries, {len(s)} pairs to judge -> {SHEET_FILE} + {s['sheet'].nunique()} contact sheets")
+    print(f"{len(queries)} queries, {len(s)} pairs to judge -> outputs/phase4/human_review_<n>.csv + .jpg "
+          f"({s['sheet'].nunique()} sheets)")
 
 
 def main() -> None:

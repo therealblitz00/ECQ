@@ -63,6 +63,43 @@ python -m venv .venv
 
 ---
 
+## Your task now: score the similar products (Phase 4)
+
+The similarity engine is built. Before we fix how much the **photo** counts against the **product attributes**,
+we need your judgement on real results. About 20–30 minutes per person, nothing to install or run.
+
+1. `git pull` (or download the ZIP again).
+2. Open your contact sheet `outputs/phase4/human_review_<n>.jpg`, where `<n>` is your number:
+   1 André · 2 Pedro Correia · 3 Pedro Meireles · 4 Manuel · 5 Zé.
+   Each row is one product (**QUERY**, in red) followed by candidates labelled **A, B, C…**
+3. Open **your** file `outputs/phase4/human_review_<n>.csv` (Excel works; one file per person, so nobody's save
+   clashes with another's) and fill every row:
+
+   | Column | What to write |
+   |---|---|
+   | `verdict` | `similar` · `partly` · `not` (one per row) |
+   | `reviewer` | your name |
+   | `notes` | optional: why, if it's a hard case |
+
+   - **similar**: a buyer would accept it as an alternative to the query (same type of product, close style).
+   - **partly**: same type, but a clear difference (style, material, colour, price).
+   - **not**: a buyer would not show it next to the query.
+   - Judge the product, not the photo quality. The rows with "no trusted photo" are judged from the text.
+4. Save it as CSV with the same name (Excel's `;` format is fine), then commit and push only your file
+   (`Phase 4: human review sheet <n>`). Don't edit other people's files.
+
+The candidates come from three versions of the engine, mixed and without scores, so you can't tell which one
+proposed what. When all 5 sheets are done, one person runs:
+
+```bash
+.venv/bin/python src/phase1_checks.py check && .venv/bin/python src/phase1_checks.py merge
+.venv/bin/python src/phase2a_features.py
+.venv/bin/python src/phase4_eval.py run --apply    # picks the photo weight with the best human score
+.venv/bin/python src/phase3_engine.py build        # rebuilds the similar products with it
+```
+
+---
+
 ## Documentation
 
 | Read this | When you want to know |
@@ -93,16 +130,22 @@ python -m venv .venv
 │   ├── phase1_clean.py        final cleaning, load_items() for the next phases
 │   ├── phase1_vocab.py        allowed values for review fixes (fixed lists)
 │   ├── phase1b_image_audit.py image masks, CLIP embeddings, image checks (heavy: one machine only)
+│   ├── phase2a_*.py, phase2b_palettes.py   feature blocks, filled attributes, text embedding, colour palettes
+│   ├── phase3_engine.py       similarity engine (build | query) + phase3_weights.json
+│   ├── phase4_eval.py         evaluation, weight tuning, human review sheet (run | sheet)
 │   └── review_app.py          browser review app
 ├── tests/                     pytest suite
 ├── data/
 │   ├── csv/                   df_product.csv (17,125 SKUs), df_sales.csv (10,185 colourways)   READ-ONLY
 │   ├── images/                9,496 product photos                                              READ-ONLY
 │   ├── embeddings/            masks, image embeddings, image-check flags (computed once, in git)
-│   └── processed/             generated tables, not in git (items_checked, items_preview, items_clean)
+│   └── processed/             generated tables, not in git (items_clean, features_*, neighbours)
 └── outputs/
     ├── phase1/                check report, cleaning report, review_vocabulary.csv, review batches (batches/)
-    └── phase1b/               image-check report and contact sheets
+    ├── phase1b/               image-check report and contact sheets
+    ├── phase2a/, phase2b/     feature and palette reports
+    ├── phase3/                engine report + example matches
+    └── phase4/                evaluation report + human review sheet (human_review_<n>.csv + .jpg, one per member)
 ```
 
 ## Data confidentiality

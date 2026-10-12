@@ -170,10 +170,10 @@ def test_neighbours_follow_the_phase3_contract():
 
 
 def test_human_review_sheet_is_valid():
-    """outputs/phase4/human_review.csv: the queries of its sidecar, one row per pair, only known verdicts."""
+    """outputs/phase4/human_review_<n>.csv: together the queries of the sidecar, one row per pair, known verdicts."""
     import phase4_eval as ev
-    s = pd.read_csv(require(ev.SHEET_FILE), dtype=str, encoding="utf-8-sig", keep_default_na=False)
-    meta = json.loads(ev.SHEET_META.read_text(encoding="utf-8"))
+    meta = json.loads(require(ev.SHEET_META).read_text(encoding="utf-8"))
+    s = pd.concat([ev.read_sheet(p) for p in ev.sheet_paths()], ignore_index=True)
     assert list(dict.fromkeys(s["query"])) == meta["queries"]
     assert not s.duplicated(["query", "candidate"]).any()
     verdicts = s["verdict"].str.strip().str.lower()

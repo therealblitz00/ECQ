@@ -29,7 +29,7 @@ This is the only place that tracks the status. The evidence for each item is in 
 | 1. Data foundation | ✅ | Loader, colourway table, sales join, image link, size-conflict check, reports, final cleaning (`phase1_clean.py`), photo trust, review merged → `items_clean.parquet`, audit findings closed (prices, sales profile, image sizes, flags re-checked after the review) | – |
 | 1b. Image audit | ✅ | Masks, CLIP embeddings, type/colour/duplicate/quality flags, review app, human review, flag precision (`phase1b_precision.py`) | Optional: SAM outlines |
 | 2a. Tabular/text features | ✅ | Categorical, composition, numeric and text blocks (`phase2a_features.py`, `phase2a_text.py`), missing attributes filled (`phase2a_impute.py`) | – |
-| 2b. Visual features | ✅ | Image embeddings (`data/embeddings/image_clip.npy`), colour palettes (`phase2b_palettes.py`) | Optional: DINOv2, CLIP tags |
+| 2b. Visual features | ✅ | Image embeddings (`data/embeddings/image_clip.npy`), colour palettes (`phase2b_palettes.py`) | Optional, **after the team's sorting**: DINOv2, CLIP tags |
 | 3. Similarity engine | ✅ | Weighted per-block cosine, like-for-like candidates, fallback without a trusted photo, top-10 for every colourway (`phase3_engine.py` → `neighbours.parquet`) | – |
 | 4. Evaluation | 🟡 | Fixed evaluation script (`phase4_eval.py`): proxy hit rate, attribute agreement, sales check, ablations, weights tuned on half of the models | Team sorts its queries in the feedback app (`phase4_feedback.py`); then the learned weights are applied |
 | 5–6 | ⚪ | – | Everything |
@@ -37,6 +37,7 @@ This is the only place that tracks the status. The evidence for each item is in 
 **Next:**
 1. **Team:** each member sorts their 28 queries in the feedback app (`4_feedback_windows.bat` / `4_feedback_mac.command`, or `python src/phase4_feedback.py app --id <n>`) and clicks *Submit*. Steps in the README. Then one person runs `python src/phase4_feedback.py fit --apply`, `python src/phase3_engine.py build` and `python src/phase4_eval.py run` (no proxy metric may drop).
 2. Phase 5 can start now: the explanations read `sim_<block>` / `contrib_<block>` from `neighbours.parquet`.
+3. **Only after step 1:** decide on the optional Phase 2b items (DINOv2, CLIP tags), tested on the team's answers. See Phase 2b.
 
 ---
 
@@ -218,11 +219,17 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 ## Phase 2b: Visual features *(only images that pass the 1b audit)*
 
 - [x] Image embeddings with a pretrained vision model (CLIP ViT-B/32), computed on the **masked crop of the target item** (Phase 1b), so a model's face, clothes or other jewellery don't drive the similarity → `data/embeddings/image_clip.npy`.
-- [ ] Optional: compare a DINOv2 embedding (closer to shape and texture) with CLIP (closer to meaning) in the Phase 4 ablations.
+- [ ] Optional, **after the team's sorting**: compare a DINOv2 embedding (closer to shape and texture) with CLIP (closer to meaning), as a second image block. Worth it if the team's answers confirm the photo matters more (Manuel's 28 answers alone moved the image weight 0.36 → 0.46).
 - [x] Dominant colour palette for each image (k-means in LAB colour space, on the masked pixels only), so explanations can say things like *"same colour palette"*. *(2026-10-11: `src/phase2b_palettes.py`, 9,449 trusted photos in 2.5 min on the light environment → `data/embeddings/palettes.parquet` + `.json`: up to 4 colours with share and name, plus a 24-name `palette_vector` for similarity. Metals look like light neutrals, so the metal comes from `FINISHING`, not the palette.)*
-- [ ] Optional: zero-shot CLIP tags (shape, style, motif) to fill sparse attributes such as `SHAPE` and `PRODUCT_DETAILS`.
+- [ ] Optional, **after the team's sorting**: zero-shot CLIP tags (shape, style, motif) to fill sparse attributes such as `SHAPE` and `PRODUCT_DETAILS`. Low priority: CLIP's type check was right only 17% of the time in Phase 1b (colour 70%), and shape or style is harder, so wrong tags could add noise.
 
-**Output:** `data/embeddings/image_clip.npy` + `.json` (committed), `palettes.parquet`, `image_tags.parquet`.
+**Why after the sorting, and why the team's answers stay valid:** the answers record which products are similar and in which order, not the engine's scores, so new features do not invalidate them. The steps:
+1. Compute the new features (vision machine, about 1–2 h on a CPU).
+2. Recompute the per-block similarities of the pairs already judged, keeping the same candidates and answers. *To add first:* a `phase4_feedback.py` command that refreshes the `sim` values in `feedback_pool.json` (today the only rebuild, `pool --force`, starts over and makes the old answers stop counting).
+3. `phase4_feedback.py fit`: refit the weights on the same answers and compare with and without the new block on the held-out queries. Keep the new block only if it does better.
+4. If more than about 10% of the new top 5 were never judged (the candidates came from the current engine), run a short extra sorting round on those candidates only, not the full 28 queries.
+
+**Output:** `data/embeddings/image_clip.npy` + `.json` (committed), `palettes.parquet` + `.json`; if the optional items are done: `image_dino.npy` + `.json`, `image_tags.parquet`.
 
 ## Phase 3: Similarity engine
 

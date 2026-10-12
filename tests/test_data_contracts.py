@@ -178,3 +178,21 @@ def test_human_review_sheet_is_valid():
     assert not s.duplicated(["query", "candidate"]).any()
     verdicts = s["verdict"].str.strip().str.lower()
     assert verdicts[verdicts != ""].isin(ev.VERDICTS).all(), "verdict must be similar, partly or not"
+
+
+def test_feedback_pool_and_answers_are_valid():
+    """outputs/phase4/feedback_pool.json (fixed pools) and feedback_<n>.jsonl (each member's answers)."""
+    import phase4_feedback as fb
+    pool = json.loads(require(fb.POOL_FILE).read_text(encoding="utf-8"))
+    items = p1.load_items().set_index(config.KEY)
+    assert set(pool["weights"]) == set(pool["blocks"])
+    by_q = {q["query"]: q for q in pool["queries"]}
+    assert len(by_q) == len(pool["queries"])
+    for q in pool["queries"]:
+        keys = [c["key"] for c in q["candidates"]]
+        assert len(keys) == len(set(keys)) and q["query"] not in keys, q["query"]
+        assert (items.loc[keys, "CAT_DES_EN"] == items.at[q["query"], "CAT_DES_EN"]).all(), q["query"]
+        assert set(q["members"]) <= set(config.TEAM)
+    for r in fb.read_feedback():
+        assert r["member"] in by_q[r["query"]]["members"], (r["member"], r["query"])
+        fb.check_answer(by_q[r["query"]], r["similar"], r["not"])

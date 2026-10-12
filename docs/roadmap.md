@@ -20,7 +20,7 @@ This is the only place that tracks the status. The evidence for each item is in 
 |---|---|---|
 | **Sprint 1: data cleaning and validation** | 0, 1, 1b | ✅ **Done**: setup, automatic checks, image pre-screen, review app, cleaning, manual review by the 5 members, every photo checked, merge (`items_clean.parquet`) |
 | Sprint 2: features | 1 (rest), 2a, 2b | ✅ **Done**: Phase 2a (4 tabular/text blocks, missing attributes filled where reliable) and Phase 2b (image embeddings, colour palettes) |
-| Sprint 3: similarity and evaluation | 3, 4 | 🟡 **Almost done**: Phase 3 done (`neighbours.parquet`); Phase 4 evaluation and tuning done, human review sheet waiting for the team |
+| Sprint 3: similarity and evaluation | 3, 4 | 🟡 **Almost done**: Phase 3 done (`neighbours.parquet`); Phase 4 evaluation and tuning done, interactive feedback app waiting for the team |
 | Sprint 4: explanations and delivery | 5, 6 | ⚪ Not started |
 
 | Phase | Status | Done | Still to do |
@@ -31,11 +31,11 @@ This is the only place that tracks the status. The evidence for each item is in 
 | 2a. Tabular/text features | ✅ | Categorical, composition, numeric and text blocks (`phase2a_features.py`, `phase2a_text.py`), missing attributes filled (`phase2a_impute.py`) | – |
 | 2b. Visual features | ✅ | Image embeddings (`data/embeddings/image_clip.npy`), colour palettes (`phase2b_palettes.py`) | Optional: DINOv2, CLIP tags |
 | 3. Similarity engine | ✅ | Weighted per-block cosine, like-for-like candidates, fallback without a trusted photo, top-10 for every colourway (`phase3_engine.py` → `neighbours.parquet`) | – |
-| 4. Evaluation | 🟡 | Fixed evaluation script (`phase4_eval.py`): proxy hit rate, attribute agreement, sales check, ablations, weights tuned on half of the models | Team fills the human review sheet; then the image weight is confirmed |
+| 4. Evaluation | 🟡 | Fixed evaluation script (`phase4_eval.py`): proxy hit rate, attribute agreement, sales check, ablations, weights tuned on half of the models | Team sorts its queries in the feedback app (`phase4_feedback.py`); then the learned weights are applied |
 | 5–6 | ⚪ | – | Everything |
 
 **Next:**
-1. **Team:** each member fills `outputs/phase4/human_review_<n>.csv` (10 queries, 60–70 pairs): `verdict` = `similar`, `partly` or `not`, looking at `human_review_<n>.jpg`. Steps in the README. Then one person runs `python src/phase4_eval.py run --apply`, which picks the image weight with the best human precision, and `python src/phase3_engine.py build`.
+1. **Team:** each member sorts their 28 queries in the feedback app (`4_feedback_windows.bat` / `4_feedback_mac.command`, or `python src/phase4_feedback.py app --id <n>`) and clicks *Submit*. Steps in the README. Then one person runs `python src/phase4_feedback.py fit --apply`, `python src/phase3_engine.py build` and `python src/phase4_eval.py run` (no proxy metric may drop).
 2. Phase 5 can start now: the explanations read `sim_<block>` / `contrib_<block>` from `neighbours.parquet`.
 
 ---
@@ -243,9 +243,10 @@ There is no labelled ground truth, so combine several signals:
 - [x] **Commercial sanity check:** similar items should have similar prices and sales profiles (correlation of log sales). *(Spearman 0.62 between the query's sales percentile and its top 4 (random 0.00); median price ratio 1.00.)*
 - [x] **Ablations:** tabular only, visual only, and combined. Tune the block weights. *(Each block alone and left out; tuned on half of the models, reported on the other half. A change is kept only if no metric drops by more than 1 point, because every proxy is circular for one block: an unconstrained search put 88% of the weight on the image and lost a third of the material agreement. The image weight itself is left to the human review.)*
 - [ ] **Human review set:** about 50 query items × top-5 results in a scoring sheet for buyers or the team. *(Sheets ready: `outputs/phase4/human_review_<n>.csv`, one per member, 50 queries (10 per category, 2 without a photo), blind pool of the top 5 at image weights 0, 0.3 and 0.6 = 319 pairs; waiting for the team's verdicts.)*
+- [ ] **Interactive feedback:** reviewers sort each query's candidates (similar, best first / not similar) in the browser, and the block weights are learned from the preferences. *(2026-10-12: `src/phase4_feedback.py`. Fixed pools so the learned weights never change what is shown: 100 queries (16 + 4 per category), top 5 at image weights 0 / 0.3 / 0.6 + 2 random, shuffled and blind, 847 candidates; 20 queries held out, 10 sorted by everybody. Bradley-Terry fit with a prior towards the current weights, refitted after every answer. Waiting for the team's answers. Supersedes the CSV sheets above.)*
 - [x] A fixed evaluation script, so every change reports the same numbers. *(`src/phase4_eval.py run`, ~3 min, fixed split and seeds.)*
 
-**Output:** `outputs/phase4/eval_report.md`, `eval_metrics.csv`, `weight_search.csv`, `human_review_<n>.csv` + `.jpg` (one per member) + `human_review.json`.
+**Output:** `outputs/phase4/eval_report.md`, `eval_metrics.csv`, `weight_search.csv`, `human_review_<n>.csv` + `.jpg` (one per member) + `human_review.json`, `feedback_pool.json`, `feedback_<n>.jsonl` (one per member), `feedback_report.md`.
 **Done when:** an `outputs/phase4/eval_report.md` is generated automatically, and the chosen weights are justified by the ablations.
 
 ## Phase 5: Explainability and output

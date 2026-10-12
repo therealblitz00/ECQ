@@ -69,6 +69,7 @@ Current scripts in `src/`:
 | `phase2a_text.py` | Sentence embedding of a description built from the attributes → `data/embeddings/text.npy` + `.json`. Heavy; vision machine only |
 | `phase3_engine.py` | Similarity engine: weighted sum of per-block cosines (weights in `phase3_weights.json`), like-for-like candidates, other colours of the same model excluded → `data/processed/neighbours.parquet` (top-k with `sim_<block>` / `contrib_<block>`). CLI: `build`, `query KEY` |
 | `phase4_eval.py` | Evaluation: proxy hit rate, attribute agreement, sales check, ablations, weight tuning (`run`, `--apply` writes `phase3_weights.json`) and the blind human review sheet (`sheet`; never overwrites verdicts) → `outputs/phase4/` |
+| `phase4_feedback.py` | Interactive human feedback: fixed candidate pools (`pool` → `outputs/phase4/feedback_pool.json`, committed; never depends on the learned weights), the sorting app (`app --id N`, standard library + pandas; each member appends to `feedback_<n>.jsonl` only), and Bradley-Terry fitting of the block weights with held-out check (`fit`, `--apply` writes `phase3_weights.json` only if the check passes) |
 | `phase2b_palettes.py` | Dominant colours per trusted photo (k-means in LAB on the product pixels) → `data/embeddings/palettes.parquet` + `.json`. Light environment, ~2.5 min |
 
 New code goes into `src/phase<N>_<topic>.py`, one module per roadmap phase (move to a package
@@ -127,6 +128,8 @@ python -m venv .venv
 # Phase 4
 .venv/Scripts/python src/phase4_eval.py run                      # -> outputs/phase4/eval_report.md, ~3 min
 .venv/Scripts/python src/phase4_eval.py run --apply              # also write the chosen weights (then rerun phase3_engine.py build)
+.venv/Scripts/python src/phase4_feedback.py app --id 4           # sorting app on http://localhost:8766 (pool built once with `pool`)
+.venv/Scripts/python src/phase4_feedback.py fit --apply          # learn the weights from everybody's feedback_<n>.jsonl
 
 # Phase 1b (vision environment only)
 .venv/Scripts/python src/phase1b_image_audit.py --limit 300   # quick trial

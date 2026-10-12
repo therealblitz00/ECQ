@@ -318,3 +318,25 @@ The six findings left open from the 2026-10-09 audit are done (`src/phase1_check
 
 - After a colour fix, the description and the colour code still name the old colour in 898 cases (e.g. CSV "Blue", photo turquoise). These flags are counted, not added: the CSV text is what the reviewer corrected.
 - Tests: 137 (13 new).
+
+## 21. Interactive feedback: the weights learn from the team's sorting (Phase 4, 2026-10-12)
+
+The CSV sheet asked for one verdict per pair. The new app (`src/phase4_feedback.py`) asks reviewers to **sort**: each
+candidate goes to *Similar* (most similar first) or *Not similar*. Every answer becomes pairwise preferences, and the
+six block weights are fitted to them (Bradley-Terry, the logistic model of RankNet and of RLHF reward models).
+
+| Design choice | Why |
+|---|---|
+| Pools built once and committed (`feedback_pool.json`): top 5 at image weights 0, 0.3, 0.6 + 2 random same-category items | The learned weights never change what a reviewer sees, so every setting is judged on the same items; the random items let the fit see weights outside the three settings |
+| Candidates shuffled, no scores, no source | No position or engine bias |
+| 20 of the 100 queries never fitted | Honest before/after check; `fit --apply` refuses weights that do worse there |
+| 10 queries sorted by all 5 members | Measures reviewer agreement, the ceiling for any weights |
+| Prior on the log-weights (sd 0.5) towards the current weights | A few odd answers cannot swing the weights |
+| Refit after every answer (~0.4 s) | The panel shows what the engine is learning while you sort |
+
+- **Pool:** 100 queries (16 with a photo + 4 without, per category), 847 candidates (7–11 per query), 28 queries per member.
+- **Check on a simulated reviewer** who scores with image weight 0.6 plus noise: the fit moves image 0.36 → 0.61 and
+  categorical 0.36 → 0.20, and the held-out preferences ordered right rise from 82% to 85%.
+- Launchers `4_feedback_windows.bat` / `4_feedback_mac.command`; the submit button commits only the member's file
+  (`git_submit`, shared with the Phase 1 review app).
+- Tests: 147 (10 new: 9 unit tests, incl. gradient vs finite differences and engine-score equivalence, + a contract on the pool and the answers).

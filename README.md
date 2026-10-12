@@ -63,40 +63,40 @@ python -m venv .venv
 
 ---
 
-## Your task now: score the similar products (Phase 4)
+## Your task now: teach the engine what "similar" means (Phase 4)
 
-The similarity engine is built. Before we fix how much the **photo** counts against the **product attributes**,
-we need your judgement on real results. About 20–30 minutes per person, nothing to install or run.
+The similarity engine is built. Now it learns from your judgement: you sort its suggestions in the browser, and
+every query you sort adjusts how much the **photo**, the **category**, the **materials**, the **colours** and the
+**price** count. About 20–30 minutes per person (28 queries).
 
 1. `git pull` (or download the ZIP again).
-2. Open your contact sheet `outputs/phase4/human_review_<n>.jpg`, where `<n>` is your number:
+2. Double-click **`4_feedback_windows.bat`** (Windows) or **`4_feedback_mac.command`** (Mac) and type your number:
    1 André · 2 Pedro Correia · 3 Pedro Meireles · 4 Manuel · 5 Zé.
-   Each row is one product (**QUERY**, in red) followed by candidates labelled **A, B, C…**
-3. Open **your** file `outputs/phase4/human_review_<n>.csv` (Excel works; one file per person, so nobody's save
-   clashes with another's) and fill every row:
+   (Or run `python src/phase4_feedback.py app --id <n>`.)
+3. For each query, put every candidate in one of two columns, by dragging it or with ✓ / ✗:
+   - **Similar**: a buyer would show it next to the query. Order this column, **most similar first** (drag, or ▲ ▼).
+   - **Not similar**: a buyer would not show it next to the query.
+   - Judge the product, not the photo quality. Items with "no trusted photo" are judged from the text.
+   - Then **Save & next**. You can go back and change an answer at any time; the latest one counts.
+4. When you are done, click **Submit my feedback**. It sends only your file, `outputs/phase4/feedback_<n>.jsonl`.
 
-   | Column | What to write |
-   |---|---|
-   | `verdict` | `similar` · `partly` · `not` (one per row) |
-   | `reviewer` | your name |
-   | `notes` | optional: why, if it's a hard case |
+The panel on the right shows what the engine has learned so far. It never changes which candidates you see: each
+query's candidates were fixed in advance (three versions of the engine plus two random items), shuffled and without
+scores, so the comparison stays fair. One in five queries is kept aside to check the learned weights, and ten
+queries are sorted by everybody, to see how much we agree.
 
-   - **similar**: a buyer would accept it as an alternative to the query (same type of product, close style).
-   - **partly**: same type, but a clear difference (style, material, colour, price).
-   - **not**: a buyer would not show it next to the query.
-   - Judge the product, not the photo quality. The rows with "no trusted photo" are judged from the text.
-4. Save it as CSV with the same name (Excel's `;` format is fine), then commit and push only your file
-   (`Phase 4: human review sheet <n>`). Don't edit other people's files.
-
-The candidates come from three versions of the engine, mixed and without scores, so you can't tell which one
-proposed what. When all 5 sheets are done, one person runs:
+When everybody has submitted, one person runs:
 
 ```bash
 .venv/bin/python src/phase1_checks.py check && .venv/bin/python src/phase1_checks.py merge
 .venv/bin/python src/phase2a_features.py
-.venv/bin/python src/phase4_eval.py run --apply    # picks the photo weight with the best human score
-.venv/bin/python src/phase3_engine.py build        # rebuilds the similar products with it
+.venv/bin/python src/phase4_feedback.py fit --apply   # learned weights, applied only if they pass the check on unseen queries
+.venv/bin/python src/phase3_engine.py build           # rebuilds the similar products with them
+.venv/bin/python src/phase4_eval.py run               # checks that no catalogue, visual or sales metric dropped
 ```
+
+The CSV sheets `outputs/phase4/human_review_<n>.csv` from the first plan still work with `phase4_eval.py run`, but
+the app replaces them.
 
 ---
 
@@ -133,6 +133,7 @@ proposed what. When all 5 sheets are done, one person runs:
 │   ├── phase2a_*.py, phase2b_palettes.py   feature blocks, filled attributes, text embedding, colour palettes
 │   ├── phase3_engine.py       similarity engine (build | query) + phase3_weights.json
 │   ├── phase4_eval.py         evaluation, weight tuning, human review sheet (run | sheet)
+│   ├── phase4_feedback.py     interactive feedback app + weights learned from it (pool | app | fit)
 │   └── review_app.py          browser review app
 ├── tests/                     pytest suite
 ├── data/
@@ -145,7 +146,7 @@ proposed what. When all 5 sheets are done, one person runs:
     ├── phase1b/               image-check report and contact sheets
     ├── phase2a/, phase2b/     feature and palette reports
     ├── phase3/                engine report + example matches
-    └── phase4/                evaluation report + human review sheet (human_review_<n>.csv + .jpg, one per member)
+    └── phase4/                evaluation report, feedback pool + answers (feedback_<n>.jsonl, one per member)
 ```
 
 ## Data confidentiality

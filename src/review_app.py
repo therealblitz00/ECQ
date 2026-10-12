@@ -146,22 +146,27 @@ class Batch:
 
     def submit(self) -> tuple[bool, str]:
         """git add/commit/push this member's CSV only."""
-        if not shutil.which("git"):
-            return False, (f"Git is not installed. Send the file {self.path.name} "
-                           f"(folder outputs/phase1/batches) to the team instead.")
-        rel = self.path.relative_to(ROOT).as_posix()
-        log = []
-        steps = [["git", "add", rel],
-                 ["git", "commit", "-m", f"Phase 1 review: batch {self.member} ({self.name})", "--", rel],
-                 ["git", "pull", "--rebase", "--autostash"],
-                 ["git", "push"]]
-        for cmd in steps:
-            p = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
-            log.append(f"$ {' '.join(cmd)}\n{p.stdout}{p.stderr}".strip())
-            nothing_new = cmd[1] == "commit" and "nothing" in (p.stdout + p.stderr).lower()
-            if p.returncode != 0 and not nothing_new:
-                return False, "\n\n".join(log)
-        return True, "\n\n".join(log)
+        return git_submit(self.path, f"Phase 1 review: batch {self.member} ({self.name})")
+
+
+def git_submit(path: Path, message: str) -> tuple[bool, str]:
+    """git add/commit/push one file only (a member's own review file). Returns (ok, log)."""
+    if not shutil.which("git"):
+        return False, (f"Git is not installed. Send the file {path.name} "
+                       f"(folder {path.parent.relative_to(ROOT).as_posix()}) to the team instead.")
+    rel = path.relative_to(ROOT).as_posix()
+    log = []
+    steps = [["git", "add", rel],
+             ["git", "commit", "-m", message, "--", rel],
+             ["git", "pull", "--rebase", "--autostash"],
+             ["git", "push"]]
+    for cmd in steps:
+        p = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True)
+        log.append(f"$ {' '.join(cmd)}\n{p.stdout}{p.stderr}".strip())
+        nothing_new = cmd[1] == "commit" and "nothing" in (p.stdout + p.stderr).lower()
+        if p.returncode != 0 and not nothing_new:
+            return False, "\n\n".join(log)
+    return True, "\n\n".join(log)
 
 
 def make_handler(batch: Batch):

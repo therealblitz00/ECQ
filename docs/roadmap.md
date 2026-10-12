@@ -12,15 +12,15 @@
 
 ---
 
-## Status (last updated 2026-10-10)
+## Status (last updated 2026-10-12)
 
 This is the only place that tracks the status. The evidence for each item is in [progress.md](progress.md).
 
 | Sprint | Roadmap phases | Status |
 |---|---|---|
-| **Sprint 1: data cleaning and validation** | 0, 1, 1b | ✅ **Done**: setup, automatic checks, image pre-screen, review app, cleaning, manual review by the 5 members and merge (`items_clean.parquet`) |
-| Sprint 2: features | 1 (rest), 2a, 2b | ✅ **Done**: Phase 2a (4 tabular/text blocks on the merged table) and Phase 2b (image embeddings, colour palettes) |
-| Sprint 3: similarity and evaluation | 3, 4 | ⚪ Next: every input of Phase 3 is ready |
+| **Sprint 1: data cleaning and validation** | 0, 1, 1b | ✅ **Done**: setup, automatic checks, image pre-screen, review app, cleaning, manual review by the 5 members, every photo checked, merge (`items_clean.parquet`) |
+| Sprint 2: features | 1 (rest), 2a, 2b | ✅ **Done**: Phase 2a (4 tabular/text blocks, missing attributes filled where reliable) and Phase 2b (image embeddings, colour palettes) |
+| Sprint 3: similarity and evaluation | 3, 4 | 🟡 **In progress**: Phase 3 done (`neighbours.parquet`); Phase 4 next |
 | Sprint 4: explanations and delivery | 5, 6 | ⚪ Not started |
 
 | Phase | Status | Done | Still to do |
@@ -28,14 +28,15 @@ This is the only place that tracks the status. The evidence for each item is in 
 | 0. Setup | ✅ | Repo, environments, README, double-click scripts, `CLAUDE.md`, tests and CI | – |
 | 1. Data foundation | ✅ | Loader, colourway table, sales join, image link, size-conflict check, reports, final cleaning (`phase1_clean.py`), photo trust, review merged → `items_clean.parquet` | Open audit findings (none blocking) |
 | 1b. Image audit | ✅ | Masks, CLIP embeddings, type/colour/duplicate/quality flags, review app, human review, flag precision (`phase1b_precision.py`) | Optional: SAM outlines |
-| 2a. Tabular/text features | ✅ | Categorical, composition, numeric and text blocks (`phase2a_features.py`, `phase2a_text.py`) | – |
+| 2a. Tabular/text features | ✅ | Categorical, composition, numeric and text blocks (`phase2a_features.py`, `phase2a_text.py`), missing attributes filled (`phase2a_impute.py`) | – |
 | 2b. Visual features | ✅ | Image embeddings (`data/embeddings/image_clip.npy`), colour palettes (`phase2b_palettes.py`) | Optional: DINOv2, CLIP tags |
-| 3–6 | ⚪ | – | Everything |
+| 3. Similarity engine | ✅ | Weighted per-block cosine, like-for-like candidates, fallback without a trusted photo, top-10 for every colourway (`phase3_engine.py` → `neighbours.parquet`) | Weights are starting values: Phase 4 tunes them |
+| 4–6 | ⚪ | – | Everything |
 
 **Next:**
-1. Team calibration: all 5 members review the same ~20 flagged products and agree on borderline cases.
-2. Each member reviews their batch in the app and clicks **Submit**. Then one person runs `merge`, which produces `data/processed/items_clean.parquet`, the Phase 1 deliverable.
-3. Sprint 2 doesn't have to wait: Phase 2a (tabular and text features) can start now on the preview table (`phase1_clean.load_items()`), then Phase 3 (similarity engine).
+1. Phase 4: a fixed evaluation script (`outputs/eval_report.md`): proxy hit rate, attribute agreement, commercial sanity check and ablations, then tune the block weights.
+2. To decide: a human reference set (about 50 products, each with similar and dissimilar items picked by the team), so the weights are checked against people, not only proxies.
+3. Phase 5 can start in parallel: the explanations read `sim_<block>` / `contrib_<block>` from `neighbours.parquet`.
 
 ---
 

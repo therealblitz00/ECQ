@@ -67,6 +67,7 @@ Current scripts in `src/`:
 | `phase2a_features.py` | Feature blocks (`features_<block>.npy` + `feature_meta.json`, same row order): categorical, composition, numeric, text. Every block has unit-length rows and named attribute slices that add up to the score |
 | `phase2a_impute.py` | Fills `MATERIAL` (apparel) and `FINISH_FAMILY` (jewellery) where the CSV is empty and the inference is reliable → `data/processed/attributes_inferred.parquet`. Run by `phase2a_features.py`; never changes the CSV values |
 | `phase2a_text.py` | Sentence embedding of a description built from the attributes → `data/embeddings/text.npy` + `.json`. Heavy; vision machine only |
+| `phase3_engine.py` | Similarity engine: weighted sum of per-block cosines (weights in `phase3_weights.json`), like-for-like candidates, other colours of the same model excluded → `data/processed/neighbours.parquet` (top-k with `sim_<block>` / `contrib_<block>`). CLI: `build`, `query KEY` |
 | `phase2b_palettes.py` | Dominant colours per trusted photo (k-means in LAB on the product pixels) → `data/embeddings/palettes.parquet` + `.json`. Light environment, ~2.5 min |
 
 New code goes into `src/phase<N>_<topic>.py`, one module per roadmap phase (move to a package
@@ -117,6 +118,10 @@ python -m venv .venv
 
 # Phase 2b (computed once, results committed)
 .venv/Scripts/python src/phase2b_palettes.py --limit 60            # trial + outputs/phase2b/palettes_sample.jpg; without --limit: all photos
+
+# Phase 3 (rerun after Phase 2a)
+.venv/Scripts/python src/phase3_engine.py build                  # -> data/processed/neighbours.parquet + outputs/phase3/engine_report.md, ~10 s
+.venv/Scripts/python src/phase3_engine.py query 167718_BU --k 5  # one item, with the score per block
 
 # Phase 1b (vision environment only)
 .venv/Scripts/python src/phase1b_image_audit.py --limit 300   # quick trial

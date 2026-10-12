@@ -225,13 +225,13 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 
 ## Phase 3: Similarity engine
 
-- [ ] Per-block cosine similarity combined as a weighted sum: `score = Σ w_b · sim_b`. Load the weights from a config file.
-- [ ] Candidate filtering: same `CAT_DES_EN` by default, with an option to restrict further to the same `GFA` family. Exclude the query item itself, and exclude other colours of the same `PROD_REF` unless asked for (otherwise they make the results trivially easy).
-- [ ] Top-k search (k ≥ 4) for every item, run as a batch.
-- [ ] Fallback for items without a trustworthy image (no file, or flagged in 1b): use only the tabular blocks and reweight. For `colour_unreliable` items, keep the shape signal from the image but take colour from the CSV.
-- [ ] Never return a flagged item as a match because of its image alone.
+- [x] Per-block cosine similarity combined as a weighted sum: `score = Σ w_b · sim_b`. Load the weights from a config file. *(2026-10-12: `src/phase3_engine.py`, six blocks (image, categorical, text, composition, palette, numeric); starting weights 0.30 / 0.30 / 0.10 / 0.10 / 0.10 / 0.10 in `src/phase3_weights.json`.)*
+- [x] Candidate filtering: same `CAT_DES_EN` by default, with an option to restrict further to the same `GFA` family. Exclude the query item itself, and exclude other colours of the same `PROD_REF` unless asked for (otherwise they make the results trivially easy). *(`--scope family`, `--include-siblings`; re-coded models (`PROD_REF_EQUIV`) are excluded too.)*
+- [x] Top-k search (k ≥ 4) for every item, run as a batch. *(k = 10 by default; all 10,555 colourways in ~7 s; none with fewer than 4.)*
+- [x] Fallback for items without a trustworthy image (no file, or flagged in 1b): use only the tabular blocks and reweight. For `colour_unreliable` items, keep the shape signal from the image but take colour from the CSV. *(A pair is scored on the blocks both items have, with the weights rescaled; `image` uses `img_trusted` photos, `palette` only `img_colour_trusted` ones.)*
+- [x] Never return a flagged item as a match because of its image alone. *(Untrusted photos are zero rows, so they never add to a score; checked by a data contract test.)*
 
-**Output:** `outputs/neighbours.parquet` with columns (query, rank, candidate, total score, score per block).
+**Output:** `data/processed/neighbours.parquet` (regenerated, not in git; rule 4: phases talk through `data/processed/`) with columns `query, rank, candidate, score, sim_<block>, contrib_<block>`; the contributions add up to the score. Settings in `neighbours.json`. Report: `outputs/phase3/engine_report.md` + `examples.jpg`.
 
 ## Phase 4: Evaluation
 

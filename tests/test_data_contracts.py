@@ -150,3 +150,20 @@ def test_inferred_attributes_only_fill_gaps_of_items_with_a_photo(phase1_preview
         assert rows[col].isna().all() and rows["img_trusted"].all(), col
         assert set(sub["value"]) <= set(full[col].dropna()), col
         assert set(rows["CAT_DES_EN"]) == {f2a.phase2a_impute.TARGETS[col]}, col
+
+
+def test_neighbours_follow_the_phase3_contract():
+    """data/processed/neighbours.parquet: >= 4 like-for-like neighbours per colourway, never the same model."""
+    path = require(config.PROCESSED_DIR / "neighbours.parquet")
+    nb = pd.read_parquet(path)
+    meta = json.loads((config.PROCESSED_DIR / "neighbours.json").read_text(encoding="utf-8"))
+    items = p1.load_items().set_index(config.KEY)
+    assert list(nb.columns) == meta["columns"] and len(nb) == meta["rows"]
+    assert nb.groupby("query").size().reindex(items.index, fill_value=0).min() >= 4
+    assert not nb.duplicated(["query", "candidate"]).any()
+    np.testing.assert_allclose(nb.filter(like="contrib_").sum(axis=1), nb["score"], atol=1e-4)
+    for col in ("CAT_DES_EN",) + (() if meta["include_siblings"] else ("PROD_REF",)):
+        same = items.loc[nb["query"], col].to_numpy() == items.loc[nb["candidate"], col].to_numpy()
+        assert same.all() if col == "CAT_DES_EN" else not same.any(), col
+    untrusted = ~items.loc[nb["candidate"], "img_trusted"].to_numpy(bool)
+    assert (nb.loc[untrusted, "contrib_image"] == 0).all()

@@ -270,3 +270,16 @@ Before, only flagged photos had been looked at in batches 1, 2, 3 and 5 (6,912 p
 - **Merge now:** 9,972 ok, **461 fixed**, 122 wrong photos, 0 unresolved; 588 changes in `changes_log.csv` (455 colours). 9,445 photos trusted.
 - **What it says about the automatic flags:** they caught only 28% of the 506 photo problems found by eye (`outputs/phase1b/flag_precision.md`). A review of flagged items alone would have missed most of them.
 - Phase 2a features, inferred attributes and Phase 2b palettes were rebuilt on the new table. Tests: 108.
+
+## 18. Similarity engine (Phase 3, 2026-10-12)
+
+`src/phase3_engine.py build` returns the 10 most similar colourways for each of the 10,555 colourways in about 7 seconds (light environment, no torch).
+
+- **Score:** weighted sum of the cosine similarity of six blocks: image 0.30, categorical 0.30, text, composition, palette and numeric 0.10 each (`src/phase3_weights.json`, starting values for Phase 4). A pair is scored on the blocks both items have, with the weights rescaled, so an item without a trusted photo is matched on its tabular blocks and is not penalised.
+- **Candidates:** same category, never the item itself and never another colour of the same model (`PROD_REF` or `PROD_REF_EQUIV`).
+- **Coverage:** every colourway has at least 4 neighbours (0 with fewer).
+- **First sanity check (top 4):** same family 91–99%, same sub-family 76–91%, same colour 42–66%, median price ratio 1.00–1.08 (`outputs/phase3/engine_report.md`). Items without a photo get similar agreement (sub-family 88%).
+- **By eye:** `outputs/phase3/examples.jpg` (12 random queries): matches share the sub-family, shape and finish; colour varies more in apparel.
+- **Finding:** 72 queries have a best match scoring ≥ 0.99, mostly the same design under another model code. They are kept; Phase 4 should check whether buyers see them as duplicates.
+- Each neighbour row stores `sim_<block>` and `contrib_<block>` (the contributions add up to the score), ready for the Phase 5 explanations.
+- Tests: 116 (7 unit tests on toy blocks + a data contract on `neighbours.parquet`).

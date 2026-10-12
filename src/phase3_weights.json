@@ -1,0 +1,11 @@
+{
+ "note": "Block weights of the Phase 3 score (score = sum of w_b * sim_b over the blocks both items have, divided by the sum of those w_b). Starting values; Phase 4 tunes them.",
+ "weights": {
+  "image": 0.30,
+  "categorical": 0.30,
+  "text": 0.10,
+  "composition": 0.10,
+  "palette": 0.10,
+  "numeric": 0.10
+ }
+}

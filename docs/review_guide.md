@@ -96,9 +96,10 @@ So that every reviewer corrects the data the same way, a fix can only use **valu
 | `IMG_CAT_MISMATCH` | medium | Image is in another category's folder (often a reclassified item) |
 | `IMG_GENERIC` | medium | Image is not specific to the colour, so check that the colour matches |
 | `IMG_SHARED` | medium | The same image is used by another colour or model (see `img_shared_with`) |
-| `CLR_NOT_IN_DESC` | medium | Description doesn't mention the colour |
 | `SKU_ATTR_CONFLICT` | medium | Sizes of the same colourway disagree on an attribute (the `sku_conflicts` column lists which ones). The most common value is used; correct it with `fix` if it's wrong |
+| `CLR_NOT_IN_DESC` | low | Description doesn't mention the colour (medium until 2026-10-12; the review confirmed only 32%) |
 | `SALES_ZERO_QTY` | low | Zero units sold |
+| `SALES_NEGATIVE`, `PRICE_INVALID` | medium | Negative units or amount; missing or non-positive list price (none in this data) |
 | `VIS_TYPE_MISMATCH` | high | *Image check:* the photo looks like another type of item (e.g. earrings for a necklace row), and the most similar photos agree |
 | `VIS_COLOUR_MISMATCH` | medium | *Image check:* the photo looks like another colour than `CLR_DES` |
 | `VIS_TARGET_NOT_FOUND` | low | *Image check:* the detector couldn't find the expected item (mostly photos of samples on cards, sketches or mannequins) |
@@ -107,5 +108,7 @@ So that every reviewer corrects the data the same way, a fix can only use **valu
 | `IMG_NOT_PACKSHOT` | low | *Image check:* model, lifestyle or amateur photo, not a studio shot |
 | `IMG_PATH_REPAIRED` | medium | The image path in the data was wrong (no colour in it, e.g. `212983_2`). The photo was found by its file name (`212983_HM_1.jpg`): check it shows this product |
 | `IMG_FILE_MISSING`, `SALES_MISSING` | info | No image or no sales. No action needed |
+| `PRICE_COST_MISSING`, `PRICE_BELOW_COST`, `PRICE_OUTLET_ABOVE_BASE`, `SALES_AMT_WITHOUT_QTY`, `REALISED_PRICE_ODD` | info | Notes on prices, landed cost and sales (added 2026-10-12). No action needed |
+| `IMG_SMALL`, `IMG_ODD_SHAPE`, `IMG_NOT_RGB` | info | Notes on the photo file: under 300 px, far from square, not RGB. No action needed |
 
 **About the image checks:** `VIS_*` and `IMG_NEAR_DUPLICATE`/`IMG_NOT_PACKSHOT` come from Phase 1b (`src/phase1b_image_audit.py`). An image model (CLIP) and an object detector (OWLv2) looked at every photo, after cutting out the target item. They were computed once and stored in `data/embeddings/`, so you don't need to run anything. They are **suggestions, not verdicts**: the model can be fooled by unusual shapes. You decide. Photos of a model wearing several items (e.g. earrings and a necklace) are fine to review by eye: judge only the item the row describes.

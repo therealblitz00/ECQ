@@ -67,7 +67,7 @@ def test_clean_item_only_has_the_size_conflict(checked_items):
 
 
 def test_corrupt_image_and_zero_sales(checked_items):
-    assert issues(checked_items, "100002_GD") == {"IMG_UNREADABLE", "SALES_ZERO_QTY"}
+    assert issues(checked_items, "100002_GD") == {"IMG_UNREADABLE", "SALES_ZERO_QTY", "SALES_AMT_WITHOUT_QTY"}
     assert checked_items.at["100002_GD", "priority"] == "high"
 
 
@@ -159,3 +159,53 @@ def test_write_check_outputs(toy_data):
     vocab = pd.read_csv(checks.OUT_DIR / "review_vocabulary.csv", encoding="utf-8-sig")
     assert {"CLR_DES", "COMPOSITION (one material)"} <= set(vocab["column"])
     assert "CLR_CONFLICT_DESC" in report
+
+
+# --------------------------------------------------------------------------- 2026-10-09 audit findings
+@pytest.mark.parametrize("word, expected", [
+    ("Bracelets", "bracelet"), ("Dress", "dress"), ("Dresses", "dress"), ("Sunglasses", "sunglass"),
+    ("Accessories", "accessory"), ("Watches", "watch"), ("Boxes", "box"), ("Bus", "bus"), ("Jeans", "jean"),
+])
+def test_singular_keeps_double_s_words(word, expected):
+    """WEA-002: "Dress" is no longer cut to "dres"."""
+    assert checks._singular(word) == expected
+
+
+def test_numerical_checks_flag_but_never_change_values():
+    """GAP-001: prices, landed cost and sales are checked."""
+    items = pd.DataFrame({
+        "PRICE_BASE_W_VAT": [10.0, 0.0, 10.0, 10.0, 10.0, 10.0],
+        "PRICE_OUTLET_W_VAT": [5.0, 1.0, 12.0, 5.0, 5.0, 5.0],
+        "PRICE_LCP": [3.0, 1.0, None, 11.0, 3.0, 3.0],
+        "SALES_QTY": [10.0, 1.0, 10.0, 0.0, -1.0, 10.0],
+        "SALES_AMT_FX_RATE": [80.0, 1.0, 80.0, 5.0, 1.0, 200.0],
+    }).assign(issues="")
+    before = items.drop(columns="issues").copy()
+    checks.check_numerical(items)
+    got = items["issues"].str.rstrip(";").str.split(";").map(set).tolist()
+    assert got[0] == {""}
+    assert "PRICE_INVALID" in got[1]
+    assert {"PRICE_OUTLET_ABOVE_BASE", "PRICE_COST_MISSING"} <= got[2]
+    assert {"PRICE_BELOW_COST", "SALES_AMT_WITHOUT_QTY"} <= got[3]
+    assert "SALES_NEGATIVE" in got[4]
+    assert got[5] == {"REALISED_PRICE_ODD"}  # sold at 20 € on a 10 € list price
+    pd.testing.assert_frame_equal(items.drop(columns="issues"), before)
+
+
+def test_image_shape_notes():
+    """WEA-001: tiny, oddly shaped or non-RGB photos get a note."""
+    items = pd.DataFrame({"img_width": [640, 120, 640, 640, None], "img_height": [640, 120, 300, 640, None],
+                          "img_mode": ["RGB", "RGB", "RGB", "CMYK", None]}).assign(issues="")
+    checks.check_image_shape(items)
+    assert items["issues"].tolist() == ["", "IMG_SMALL;", "IMG_ODD_SHAPE;", "IMG_NOT_RGB;", ""]
+
+
+def test_check_report_has_sales_profile_and_image_sizes(toy_data):
+    """OPP-001 and WEA-001: the report profiles the sales file and the photo sizes."""
+    checked_items, ctx = checks.run_checks(verify_files=True)
+    checks.write_check_outputs(checked_items, ctx)
+    report = (checks.OUT_DIR / "check_report.md").read_text(encoding="utf-8")
+    assert "## Sales profile" in report and "## Image sizes" in report
+    profile = pd.read_csv(checks.OUT_DIR / "sales_profile.csv", encoding="utf-8-sig")
+    assert profile["CAT_DES_EN"].iloc[-1] == "All"
+    assert profile["colourways"].iloc[-1] == len(checked_items)

@@ -179,3 +179,21 @@ def test_review_app_shows_image_flags_once_when_batch_already_has_them(toy_data,
     labels = {r[checks.KEY]: r["issue_labels"] for r in review_app.Batch(1).items()}["100001_BK"]
     assert "VIS_TYPE_MISMATCH" not in labels
     assert labels.count("Photo looks like a bag") == 1
+
+
+def test_merge_rechecks_the_flags_of_reviewed_rows():
+    """INC-002: a fix clears the text flag it resolved; an unlinked photo loses its photo flags."""
+    items = pd.DataFrame({
+        checks.KEY: ["1_BK", "2_BK", "3_BK", "4_GD"],
+        "PROD_CLR": ["1_BK", "2_BK", "3_BK", "4_GD"], "PROD_REF": ["1", "2", "3", "4"],
+        "CLR_COD": ["_BK", "_BK", "_BK", "_GD"], "CLR_DES": ["Black", "Black", "Black", "Black"],
+        "PROD_DES_BASE": ["Ring Black", "Ring Black", "Ring Black", "Ring Gold"],
+        "GFA_DES_EN": ["Rings"] * 4,
+        "issues": ["", "VIS_COLOUR_MISMATCH;IMG_NOT_PACKSHOT;SALES_MISSING", "", "CLR_CONFLICT_DESC"],
+    })
+    items.loc[3, "CLR_DES"] = "Gold"  # the reviewer's fix, already applied
+    counts = checks.revalidate(items, fixed=[3], dropped=[1])
+    assert items.at[3, "issues"] == "" and counts["cleared"] == 1
+    assert items.at[1, "issues"] == "IMG_FILE_MISSING;SALES_MISSING" and counts["photo flags removed"] == 2
+    assert items.at[1, "issues_checked"] == "VIS_COLOUR_MISMATCH;IMG_NOT_PACKSHOT;SALES_MISSING"  # kept
+    assert items["priority"].tolist() == ["none", "info", "none", "none"]

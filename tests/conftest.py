@@ -77,7 +77,7 @@ def toy_data(toy_dirs: Path) -> Path:
     pd.DataFrame(TOY_SALES, columns=["PROD_CLR_EQUIV", "SALES_QTY", "SALES_AMT_FX_RATE"]).to_csv(
         checks.CSV_DIR / "df_sales.csv", index=False, encoding="utf-8")
     for name, colour in TOY_IMAGES.items():
-        Image.new("RGB", (16, 16), colour).save(checks.IMG_DIR / name)
+        Image.new("RGB", (320, 320), colour).save(checks.IMG_DIR / name)
     (checks.IMG_DIR / "100002_GD_1.jpg").write_bytes(b"not an image")
     return toy_dirs
 

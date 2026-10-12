@@ -302,3 +302,19 @@ Before, only flagged photos had been looked at in batches 1, 2, 3 and 5 (6,912 p
 - **Image weight sweep (0 to 0.8):** more image weight buys visual agreement (28% → 76%) and costs catalogue agreement (81% → 71%). The proxies cannot pick the point, so the human review does.
 - **Human review sheet:** `outputs/phase4/human_review_<n>.csv` + `.jpg`, one per member (Excel in Portuguese saves with `;`, which the reader accepts): 50 queries (10 per category, 2 without a photo), candidates from image weights 0, 0.3 and 0.6 pooled and shown in key order without scores (blind), 319 pairs. Once the team fills `verdict`, `run --apply` picks the image weight with the best human precision.
 - Tests: 123 (6 new unit tests + a contract on the review sheet).
+
+## 20. Open audit findings closed (Phase 1, 2026-10-12)
+
+The six findings left open from the 2026-10-09 audit are done (`src/phase1_checks.py`). Every new flag is `info`, so no reviewed item went back to pending: the merge still gives 9,972 ok, 461 fixed, 122 wrong photos, 0 pending, and features, neighbours and the Phase 4 numbers are unchanged.
+
+| Finding | What was done | Result on the data |
+|---|---|---|
+| GAP-001 prices and sales | `check_numerical`: price, outlet, landed cost, negative or inconsistent sales, realised vs list price | No invalid price; 175 without landed cost, 10 cost above price, 1 amount without units, 21 odd realised prices |
+| INC-002 stale flags | `merge` re-runs the text checks on fixed rows and drops photo flags of unlinked photos (`issues_checked` keeps the originals) | 2 flags cleared, 3 confirmed, 249 photo flags removed |
+| WEA-001 image size and mode | width, height and mode stored per item; `IMG_SMALL`, `IMG_ODD_SHAPE`, `IMG_NOT_RGB` | All RGB; 45 small, 15 odd proportions |
+| WEA-002 singular forms | "Dress" no longer becomes "dres" | Same 2 `TYPE_CONFLICT_DESC` items |
+| RED-001 `CLR_NOT_IN_DESC` | Severity medium → low, based on the review | 8 of 25 flags confirmed (32%) |
+| OPP-001 sales profile | `outputs/phase1/sales_profile.csv` + report section | 122 low-sales outliers (none high); realised price ≈ 0.85 × list price |
+
+- After a colour fix, the description and the colour code still name the old colour in 898 cases (e.g. CSV "Blue", photo turquoise). These flags are counted, not added: the CSV text is what the reviewer corrected.
+- Tests: 137 (13 new).

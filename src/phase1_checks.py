@@ -20,6 +20,7 @@ import html
 import os
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from config import (BATCH_DIR, CSV_DIR, EMB_DIR, IMG_DIR, ISSUES, KEY, OUT_DIR, PROCESSED_DIR,
@@ -162,19 +163,25 @@ def check_images(items: pd.DataFrame, verify_files: bool = True) -> None:
     if verify_files:
         from PIL import Image  # imported lazily: only needed for file checks
 
-        md5s, readable = {}, {}
+        md5s, readable, shape = {}, {}, {}
         for idx, f in items["img_file"].dropna().items():
             path = IMG_DIR / f
             md5s[idx] = hashlib.md5(path.read_bytes()).hexdigest()
             try:
                 with Image.open(path) as im:
                     im.verify()
+                with Image.open(path) as im:  # verify() leaves the file unusable: reopen for size and mode
+                    shape[idx] = (im.width, im.height, im.mode)
                 readable[idx] = True
             except Exception:
                 readable[idx] = False
         items["img_md5"] = pd.Series(md5s, dtype="object")
         items["img_readable"] = pd.Series(readable, dtype="boolean")
         _add_issue(items, items["img_readable"] == False, "IMG_UNREADABLE")  # noqa: E712
+        shape = pd.DataFrame.from_dict(shape, orient="index", columns=["img_width", "img_height", "img_mode"])
+        for col in shape.columns:
+            items[col] = shape[col]
+        check_image_shape(items)
 
     # Same image (by path or by content) used by colourways with a different colour or model.
     img_key = items["img_md5"].fillna(items["PROG_IMAGE"])
@@ -182,6 +189,14 @@ def check_images(items: pd.DataFrame, verify_files: bool = True) -> None:
     n_ref = items.groupby(img_key)["PROD_REF"].transform("nunique")
     items["img_shared_with"] = items.groupby(img_key)[KEY].transform(lambda s: "|".join(s) if len(s) > 1 else "")
     _add_issue(items, img_key.notna() & ((n_clr > 1) | (n_ref > 1)), "IMG_SHARED")
+
+
+def check_image_shape(items: pd.DataFrame, min_side: int = 300, max_ratio: float = 1.5) -> None:
+    """Tiny, oddly shaped or non-RGB photos (the packshots are 640 x 640 RGB). Notes only: CLIP pads and converts."""
+    w, h = items["img_width"].astype(float), items["img_height"].astype(float)
+    _add_issue(items, pd.concat([w, h], axis=1).min(axis=1) < min_side, "IMG_SMALL")
+    _add_issue(items, ((w / h) > max_ratio) | ((h / w) > max_ratio), "IMG_ODD_SHAPE")
+    _add_issue(items, items["img_mode"].notna() & (items["img_mode"] != "RGB"), "IMG_NOT_RGB")
 
 
 def _repair_image_links(items: pd.DataFrame, files: dict[str, str]) -> pd.Series:
@@ -242,8 +257,15 @@ def check_colour_consistency(items: pd.DataFrame) -> None:
 
 
 def _singular(word: str) -> str:
+    """Bracelets -> bracelet, Accessories -> accessory, Watches -> watch; Dress and Sunglasses keep their "ss"."""
     w = word.lower().strip()
-    return w[:-1] if len(w) > 3 and w.endswith("s") else w  # Bracelets -> bracelet
+    if len(w) <= 3 or not w.endswith("s") or w.endswith(("ss", "us", "is")):
+        return w
+    if w.endswith("ies") and len(w) > 4:
+        return w[:-3] + "y"
+    if w.endswith(("sses", "xes", "ches", "shes")):
+        return w[:-2]
+    return w[:-1]
 
 
 def _type_word(desc: str) -> str | None:
@@ -283,6 +305,46 @@ def check_sales(items: pd.DataFrame) -> None:
     _add_issue(items, items["SALES_QTY"] == 0, "SALES_ZERO_QTY")
 
 
+def check_numerical(items: pd.DataFrame, low: float = 0.3, high: float = 1.5) -> None:
+    """Sanity of prices, landed cost and sales (GAP-001). Values are flagged, never changed."""
+    cols = ["PRICE_BASE_W_VAT", "PRICE_OUTLET_W_VAT", "PRICE_LCP", "SALES_QTY", "SALES_AMT_FX_RATE"]
+    num = {c: pd.to_numeric(items[c], errors="coerce") for c in cols if c in items.columns}
+    base, qty, amt = num["PRICE_BASE_W_VAT"], num["SALES_QTY"], num["SALES_AMT_FX_RATE"]
+    _add_issue(items, base.isna() | (base <= 0), "PRICE_INVALID")
+    if "PRICE_OUTLET_W_VAT" in num:  # cost and outlet columns are optional (absent from partial extracts)
+        _add_issue(items, num["PRICE_OUTLET_W_VAT"] > base, "PRICE_OUTLET_ABOVE_BASE")
+    if "PRICE_LCP" in num:
+        _add_issue(items, num["PRICE_LCP"].isna() | (num["PRICE_LCP"] <= 0), "PRICE_COST_MISSING")
+        _add_issue(items, num["PRICE_LCP"] > base, "PRICE_BELOW_COST")
+    _add_issue(items, (qty < 0) | (amt < 0), "SALES_NEGATIVE")
+    _add_issue(items, (qty == 0) & (amt > 0), "SALES_AMT_WITHOUT_QTY")
+    ratio = (amt / qty).where(qty > 0) / base  # realised price vs list price (amounts are in a mix of currencies)
+    _add_issue(items, (ratio < low) | (ratio > high), "REALISED_PRICE_ODD")
+
+
+def _log_outliers(s: pd.Series, k: float = 3.0) -> tuple[int, int]:
+    """Values more than k IQR below Q1 / above Q3 on the log scale (sales are very skewed)."""
+    v = np.log1p(s.dropna().clip(lower=0))
+    q1, q3 = v.quantile([0.25, 0.75])
+    return int((v < q1 - k * (q3 - q1)).sum()), int((v > q3 + k * (q3 - q1)).sum())
+
+
+def sales_profile(items: pd.DataFrame) -> pd.DataFrame:
+    """Per category: coverage and distribution of sales, like the missing-value report of the product file (OPP-001)."""
+    rp = (items["SALES_AMT_FX_RATE"] / items["SALES_QTY"]).where(items["SALES_QTY"] > 0) / items["PRICE_BASE_W_VAT"]
+    rows = []
+    for cat, g in [*items.assign(_rp=rp).groupby("CAT_DES_EN", sort=True), ("All", items.assign(_rp=rp))]:
+        qty = g["SALES_QTY"]
+        low, high = _log_outliers(qty)
+        rows.append({"CAT_DES_EN": cat, "colourways": len(g), "with_sales": int(qty.notna().sum()),
+                     "zero_qty": int((qty == 0).sum()), "qty_median": int(qty.median()),
+                     "qty_p95": int(qty.quantile(0.95)), "qty_max": int(qty.max()),
+                     "low_outliers": low, "high_outliers": high,
+                     "amount_total": int(round(g["SALES_AMT_FX_RATE"].sum())),
+                     "realised_vs_base_median": round(float(g["_rp"].median()), 3)})
+    return pd.DataFrame(rows)
+
+
 def add_image_audit(items: pd.DataFrame) -> None:
     """Merge the Phase 1b image flags (if computed) into the issues and keep their plain-language note."""
     path = EMB_DIR / "image_audit.parquet"
@@ -296,6 +358,12 @@ def add_image_audit(items: pd.DataFrame) -> None:
         _add_issue(items, vis.str.contains(code, regex=False), code)
 
 
+def priority(issues: pd.Series) -> pd.Series:
+    """Highest severity among the issue codes of each item ("none" without issues)."""
+    sev = issues.fillna("").map(lambda s: max((SEVERITY_RANK[ISSUES[c]] for c in s.split(";") if c), default=-1))
+    return sev.map({3: "high", 2: "medium", 1: "low", 0: "info", -1: "none"})
+
+
 def run_checks(verify_files: bool = True) -> tuple[pd.DataFrame, dict]:
     prod, sales = load_data()
     items = build_items(prod, sales)
@@ -304,19 +372,30 @@ def run_checks(verify_files: bool = True) -> tuple[pd.DataFrame, dict]:
     check_colour_consistency(items)
     check_type_consistency(items)
     check_sales(items)
+    check_numerical(items)
     _add_issue(items, items["sku_conflicts"] != "", "SKU_ATTR_CONFLICT")
     add_image_audit(items)
 
     items["issues"] = items["issues"].str.rstrip(";")
-    sev = items["issues"].map(
-        lambda s: max((SEVERITY_RANK[ISSUES[c]] for c in s.split(";") if c), default=-1))
-    items["priority"] = sev.map({3: "high", 2: "medium", 1: "low", 0: "info", -1: "none"})
-    context = {"prod": prod, "sales": sales,
-               "missing": missing_report(prod), "duplicates": duplicate_report(prod, sales)}
+    items["priority"] = priority(items["issues"])
+    context = {"prod": prod, "sales": sales, "missing": missing_report(prod),
+               "duplicates": duplicate_report(prod, sales), "sales_profile": sales_profile(items)}
     return items, context
 
 
 # --------------------------------------------------------------------------- reporting
+def image_size_section(items: pd.DataFrame) -> list[str]:
+    """Width, height and colour mode of the linked photos (WEA-001); empty when files were not opened."""
+    if "img_width" not in items.columns or items["img_width"].isna().all():
+        return []
+    dims = items[["img_width", "img_height"]].dropna().astype(int)
+    stats = dims.describe(percentiles=[0.01, 0.5, 0.99]).T[["min", "1%", "50%", "99%", "max"]].round(0).astype(int)
+    modes = ", ".join(f"{m} {n:,}" for m, n in items["img_mode"].value_counts().items())
+    return ["## Image sizes", "", _md_table(stats.rename_axis("side").reset_index()), "",
+            f"Colour modes: {modes}. Most photos are 640 x 640; `IMG_SMALL` and `IMG_ODD_SHAPE` are notes only "
+            "(CLIP pads the crop to a square).", ""]
+
+
 def _md_table(df: pd.DataFrame) -> str:
     cols = list(df.columns)
     lines = ["| " + " | ".join(map(str, cols)) + " |", "|" + "---|" * len(cols)]
@@ -330,6 +409,7 @@ def write_check_outputs(items: pd.DataFrame, ctx: dict) -> None:
     items.to_parquet(PROCESSED_DIR / "items_checked.parquet", index=False)
     items.to_csv(OUT_DIR / "items_checked.csv", index=False, encoding="utf-8-sig")
     ctx["missing"].to_csv(OUT_DIR / "missing_values.csv", encoding="utf-8-sig")
+    ctx["sales_profile"].to_csv(OUT_DIR / "sales_profile.csv", index=False, encoding="utf-8-sig")
     vocabulary_table(build_vocabulary(items)).to_csv(OUT_DIR / "review_vocabulary.csv", index=False,
                                                      encoding="utf-8-sig")
 
@@ -371,6 +451,14 @@ def write_check_outputs(items: pd.DataFrame, ctx: dict) -> None:
         "",
         f"Full table: `missing_values.csv`. Empty or constant columns ({len(dropped)}): {', '.join(dropped)}.",
         "",
+        "## Sales profile",
+        "",
+        "Per category (`sales_profile.csv`). Outliers: units sold more than 3 IQR below the first or above the third "
+        "quartile, on the log scale (mostly items that sold very little). `realised_vs_base_median`: realised price (amount / units) over the base price; amounts mix currencies.",
+        "",
+        _md_table(ctx["sales_profile"]),
+        "",
+        *image_size_section(items),
         "## Examples",
         "",
         *examples,
@@ -459,6 +547,51 @@ def write_batches(items: pd.DataFrame, n_members: int, only_id: int | None) -> N
 
 
 # --------------------------------------------------------------------------- merge
+TEXT_CHECKS = {"CLR_CODE_NAME_INCONSISTENT", "CLR_CONFLICT_DESC", "CLR_NOT_IN_DESC", "TYPE_CONFLICT_DESC"}
+TEXT_CHECK_COLS = {"PROD_CLR", "PROD_REF", "CLR_COD", "CLR_DES", "PROD_DES_BASE", "GFA_DES_EN"}
+
+
+def _photo_code(code: str) -> bool:
+    return code.startswith(("IMG_", "VIS_")) and code != "IMG_FILE_MISSING"
+
+
+def revalidate(items: pd.DataFrame, fixed, dropped) -> dict[str, int]:
+    """Bring the flags of reviewed rows up to date (INC-002). The flags of the check stay in `issues_checked`.
+
+    - fixed rows: the text checks (colour and type vs the description) run again on the corrected values, so a
+      flag is cleared when the fix resolved it and kept (confirmed) when it did not. Flags that only appear
+      after the fix are counted but not added: the description and the colour code still name the old value,
+      which the reviewer overrode on purpose after looking at the photo;
+    - rows whose photo was unlinked: the photo flags no longer apply and the item gets IMG_FILE_MISSING.
+    Other flags stay: the reviewer's status already says how they were resolved.
+    """
+    items["issues_checked"] = items["issues"]
+    old_codes = items["issues"].fillna("").str.split(";").map(lambda c: set(c) - {""})
+    if TEXT_CHECK_COLS <= set(items.columns):
+        redo = items.copy()
+        redo["issues"] = ""
+        check_colour_consistency(redo)
+        check_type_consistency(redo)
+        now = redo["issues"].str.rstrip(";").str.split(";").map(lambda c: set(c) - {""})
+    else:  # partial table: the text checks cannot run, their flags stay as they are
+        now = old_codes
+    counts = {"cleared": 0, "confirmed": 0, "text still names the old value": 0, "photo flags removed": 0}
+    for idx in fixed:
+        old = {c for c in str(items.at[idx, "issues"]).split(";") if c}
+        before, after = old & TEXT_CHECKS, now[idx] & TEXT_CHECKS
+        counts["cleared"] += len(before - after)
+        counts["confirmed"] += len(before & after)
+        counts["text still names the old value"] += len(after - before)
+        items.at[idx, "issues"] = ";".join(sorted((old - TEXT_CHECKS) | (before & after)))
+    for idx in dropped:
+        old = {c for c in str(items.at[idx, "issues"]).split(";") if c}
+        photo = {c for c in old if _photo_code(c)}
+        counts["photo flags removed"] += len(photo)
+        items.at[idx, "issues"] = ";".join(sorted((old - photo) | {"IMG_FILE_MISSING"}))
+    items["priority"] = priority(items["issues"])
+    return counts
+
+
 def merge_batches(input_dir: Path, include_unresolved: bool = False) -> None:
     items = pd.read_parquet(PROCESSED_DIR / "items_checked.parquet")
     files = sorted(input_dir.glob("batch_*_of_*.csv"))
@@ -513,6 +646,7 @@ def merge_batches(input_dir: Path, include_unresolved: bool = False) -> None:
                     "reviewer": items.at[idx, "reviewer"], "source_file": items.at[idx, "source_file"]})
     items.loc[drop_img, ["img_file", "PROG_IMAGE"]] = None
     items.loc[drop_img, "has_image"] = False
+    rechecked = revalidate(items, items.index[items["review_status"] == "fix"], items.index[drop_img])
 
     discarded = items[items["review_status"] == "discard"]
     team = items[items["review_status"].isin(["team_review", "pending"])]
@@ -537,6 +671,8 @@ def merge_batches(input_dir: Path, include_unresolved: bool = False) -> None:
     if not_in_batches.any():
         print(f"WARNING: {int(not_in_batches.sum())} items were not in any batch file.")
     print(f"Fixes applied: {len(log)} -> {OUT_DIR / 'changes_log.csv'}")
+    print("Flags re-checked after the fixes (old flags kept in issues_checked): "
+          + ", ".join(f"{k} {v}" for k, v in rechecked.items()))
     print(f"Clean table: {PROCESSED_DIR / 'items_clean.parquet'} ({len(clean)} items)")
     if len(team) and not include_unresolved:
         print(f"Left out of the clean table until resolved: {len(team)} items (pending / team_review) "

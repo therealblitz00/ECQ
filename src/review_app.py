@@ -48,6 +48,16 @@ ISSUE_LABELS = {
     "TYPE_CONFLICT_DESC": "The description names a different product type than the family",
     "SALES_MISSING": "No sales data",
     "SALES_ZERO_QTY": "Zero units sold",
+    "SALES_NEGATIVE": "Negative units or sales amount",
+    "SALES_AMT_WITHOUT_QTY": "Sales amount without any unit sold",
+    "REALISED_PRICE_ODD": "The price it sold at is far from its list price",
+    "PRICE_INVALID": "The list price is missing or not positive",
+    "PRICE_OUTLET_ABOVE_BASE": "The outlet price is above the list price",
+    "PRICE_COST_MISSING": "No landed cost",
+    "PRICE_BELOW_COST": "The landed cost is above the list price",
+    "IMG_SMALL": "The photo is very small",
+    "IMG_ODD_SHAPE": "The photo is much wider or taller than a square",
+    "IMG_NOT_RGB": "The photo is not in RGB colour",
     "SKU_ATTR_CONFLICT": "Different sizes have different values",
 }
 

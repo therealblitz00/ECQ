@@ -26,7 +26,7 @@ This is the only place that tracks the status. The evidence for each item is in 
 | Phase | Status | Done | Still to do |
 |---|---|---|---|
 | 0. Setup | ✅ | Repo, environments, README, double-click scripts, `CLAUDE.md`, tests and CI | – |
-| 1. Data foundation | ✅ | Loader, colourway table, sales join, image link, size-conflict check, reports, final cleaning (`phase1_clean.py`), photo trust, review merged → `items_clean.parquet` | Open audit findings (none blocking) |
+| 1. Data foundation | ✅ | Loader, colourway table, sales join, image link, size-conflict check, reports, final cleaning (`phase1_clean.py`), photo trust, review merged → `items_clean.parquet`, audit findings closed (prices, sales profile, image sizes, flags re-checked after the review) | – |
 | 1b. Image audit | ✅ | Masks, CLIP embeddings, type/colour/duplicate/quality flags, review app, human review, flag precision (`phase1b_precision.py`) | Optional: SAM outlines |
 | 2a. Tabular/text features | ✅ | Categorical, composition, numeric and text blocks (`phase2a_features.py`, `phase2a_text.py`), missing attributes filled (`phase2a_impute.py`) | – |
 | 2b. Visual features | ✅ | Image embeddings (`data/embeddings/image_clip.npy`), colour palettes (`phase2b_palettes.py`) | Optional: DINOv2, CLIP tags |
@@ -149,14 +149,14 @@ description ──[text encoder, once]──► 384–512 numbers
 - [x] Apply the review decisions (`merge`, 2026-10-11): 10,290 ok, 147 fixed, 118 wrong photos unlinked, 0 discarded, 0 unresolved. 270 changes in `outputs/phase1/changes_log.csv` (141 colours, 10 family/sub-family, 1 finishing, 118 image links). → `data/processed/items_clean.parquet` (10,555 rows) and `outputs/phase1/items_clean.csv`.
 - [x] **Every photo checked, not only the flagged ones** (2026-10-12): the 6,912 photos of batches 1, 2, 3 and 5 that nobody had looked at were checked one by one (batch 4 already was). 314 more colour fixes and 4 more wrong photos. Merge now: 9,972 ok, 461 fixed, 122 wrong photos; 588 changes (455 colours).
 
-**Open findings from the 2026-10-09 audit** ([archive](archive/2026-10-09_phase1_audit.md)). None blocks Phase 2:
-- [ ] GAP-001: sanity checks on prices, costs and sales (negative values, outlet price above base price, extreme realised prices).
-- [ ] INC-002: after `merge` applies a fix, re-run the checks on the fixed rows so their old flags are cleared or confirmed.
-- [ ] WEA-001: check image size and colour mode (not only that the file opens).
+**Findings from the 2026-10-09 audit** ([archive](archive/2026-10-09_phase1_audit.md)), all closed on 2026-10-12. New flags are `info` only, so no reviewed item went back to pending (merge: 9,972 ok, 461 fixed, 122 wrong photos, 0 pending, as before):
+- [x] GAP-001: sanity checks on prices, costs and sales (negative values, outlet price above base price, extreme realised prices). *(`check_numerical`: no negative or missing prices and no outlet above base; 175 items without landed cost (`PRICE_COST_MISSING`), 10 with a cost above the price (`PRICE_BELOW_COST`), 1 with an amount but 0 units (`SALES_AMT_WITHOUT_QTY`), 21 sold at under 0.3× or over 1.5× the list price (`REALISED_PRICE_ODD`). `realised_price` was already guarded against 0 units.)*
+- [x] INC-002: after `merge` applies a fix, re-run the checks on the fixed rows so their old flags are cleared or confirmed. *(`revalidate`: on the 461 fixed rows 2 text flags cleared, 3 confirmed; the 122 unlinked photos lose 249 photo flags and get `IMG_FILE_MISSING`. The flags of the check are kept in `issues_checked`. Flags that would only appear because the description still names the old colour (898) are counted, not added: the reviewer overrode the text after seeing the photo.)*
+- [x] WEA-001: check image size and colour mode (not only that the file opens). *(`img_width`, `img_height`, `img_mode` per item; all photos are RGB, 96% are 640 × 640; 45 under 300 px (`IMG_SMALL`), 15 with odd proportions (`IMG_ODD_SHAPE`); sizes in `check_report.md`.)*
 - [x] GAP-004: unused image files. Resolved 2026-10-10: all 33 are the photos of 33 colourways whose `PROG_IMAGE` drops the colour code; they are now linked (`IMG_PATH_REPAIRED`). No unused file left.
-- [ ] WEA-002: a sturdier singular form for item-type words in `TYPE_CONFLICT_DESC`.
-- [ ] RED-001: lower `CLR_NOT_IN_DESC` to low severity if reviewers find it mostly noise.
-- [ ] OPP-001: profile the sales file like the product file (distribution per category, outliers).
+- [x] WEA-002: a sturdier singular form for item-type words in `TYPE_CONFLICT_DESC`. *("Dress" was cut to "dres" and "Sunglasses" to "sunglas"; now -ss, -ies, -ches, -xes are handled. The `TYPE_CONFLICT_DESC` flags are the same 2 items.)*
+- [x] RED-001: lower `CLR_NOT_IN_DESC` to low severity if reviewers find it mostly noise. *(The review confirmed 8 of its 25 flags (32%, medium target 50%): now `low`.)*
+- [x] OPP-001: profile the sales file like the product file (distribution per category, outliers). *(`outputs/phase1/sales_profile.csv` + a section in `check_report.md`: units sold per category (median, p95, max), outliers on the log scale (122 items in the whole file sold very little, none unusually high), realised price ≈ 0.85 × list price.)*
 
 **Output:** `data/processed/items_clean.parquet`, with one row per colourway (about 10,555 rows, minus discarded items).
 **Done when:** the review is merged, and tests check that the key is unique, all sales rows are joined and the row count is stable.

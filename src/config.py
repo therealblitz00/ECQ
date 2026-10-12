@@ -35,10 +35,20 @@ ISSUES = {
     "TAB_KEY_INCONSISTENT": "high",    # PROD_CLR != PROD_REF + CLR_COD
     "CLR_CODE_NAME_INCONSISTENT": "high",  # CLR_COD letters map to a different CLR_DES elsewhere
     "CLR_CONFLICT_DESC": "high",       # PROD_DES names a different colour than CLR_DES
-    "CLR_NOT_IN_DESC": "medium",       # PROD_DES does not mention the colour at all
+    "CLR_NOT_IN_DESC": "low",          # PROD_DES does not mention the colour at all (32% confirmed by the review: RED-001)
     "TYPE_CONFLICT_DESC": "high",      # PROD_DES item type disagrees with GFA_DES_EN
     "SALES_MISSING": "info",           # no row in df_sales
     "SALES_ZERO_QTY": "low",           # SALES_QTY == 0
+    "SALES_NEGATIVE": "medium",        # SALES_QTY or SALES_AMT_FX_RATE below 0
+    "SALES_AMT_WITHOUT_QTY": "info",   # 0 units sold but a positive amount: realised price unknown
+    "REALISED_PRICE_ODD": "info",      # realised price below 0.3x or above 1.5x the base price
+    "PRICE_INVALID": "medium",         # base price missing or not positive
+    "PRICE_OUTLET_ABOVE_BASE": "info", # outlet price above the base price
+    "PRICE_COST_MISSING": "info",      # landed cost (PRICE_LCP) missing or 0
+    "PRICE_BELOW_COST": "info",        # landed cost above the base price
+    "IMG_SMALL": "info",               # shorter side under 300 px
+    "IMG_ODD_SHAPE": "info",           # width / height outside 2:3 .. 3:2
+    "IMG_NOT_RGB": "info",             # colour mode other than RGB (e.g. CMYK, greyscale, palette)
     "SKU_ATTR_CONFLICT": "medium",     # sizes of the same colourway disagree on an attribute (see sku_conflicts)
     # Image checks from Phase 1b (src/phase1b_image_audit.py), added when data/embeddings/image_audit.parquet exists
     "VIS_TYPE_MISMATCH": "high",       # CLIP and the most similar photos say another item type

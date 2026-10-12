@@ -20,7 +20,7 @@ This is the only place that tracks the status. The evidence for each item is in 
 |---|---|---|
 | **Sprint 1: data cleaning and validation** | 0, 1, 1b | ✅ **Done**: setup, automatic checks, image pre-screen, review app, cleaning, manual review by the 5 members, every photo checked, merge (`items_clean.parquet`) |
 | Sprint 2: features | 1 (rest), 2a, 2b | ✅ **Done**: Phase 2a (4 tabular/text blocks, missing attributes filled where reliable) and Phase 2b (image embeddings, colour palettes) |
-| Sprint 3: similarity and evaluation | 3, 4 | 🟡 **In progress**: Phase 3 done (`neighbours.parquet`); Phase 4 next |
+| Sprint 3: similarity and evaluation | 3, 4 | 🟡 **Almost done**: Phase 3 done (`neighbours.parquet`); Phase 4 evaluation and tuning done, human review sheet waiting for the team |
 | Sprint 4: explanations and delivery | 5, 6 | ⚪ Not started |
 
 | Phase | Status | Done | Still to do |
@@ -30,13 +30,13 @@ This is the only place that tracks the status. The evidence for each item is in 
 | 1b. Image audit | ✅ | Masks, CLIP embeddings, type/colour/duplicate/quality flags, review app, human review, flag precision (`phase1b_precision.py`) | Optional: SAM outlines |
 | 2a. Tabular/text features | ✅ | Categorical, composition, numeric and text blocks (`phase2a_features.py`, `phase2a_text.py`), missing attributes filled (`phase2a_impute.py`) | – |
 | 2b. Visual features | ✅ | Image embeddings (`data/embeddings/image_clip.npy`), colour palettes (`phase2b_palettes.py`) | Optional: DINOv2, CLIP tags |
-| 3. Similarity engine | ✅ | Weighted per-block cosine, like-for-like candidates, fallback without a trusted photo, top-10 for every colourway (`phase3_engine.py` → `neighbours.parquet`) | Weights are starting values: Phase 4 tunes them |
-| 4–6 | ⚪ | – | Everything |
+| 3. Similarity engine | ✅ | Weighted per-block cosine, like-for-like candidates, fallback without a trusted photo, top-10 for every colourway (`phase3_engine.py` → `neighbours.parquet`) | – |
+| 4. Evaluation | 🟡 | Fixed evaluation script (`phase4_eval.py`): proxy hit rate, attribute agreement, sales check, ablations, weights tuned on half of the models | Team fills the human review sheet; then the image weight is confirmed |
+| 5–6 | ⚪ | – | Everything |
 
 **Next:**
-1. Phase 4: a fixed evaluation script (`outputs/eval_report.md`): proxy hit rate, attribute agreement, commercial sanity check and ablations, then tune the block weights.
-2. To decide: a human reference set (about 50 products, each with similar and dissimilar items picked by the team), so the weights are checked against people, not only proxies.
-3. Phase 5 can start in parallel: the explanations read `sim_<block>` / `contrib_<block>` from `neighbours.parquet`.
+1. **Team:** fill `outputs/phase4/human_review.csv` (sheet *n* = member *n*, 10 queries each, 60–70 pairs): `verdict` = `similar`, `partly` or `not`, looking at `human_review_<n>.jpg`. Edit only your own rows. Then one person runs `python src/phase4_eval.py run --apply`, which picks the image weight with the best human precision, and `python src/phase3_engine.py build`.
+2. Phase 5 can start now: the explanations read `sim_<block>` / `contrib_<block>` from `neighbours.parquet`.
 
 ---
 
@@ -226,7 +226,7 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 
 ## Phase 3: Similarity engine
 
-- [x] Per-block cosine similarity combined as a weighted sum: `score = Σ w_b · sim_b`. Load the weights from a config file. *(2026-10-12: `src/phase3_engine.py`, six blocks (image, categorical, text, composition, palette, numeric); starting weights 0.30 / 0.30 / 0.10 / 0.10 / 0.10 / 0.10 in `src/phase3_weights.json`.)*
+- [x] Per-block cosine similarity combined as a weighted sum: `score = Σ w_b · sim_b`. Load the weights from a config file. *(2026-10-12: `src/phase3_engine.py`, six blocks (image, categorical, text, composition, palette, numeric); starting weights 0.30 / 0.30 / 0.10 / 0.10 / 0.10 / 0.10 in `src/phase3_weights.json`, tuned in Phase 4 to 0.36 / 0.36 / 0.08 / 0.08 / 0.04 / 0.08.)*
 - [x] Candidate filtering: same `CAT_DES_EN` by default, with an option to restrict further to the same `GFA` family. Exclude the query item itself, and exclude other colours of the same `PROD_REF` unless asked for (otherwise they make the results trivially easy). *(`--scope family`, `--include-siblings`; re-coded models (`PROD_REF_EQUIV`) are excluded too.)*
 - [x] Top-k search (k ≥ 4) for every item, run as a batch. *(k = 10 by default; all 10,555 colourways in ~7 s; none with fewer than 4.)*
 - [x] Fallback for items without a trustworthy image (no file, or flagged in 1b): use only the tabular blocks and reweight. For `colour_unreliable` items, keep the shape signal from the image but take colour from the CSV. *(A pair is scored on the blocks both items have, with the weights rescaled; `image` uses `img_trusted` photos, `palette` only `img_colour_trusted` ones.)*
@@ -238,14 +238,15 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 
 There is no labelled ground truth, so combine several signals:
 
-- [ ] **Proxy metrics:** hit rate at k on held-out "known similar" pairs. These are pairs that share `THEME` + `GFS` + `CLR_DES` but have a different `PROD_REF`, or re-coded items linked by `*_EQUIV`.
-- [ ] **Attribute agreement:** for the top-k results, the share with the same family, colour, finish or material.
-- [ ] **Commercial sanity check:** similar items should have similar prices and sales profiles (correlation of log sales).
-- [ ] **Ablations:** tabular only, visual only, and combined. Tune the block weights.
-- [ ] **Human review set:** about 50 query items × top-5 results in a scoring sheet for buyers or the team.
-- [ ] A fixed evaluation script, so every change reports the same numbers.
+- [x] **Proxy metrics:** hit rate at k on held-out "known similar" pairs. These are pairs that share `THEME` + `GFS` + `CLR_DES` but have a different `PROD_REF`, or re-coded items linked by `*_EQUIV`. *(2026-10-12: `hit@4` 91%, `hit@10` 96% on the test half; random 1% / 3%. Re-coded items are excluded as candidates, so they are not used as pairs.)*
+- [x] **Attribute agreement:** for the top-k results, the share with the same family, colour, finish or material. *(Top 4: family 98%, sub-family 90%, colour 58%, finishing 84%, material 74%; plus `visual@4`: share among the query's 20 nearest photos, 39%.)*
+- [x] **Commercial sanity check:** similar items should have similar prices and sales profiles (correlation of log sales). *(Spearman 0.62 between the query's sales percentile and its top 4 (random 0.00); median price ratio 1.00.)*
+- [x] **Ablations:** tabular only, visual only, and combined. Tune the block weights. *(Each block alone and left out; tuned on half of the models, reported on the other half. A change is kept only if no metric drops by more than 1 point, because every proxy is circular for one block: an unconstrained search put 88% of the weight on the image and lost a third of the material agreement. The image weight itself is left to the human review.)*
+- [ ] **Human review set:** about 50 query items × top-5 results in a scoring sheet for buyers or the team. *(Sheet ready: `outputs/phase4/human_review.csv`, 50 queries (10 per category, 2 without a photo), blind pool of the top 5 at image weights 0, 0.3 and 0.6 = 319 pairs; waiting for the team's verdicts.)*
+- [x] A fixed evaluation script, so every change reports the same numbers. *(`src/phase4_eval.py run`, ~3 min, fixed split and seeds.)*
 
-**Done when:** an `outputs/eval_report.md` is generated automatically, and the chosen weights are justified by the ablations.
+**Output:** `outputs/phase4/eval_report.md`, `eval_metrics.csv`, `weight_search.csv`, `human_review.csv` + `.json` + contact sheets.
+**Done when:** an `outputs/phase4/eval_report.md` is generated automatically, and the chosen weights are justified by the ablations.
 
 ## Phase 5: Explainability and output
 

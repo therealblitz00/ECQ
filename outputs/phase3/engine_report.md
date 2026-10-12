@@ -14,12 +14,12 @@ Output: `data/processed/neighbours.parquet` (105,550 rows: query, rank, candidat
 
 | Block | Weight | Items with the block |
 |---|---|---|
-| `image` | 0.30 | 9,445 |
-| `categorical` | 0.30 | 10,555 |
-| `text` | 0.10 | 10,555 |
-| `composition` | 0.10 | 10,554 |
-| `palette` | 0.10 | 9,445 |
-| `numeric` | 0.10 | 10,555 |
+| `image` | 0.36 | 9,445 |
+| `categorical` | 0.36 | 10,555 |
+| `text` | 0.08 | 10,555 |
+| `composition` | 0.08 | 10,554 |
+| `palette` | 0.04 | 9,445 |
+| `numeric` | 0.08 | 10,555 |
 
 The `image` block only uses photos with `img_trusted`, the `palette` block only photos with `img_colour_trusted`.
 
@@ -33,7 +33,7 @@ The `image` block only uses photos with `img_trusted`, the `palette` block only 
 | Jewellery | 4,639 | 4,156 | 0 |
 | Wallet | 1,251 | 1,191 | 0 |
 
-72 queries have a best match scoring ≥ 0.99: almost always the
+74 queries have a best match scoring ≥ 0.99: almost always the
 same design under another model code (e.g. a size or pack variant). They are kept, because they are different
 models, but Phase 4 should check whether buyers see them as duplicates.
 
@@ -44,26 +44,26 @@ of the higher to the lower price (1.00 = same price). A first sanity check; Phas
 
 | CAT | score_rank1 | score_rank4 | same_family | same_subfamily | same_colour | median price ratio |
 |---|---|---|---|---|---|---|
-| Apparel | 0.84 | 0.78 | 93% | 90% | 42% | 1.08 |
-| Footwear | 0.86 | 0.80 | 98% | 91% | 49% | 1.08 |
-| Hand Bag | 0.85 | 0.79 | 91% | 76% | 58% | 1.00 |
-| Jewellery | 0.86 | 0.81 | 99% | 89% | 66% | 1.00 |
-| Wallet | 0.83 | 0.77 | 93% | 77% | 53% | 1.00 |
+| Apparel | 0.84 | 0.79 | 98% | 95% | 42% | 1.08 |
+| Footwear | 0.87 | 0.82 | 99% | 94% | 50% | 1.08 |
+| Hand Bag | 0.86 | 0.80 | 95% | 82% | 58% | 1.00 |
+| Jewellery | 0.87 | 0.82 | 100% | 91% | 70% | 1.00 |
+| Wallet | 0.84 | 0.78 | 96% | 83% | 53% | 1.00 |
 
 | query | queries | mean_score | same_subfamily | same_colour |
 |---|---|---|---|---|
-| tabular only | 1,110 | 0.81 | 88% | 47% |
-| trusted photo | 9,445 | 0.82 | 85% | 58% |
+| tabular only | 1,110 | 0.81 | 89% | 50% |
+| trusted photo | 9,445 | 0.83 | 90% | 60% |
 
 ## What drives the score (share of the top-4 scores per block)
 
 | CAT | image | categorical | text | composition | palette | numeric |
 |---|---|---|---|---|---|---|
-| Apparel | 25% | 33% | 13% | 12% | 6% | 11% |
-| Footwear | 31% | 30% | 11% | 11% | 8% | 9% |
-| Hand Bag | 29% | 30% | 12% | 12% | 8% | 10% |
-| Jewellery | 27% | 34% | 12% | 9% | 8% | 11% |
-| Wallet | 31% | 29% | 11% | 11% | 9% | 9% |
+| Apparel | 31% | 40% | 10% | 9% | 2% | 8% |
+| Footwear | 37% | 35% | 9% | 9% | 3% | 7% |
+| Hand Bag | 35% | 36% | 9% | 9% | 3% | 7% |
+| Jewellery | 32% | 41% | 10% | 7% | 3% | 8% |
+| Wallet | 37% | 35% | 9% | 9% | 3% | 7% |
 
 ## Examples
 

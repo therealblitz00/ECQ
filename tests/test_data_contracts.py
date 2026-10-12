@@ -167,3 +167,14 @@ def test_neighbours_follow_the_phase3_contract():
         assert same.all() if col == "CAT_DES_EN" else not same.any(), col
     untrusted = ~items.loc[nb["candidate"], "img_trusted"].to_numpy(bool)
     assert (nb.loc[untrusted, "contrib_image"] == 0).all()
+
+
+def test_human_review_sheet_is_valid():
+    """outputs/phase4/human_review.csv: the queries of its sidecar, one row per pair, only known verdicts."""
+    import phase4_eval as ev
+    s = pd.read_csv(require(ev.SHEET_FILE), dtype=str, encoding="utf-8-sig", keep_default_na=False)
+    meta = json.loads(ev.SHEET_META.read_text(encoding="utf-8"))
+    assert list(dict.fromkeys(s["query"])) == meta["queries"]
+    assert not s.duplicated(["query", "candidate"]).any()
+    verdicts = s["verdict"].str.strip().str.lower()
+    assert verdicts[verdicts != ""].isin(ev.VERDICTS).all(), "verdict must be similar, partly or not"

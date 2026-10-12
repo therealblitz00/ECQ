@@ -1,11 +1,12 @@
 {
- "note": "Block weights of the Phase 3 score (score = sum of w_b * sim_b over the blocks both items have, divided by the sum of those w_b). Starting values; Phase 4 tunes them.",
+ "note": "Block weights of the Phase 3 score (score = sum of w_b * sim_b over the blocks both items have, divided by the sum of those w_b). Tuned by src/phase4_eval.py (outputs/phase4/eval_report.md); the image weight is to be confirmed by the human review.",
  "weights": {
-  "image": 0.30,
-  "categorical": 0.30,
-  "text": 0.10,
-  "composition": 0.10,
-  "palette": 0.10,
-  "numeric": 0.10
- }
+  "image": 0.36,
+  "categorical": 0.36,
+  "text": 0.08,
+  "composition": 0.08,
+  "palette": 0.04,
+  "numeric": 0.08
+ },
+ "tuned": "phase4_eval.py run --apply, 2026-10-12"
 }

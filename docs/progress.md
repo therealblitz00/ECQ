@@ -283,3 +283,22 @@ Before, only flagged photos had been looked at in batches 1, 2, 3 and 5 (6,912 p
 - **Finding:** 72 queries have a best match scoring ≥ 0.99, mostly the same design under another model code. They are kept; Phase 4 should check whether buyers see them as duplicates.
 - Each neighbour row stores `sim_<block>` and `contrib_<block>` (the contributions add up to the score), ready for the Phase 5 explanations.
 - Tests: 116 (7 unit tests on toy blocks + a data contract on `neighbours.parquet`).
+
+## 19. Evaluation and weight tuning (Phase 4, 2026-10-12)
+
+`src/phase4_eval.py run` writes `outputs/phase4/eval_report.md` in about 3 minutes. Weights are tuned on half of the models (fixed split by `PROD_REF`) and every number is measured on the other half (5,292 queries).
+
+| Top 4, test half | Random | Starting weights | Tuned weights |
+|---|---|---|---|
+| `hit@4` (a known similar item: same sub-family, theme and colour, other model) | 1% | 87% | **91%** |
+| Same family / sub-family | 25% / 8% | 96% / 85% | **98% / 90%** |
+| Same colour / finishing / material | 9% / 37% / 18% | 57% / 80% / 75% | **58% / 84% / 74%** |
+| Among the query's 20 nearest photos (`visual@4`) | 1% | 37% | **39%** |
+| Sales correlation (Spearman) | 0.00 | 0.62 | 0.62 |
+
+- **Tuned weights:** image 0.36, categorical 0.36, text 0.08, composition 0.08, palette 0.04, numeric 0.08 (were 0.30 / 0.30 / 0.10 / 0.10 / 0.10 / 0.10). Applied to `src/phase3_weights.json` and `neighbours.parquet` rebuilt.
+- **Why the tuning is constrained:** every proxy is circular for one block. A first search on the mean of the three families put 88% of the weight on the image: visual agreement rose, but `hit@4` fell to 76% and material agreement from 75% to 45%. So a change is now kept only if no single metric drops by more than 1 point.
+- **Ablations:** the categorical block matters most (without it `hit@4` falls to 60%); text alone is as good as categorical alone on `hit@4`; palette alone is close to random; numeric drives the sales correlation (without it 0.55).
+- **Image weight sweep (0 to 0.8):** more image weight buys visual agreement (28% → 76%) and costs catalogue agreement (81% → 71%). The proxies cannot pick the point, so the human review does.
+- **Human review sheet:** `outputs/phase4/human_review.csv` + 5 contact sheets: 50 queries (10 per category, 2 without a photo), candidates from image weights 0, 0.3 and 0.6 pooled and shown in key order without scores (blind), 319 pairs. Once the team fills `verdict`, `run --apply` picks the image weight with the best human precision.
+- Tests: 123 (6 new unit tests + a contract on the review sheet).

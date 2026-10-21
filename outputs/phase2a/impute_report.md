@@ -38,17 +38,17 @@ Values: Cotton 210, Viscose 204, Polyester 59, Lyocell 59, Modal 18, Linen 14, P
 ## FINISH_FAMILY (Jewellery)
 
 Cross-validation of the neighbours on the 4,154 items that have the value (folds by model; gold / silver kept only when the photo agrees):
-overall 88%, majority class 79%.
+overall 87%, majority class 79%.
 
 | Vote share | Items kept | Accuracy |
 |---|---|---|
-| ≥ 0.5 | 74% | 93% |
-| ≥ 0.6 | 71% | 95% |
-| ≥ 0.7 | 67% | 96% |
-| ≥ 0.8 | 63% | 97% |
-| ≥ 0.9 | 56% | 98% |
+| ≥ 0.5 | 73% | 93% |
+| ≥ 0.6 | 70% | 94% |
+| ≥ 0.7 | 66% | 95% |
+| ≥ 0.8 | 62% | 97% |
+| ≥ 0.9 | 53% | 97% |
 
-Precision per predicted value at a vote share ≥ 0.8: gold 97% (n=2413), silver 95% (n=146), other 97% (n=71), black 100% (n=5).
+Precision per predicted value at a vote share ≥ 0.8: gold 97% (n=2365), silver 91% (n=127), other 97% (n=67), black 100% (n=1).
 Only values with precision ≥ 90% on ≥ 10 predictions are filled by the neighbours:
 gold, other, silver.
 

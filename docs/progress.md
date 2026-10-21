@@ -384,3 +384,8 @@ All members sorted their queries in the feedback app: 138 of 140 (André 26/28),
 - **Applied: a 25% blend.** Held-out 73.8%, material 73.9%, sales 0.62, price ratio 1.00, `hit@4` 91.5%, visual agreement 41%. The gap between 73.8% and 75.3% is small for 699 held-out pairs; the material drop is not. Table of the blends in `outputs/phase4/feedback_report.md`.
 - `neighbours.parquet` rebuilt; `outputs/phase3/` and `outputs/phase4/eval_report.md` regenerated.
 
+
+## 23. Sprint 2 notebook and a fix in the attribute imputation (2026-10-21)
+
+- `notebooks/phase2_features.ipynb`: the Sprint 2 features step by step, self-contained (hard rule 8). The categorical, composition and numeric blocks it builds are identical to `features_*.npy` (max difference 0.0); the filled attributes are the same 846 values; the palettes match the committed file (200 photos checked, differences only from rounding). The text and CLIP embeddings are described and loaded.
+- Fix in `src/phase2a_impute.py`: when guessing the metal (`FINISH_FAMILY`), the neighbour vote also used `FINISH_FAMILY` itself, so the cross-validation partly saw the answer. Now every guessed attribute is left out. The filled values are unchanged; the measured precision drops slightly (FINISH_FAMILY at a vote share ≥ 0.8: 97% → 96.5%, `outputs/phase2a/impute_report.md`). New regression test.

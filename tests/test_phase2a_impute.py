@@ -49,3 +49,14 @@ def test_inferred_values_fill_gaps_and_never_replace_the_csv():
     inferred = pd.DataFrame({KEY: ["A", "B"], "column": ["MATERIAL", "MATERIAL"], "value": ["Cotton", "Cotton"]})
     out = imp.apply_inferred(items, inferred)
     assert out["MATERIAL"].tolist() == ["Linen", "Cotton"] and "FINISH_FAMILY" in out
+
+
+def test_the_vote_never_sees_the_attributes_it_guesses():
+    """Two items that differ only in FINISHING / FINISH_FAMILY / MATERIAL get the same neighbour features."""
+    import phase2a_features as f2a
+    cols = {c for cols, _ in f2a.CATEGORICAL.values() for c in cols}
+    items = pd.DataFrame({c: ["x", "x"] for c in cols} | {
+        KEY: ["NOT_EMBEDDED_1", "NOT_EMBEDDED_2"], "COMPOSITION": ["Zinc", "Zinc"], "img_trusted": [False, False],
+        "FINISHING": ["Golden", "Rodhium"], "MATERIAL": ["Cotton", "Linen"]})
+    X = imp.neighbour_features(imp.add_finish_family(items), imp.WEIGHTS["FINISH_FAMILY"])
+    np.testing.assert_allclose(X[0], X[1])

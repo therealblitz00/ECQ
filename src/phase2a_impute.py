@@ -70,7 +70,8 @@ def add_finish_family(items: pd.DataFrame) -> pd.DataFrame:
 def neighbour_features(items: pd.DataFrame, weights: dict) -> np.ndarray:
     """Unit rows: categorical (without the targets) + composition + CLIP image + palette, weighted."""
     import phase2a_features as f2a
-    spec = {k: v for k, v in f2a.CATEGORICAL.items() if k not in ("FINISHING", "MATERIAL")}
+    # every attribute being guessed is left out, or cross-validation would see the answer
+    spec = {k: v for k, v in f2a.CATEGORICAL.items() if k not in ("FINISHING", "MATERIAL", "FINISH_FAMILY")}
     parts = {"categorical": f2a.categorical_block(items, spec)[0], "composition": f2a.composition_block(items)[0],
              "image": _aligned(items, "image_clip.npy", "image_clip.json"), "palette": _palettes(items)}
     trusted = items["img_trusted"].fillna(False).to_numpy() if "img_trusted" in items else np.ones(len(items), bool)

@@ -364,3 +364,23 @@ six block weights are fitted to them (Bradley-Terry, the logistic model of RankN
 - **Decision:** the engine is unchanged (`features_categorical.npy` is identical). The reference table is kept for Phase 5, which can say "close colours: Navy ≈ Midnight Blue" instead of "different colour".
 - **For the team (optional, 2 min):** check `outputs/phase2a/colour_reference.jpg`. Two names look off: "Blue" is a greyish blue (denim and neutral parts in the photos) and "Coffee" is grey (5 photos only).
 - Tests: 155 (8 new: 7 unit tests on hand-made palettes, incl. the exact factorisation of the similarity, + a contract on `colour_reference.parquet`).
+
+## 22. Weights learned from the team's sorting (Phase 4, 2026-10-21)
+
+All members sorted their queries in the feedback app: 138 of 140 (André 26/28), 3,330 pairwise preferences.
+
+| Block | Before | Learned | Applied (25% blend) |
+|---|---|---|---|
+| image | 0.36 | 0.62 | **0.42** |
+| categorical | 0.36 | 0.25 | **0.33** |
+| text | 0.08 | 0.07 | 0.08 |
+| composition | 0.08 | 0.03 | 0.07 |
+| palette | 0.04 | 0.02 | 0.03 |
+| numeric | 0.08 | 0.02 | 0.07 |
+
+- **The team wants the photo to count more.** On the 20 held-out queries the learned weights order 75.3% of the preferences right (72.8% before).
+- **Reviewer agreement:** 70% of the pairs on the 10 shared queries, the ceiling for any weights.
+- **Cost of the full learned weights** (proxy metrics, test half): visual agreement +17 points, but material agreement −9 (74.5% → 65.6%), sales correlation 0.62 → 0.59, price ratio 1.00 → 1.08.
+- **Applied: a 25% blend.** Held-out 73.8%, material 73.9%, sales 0.62, price ratio 1.00, `hit@4` 91.5%, visual agreement 41%. The gap between 73.8% and 75.3% is small for 699 held-out pairs; the material drop is not. Table of the blends in `outputs/phase4/feedback_report.md`.
+- `neighbours.parquet` rebuilt; `outputs/phase3/` and `outputs/phase4/eval_report.md` regenerated.
+

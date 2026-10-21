@@ -112,7 +112,7 @@ the app replaces them.
 | [CLAUDE.md](CLAUDE.md) | Conventions for AI coding agents (and a good summary for humans) |
 | [docs/archive/](docs/archive/) | Older documents kept for reference (resolved audit) |
 | [notebooks/phase1_preprocessing.ipynb](notebooks/phase1_preprocessing.ipynb) | Sprint 1 preprocessing step by step, with tables and charts (needs `requirements-notebook.txt`) |
-| [notebooks/phase2_features.ipynb](notebooks/phase2_features.ipynb) | Sprint 2 features step by step: the six blocks, the filled attributes, palettes and colour names |
+| [notebooks/phase2_features.ipynb](notebooks/phase2_features.ipynb) | Sprint 2 features and modelling step by step: the six blocks, the filled attributes, palettes and colour names; the similarity model, its evaluation and the weights learned from the team |
 
 **Naming:** the work is organised in **phases** (0, 1, 1b, 2a, …), and code and output folders use the phase number (`phase1_checks.py`, `outputs/phase1b/`). Sprints are only the calendar: the roadmap shows which phases each sprint covers.
 

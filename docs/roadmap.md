@@ -12,16 +12,15 @@
 
 ---
 
-## Status (last updated 2026-10-12)
+## Status (last updated 2026-10-21)
 
 This is the only place that tracks the status. The evidence for each item is in [progress.md](progress.md).
 
 | Sprint | Roadmap phases | Status |
 |---|---|---|
 | **Sprint 1: data cleaning and validation** | 0, 1, 1b | ✅ **Done**: setup, automatic checks, image pre-screen, review app, cleaning, manual review by the 5 members, every photo checked, merge (`items_clean.parquet`) |
-| Sprint 2: features | 1 (rest), 2a, 2b | ✅ **Done**: Phase 2a (4 tabular/text blocks, missing attributes filled where reliable) and Phase 2b (image embeddings, colour palettes) |
-| Sprint 3: similarity and evaluation | 3, 4 | ✅ **Done**: Phase 3 (`neighbours.parquet`); Phase 4 evaluation, tuning and the team's feedback (weights learned from 138 sorted queries, applied as a 25% blend) |
-| Sprint 4: explanations and delivery | 5, 6 | ⚪ Not started |
+| **Sprint 2: features and modelling** | 1 (rest), 2a, 2b, 3, 4 | ✅ **Done**: Phase 2a (4 tabular/text blocks, missing attributes filled where reliable), Phase 2b (image embeddings, colour palettes), Phase 3 (`neighbours.parquet`) and Phase 4 (evaluation, tuning, weights learned from the team's 138 sorted queries, applied as a 25% blend). Notebook: `notebooks/phase2_features.ipynb` |
+| Sprint 3: explanations and delivery | 5, 6 | ⚪ Not started |
 
 | Phase | Status | Done | Still to do |
 |---|---|---|---|

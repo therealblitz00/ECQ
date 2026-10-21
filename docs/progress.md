@@ -389,3 +389,21 @@ All members sorted their queries in the feedback app: 138 of 140 (André 26/28),
 
 - `notebooks/phase2_features.ipynb`: the Sprint 2 features step by step, self-contained (hard rule 8). The categorical, composition and numeric blocks it builds are identical to `features_*.npy` (max difference 0.0); the filled attributes are the same 846 values; the palettes match the committed file (200 photos checked, differences only from rounding). The text and CLIP embeddings are described and loaded.
 - Fix in `src/phase2a_impute.py`: when guessing the metal (`FINISH_FAMILY`), the neighbour vote also used `FINISH_FAMILY` itself, so the cross-validation partly saw the answer. Now every guessed attribute is left out. The filled values are unchanged; the measured precision drops slightly (FINISH_FAMILY at a vote share ≥ 0.8: 97% → 96.5%, `outputs/phase2a/impute_report.md`). New regression test.
+
+## 24. Modelling added to the Sprint 2 notebook (2026-10-21)
+
+Sprint 2 covers features **and** modelling, so the sprint table in the roadmap now puts Phases 3 and 4 in Sprint 2 (explanations and delivery become Sprint 3).
+
+- `notebooks/phase2_features.ipynb`, new sections 11–16, self-contained (hard rule 8):
+  - the model (weighted mean of the block similarities, like-for-like candidates, other colours of the same model excluded);
+  - the evaluation signals on the test half of the models, against a random baseline;
+  - weights step 1, the guarded coordinate search, rerun in the notebook;
+  - weights step 2, the Bradley–Terry fit on the team's sorting, loaded from `outputs/phase4/feedback_*.jsonl`, with the held-out check, reviewer agreement and the 25% blend;
+  - the final model, the ablations and the example of the brief with its block contributions.
+- **Same results as the pipeline:**
+  - step 1 gives the same weights as the Phase 4 tuning (0.36 / 0.36 / 0.08 / 0.08 / 0.04 / 0.08);
+  - the learned weights are the same (image 0.618), and so is the held-out accuracy (72.8% → 75.3%);
+  - the final top 10 is identical to `neighbours.parquet` (105,550 of 105,550 rows);
+  - the test-half metrics match `outputs/phase4/eval_report.md` (`hit@4` 92%, material 74%, `sales_corr` 0.618).
+- Running time: about 5.5 minutes.
+

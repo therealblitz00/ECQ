@@ -291,6 +291,11 @@ There is no labelled ground truth, so combine several signals:
   carries the rise of prices between seasons), snapped to the nearest list price. Fast feature selection
   (`phase5b_forecast.py select` → `outputs/phase5b/feature_selection.md`) and a declared rule (a block leaves only if it
   helps in neither the 241 test nor the 242 ranking check): sales use attributes + photo, price attributes only.
+- [x] Biases investigated (2026-10-27, `forecast_report.md` § Biases): sales −6% (mostly jewellery; not a single season
+  growth, untestable with one whole-season transition: not corrected); price −4.5% (markups rise between seasons; a
+  season index and recency weights tried on half of the new 242 models, none gains: not applied).
+- [x] Buyer benchmark (`src/phase5b_buyer.py` → `outputs/phase5b/buyer_report.md`): the model against the buyer's
+  purchase depth and store tiers, alone and combined, with the pairs where they disagree.
 
 **Output contract** (`data/processed/forecast.parquet`, one row per colourway): `PROD_CLR_EQUIV`; for `sales` and `price`:
 `<t>_estimate`, `<t>_estimate_kind` (cross-validated / forecast; sales of season 242 are forecast because they were cut;

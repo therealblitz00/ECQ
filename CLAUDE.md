@@ -76,6 +76,7 @@ Current scripts in `src/`:
 | `phase4_compare.py` | The current engine (`image_embedding` and weights of `phase3_weights.json`) against the Sprint 2 baseline (CLIP) on the team's preferences (fixed and cross-validated, bootstrap CI), photo-only label agreement, guards and the brief's example → `outputs/phase4/compare_report.md` |
 | `phase5_explain.py` | Explanation of every match, an exact decomposition of the engine score (block shares, shared attributes/materials, differences, close colours) → `data/processed/explanations.parquet`, `outputs/phase5/` (brief's format, checks). CLI: `build`, `show KEY` |
 | `phase5b_forecast.py` | Sales and price estimates for new products (temporal test, baselines, LightGBM + exact TreeSHAP) → `data/processed/forecast.parquet`, `outputs/phase5b/forecast_report.md` |
+| `phase5b_buyer.py` | Benchmark of the sales model against the buyer's own decisions (`PUR_BET`, `TYPOLOGY`: alone, against the model, combined, pairs where they disagree) and ablation of the planning classes → `outputs/phase5b/buyer_report.md` + `buyer_benchmark.csv` |
 | `phase6_deliver.py` | Delivery: `query KEY` (similar products, why, estimates) and `report` → `outputs/phase6/report.html` |
 
 New code goes into `src/phase<N>_<topic>.py`, one module per roadmap phase (move to a package
@@ -147,7 +148,8 @@ python -m venv .venv
 .venv/Scripts/python src/phase5_explain.py build                 # -> data/processed/explanations.parquet + outputs/phase5/, ~3 min
 .venv/Scripts/python src/phase5_explain.py show 167718_BU        # explained top 5 of one product
 .venv/Scripts/python src/phase5b_forecast.py run                 # -> data/processed/forecast.parquet + outputs/phase5b/, ~30 min
-.venv/Scripts/python src/phase5b_forecast.py select              # fast feature selection -> outputs/phase5b/feature_selection.md, ~1 min
+.venv/Scripts/python src/phase5b_forecast.py select              # fast feature selection -> outputs/phase5b/feature_selection.md, ~2 min
+.venv/Scripts/python src/phase5b_buyer.py run                    # model vs buyer decisions -> outputs/phase5b/buyer_report.md, ~10 min
 .venv/Scripts/python src/phase6_deliver.py query 167718_BU       # similar products, why, sales and price estimates
 .venv/Scripts/python src/phase6_deliver.py report                # -> outputs/phase6/report.html
 

@@ -236,10 +236,11 @@ def feature_family(col: str) -> str:
 
 
 # --------------------------------------------------------------------------- models and metrics
-def fit_predict(X: pd.DataFrame, y: np.ndarray, train: np.ndarray, fit_rows: np.ndarray):
+def fit_predict(X: pd.DataFrame, y: np.ndarray, train: np.ndarray, fit_rows: np.ndarray,
+                weight: np.ndarray | None = None):
     import lightgbm as lgb
     model = lgb.LGBMRegressor(**LGB_PARAMS)
-    model.fit(X[fit_rows], y[fit_rows])
+    model.fit(X[fit_rows], y[fit_rows], sample_weight=None if weight is None else weight[fit_rows])
     return model, model.predict(X)
 
 
@@ -556,7 +557,41 @@ def select_features(items, blocks, weights, n_boot: int = 200) -> dict:
                 **{f"test_{k}": v for k, v in price_metrics(y[te], test_preds[n][te], points).items()
                    if k in ("mae_eur", "bias", "within_1_point")}} for n in FEATURE_SETS}
     out["price"] = _choose(rows, preds, y, va, model_groups(items), "val_mae_eur", err_p, n_boot)
+    out["price_drift"] = price_drift(items, blocks, weights, n_boot)
     return out
+
+
+def price_drift(items, blocks, weights, n_boot: int = 200) -> pd.DataFrame:
+    """Corrections for the rise of markups between seasons. Only the split 232 + 241 -> 242 has two training seasons,
+    so the new 242 models are split in halves: a correction is adopted only if its gain on half A excludes 0; half
+    B is shown, never used. Candidates: a season index (a new season priced like the latest one) and weights on 241."""
+    y = items["log_price"].to_numpy(float)
+    cost = items["log_cost"].to_numpy(float)
+    has = np.isfinite(cost)
+    sea = items["SEA_COD"].astype(str).to_numpy()
+    tr, _ = split(items, *TEST)
+    _, A = split(items, *TEST, half=0)
+    _, B = split(items, *TEST, half=1)
+    ana, _ = analogues(items, blocks, {**weights, "numeric": 0.0}, "log_price", tr)
+    X = feature_table(items, blocks, tr, "log_price", ana).assign(log_cost=cost)
+    latest = np.where(sea == "241", 1.0, 0.0)
+    latest[~tr] = 1.0
+    cands = {"none (chosen model)": (X, None), "season index (new season = latest)": (X.assign(season_idx=latest), None),
+             **{f"season 241 weighted ×{k}": (X, np.where(sea == "241", float(k), 1.0)) for k in (2, 3)}}
+    preds = {n: cost + fit_predict(Xc, y - cost, tr, tr & has, wt)[1] for n, (Xc, wt) in cands.items()}
+    groups = model_groups(items)
+    err = lambda yy, pp, _: -np.mean(np.abs(np.exp(yy) - np.exp(pp)))  # noqa: E731
+    base = preds["none (chosen model)"]
+    rows = {}
+    for n, p in preds.items():
+        a, b = A & has, B & has
+        lo, hi = bootstrap_diff(err, y[a], base[a], p[a], groups[a], groups[a], n=n_boot)
+        rows[n] = {"A_mae_eur": float(np.mean(np.abs(np.exp(p[a]) - np.exp(y[a])))),
+                   "A_bias": float(np.exp(np.mean(p[a] - y[a])) - 1), "A_gain_lo": lo, "A_gain_hi": hi,
+                   "B_mae_eur": float(np.mean(np.abs(np.exp(p[b]) - np.exp(y[b])))),
+                   "B_bias": float(np.exp(np.mean(p[b] - y[b])) - 1),
+                   "adopted": bool(n != "none (chosen model)" and lo > 0)}
+    return pd.DataFrame(rows).T
 
 
 def _choose(rows, preds, y, ev, groups, key, err, n_boot) -> dict:
@@ -609,8 +644,26 @@ def _md(df: pd.DataFrame, pct: set[str] = frozenset(), digits: int = 3) -> str:
     return "\n".join(lines)
 
 
+def bias_tables(items, test) -> dict:
+    """Mean error by category of the chosen models on the test splits (as a ratio, > 0 = too high), and the
+    level of the seasons the sales model learns from and is tested on."""
+    out = {}
+    for t, target in [("sales", "log_sales"), ("price", "log_price")]:
+        r = test[t]
+        ev = r["eval_rows"] & np.isfinite(r["y"])
+        res = pd.Series((r["preds"][r["chosen"]] - r["y"])[ev], index=items.index[ev])
+        g = res.groupby(items.loc[ev, "CAT_DES_EN"])
+        out[t] = pd.DataFrame({f"{t} products": g.size(), f"{t} bias": np.exp(g.mean()) - 1})
+    y = items["log_sales"]
+    sea = items["SEA_COD"].astype(str)
+    out["level"] = pd.DataFrame({
+        "232 (training)": np.expm1(y[sea.eq("232")].groupby(items["CAT_DES_EN"]).median()).round(0),
+        "241 test models": np.expm1(y[test["sales"]["eval_rows"]].groupby(items["CAT_DES_EN"]).median()).round(0)})
+    return out
+
+
 def write_report(checks: dict, val: dict, test: dict, rank242: dict, decisions: dict, leak: pd.DataFrame,
-                 shift: pd.DataFrame, imp_s: pd.Series, imp_p: pd.Series, typical: dict) -> None:
+                 shift: pd.DataFrame, imp_s: pd.Series, imp_p: pd.Series, typical: dict, biases: dict) -> None:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
     s_v, p_v = pd.DataFrame(val["sales"]["table"]).T, pd.DataFrame(val["price"]["table"]).T
     s_t, p_t = pd.DataFrame(test["sales"]["table"]).T, pd.DataFrame(test["price"]["table"]).T
@@ -715,6 +768,28 @@ def write_report(checks: dict, val: dict, test: dict, rank242: dict, decisions: 
         "",
         ci_p,
         "",
+        "## Biases: where they come from (test splits, by category)",
+        "",
+        "Mean error as a ratio (geometric; > 0 = estimate too high):",
+        "",
+        "Sales on the 241 test half, price on the 242 test.",
+        "",
+        _md(pd.concat([biases["sales"], biases["price"]], axis=1), pct={"sales bias", "price bias"}, digits=0),
+        "",
+        "Median units of the season the sales model learns from and of the season it is tested on:",
+        "",
+        _md(biases["level"], digits=0),
+        "",
+        "- **Sales:** the bias is mostly jewellery (under-estimated), and per category it does not follow the change "
+        "of level between the seasons (apparel sold more and is over-estimated, jewellery sold a little more and is "
+        "under-estimated). So it is not one season growth that a factor could remove, and with a single transition "
+        "between whole seasons (232 → 241) no correction can be tested: **not corrected**. The estimates are at the "
+        "level of the training seasons; a known growth plan (more stores, more stock) would scale them.",
+        "- **Price:** markups rise between seasons (jewellery 232 → 241, wallets and hand bags 241 → 242). Three corrections were "
+        "tried on half of the new 242 models (season index, more weight on 241): none gains clearly "
+        "(`feature_selection.md`), so **none is applied**; the remaining bias is a pricing decision of 242 that the "
+        "past seasons do not announce.",
+        "",
         "## Leakage checks and what each part adds (sales, test split; diagnostics, no choice made here)",
         "",
         _md(leak, pct=sp),
@@ -763,11 +838,18 @@ def main() -> None:
         res = select_features(items, blocks, weights)
         lines = ["# Phase 5b: feature selection (fast mode, 200 bootstrap resamples)", "",
                  "Decided on validation only: the simplest set whose validation error is not clearly worse than the "
-                 "best set's (95% interval of the gain vs the best reaches 0). Test columns are shown, never used.", ""]
+                 "best set's (95% interval of the gain vs the best reaches 0). Test columns are shown, never used.", "",
+                 f"**Applied** (`FEATURES`): sales `{FEATURES['log_sales']}`, price `{FEATURES['log_price']}`, by the "
+                 f"declared rule: a block leaves only if it helps in neither check, the second being the same-month "
+                 f"ranking on {TEST_SEASON} (`forecast_report.md`), where the photo helps the sales ranking.", ""]
+        drift = res.pop("price_drift")
         for t, r in res.items():
             lines += [f"## {t}: best on validation `{r['best']}`, chosen `{r['chosen']}`", "",
                       _md(r["table"], pct={"val_within_2x", "test_within_2x", "val_bias", "test_bias",
                                            "val_within_1_point", "test_within_1_point"}), ""]
+        lines += ["## price: corrections for the rise of markups (232 + 241 → 242, halves of the new models)", "",
+                  "Adopted only if the gain on half A excludes 0; half B shown, never used.", "",
+                  _md(drift, pct={"A_bias", "B_bias"}), ""]
         (REPORT_DIR / "feature_selection.md").write_text("\n".join(lines), encoding="utf-8")
         print("\n".join(lines))
         return
@@ -808,7 +890,7 @@ def main() -> None:
                               test["price"]["eval_rows"] & np.isfinite(items["log_cost"].to_numpy(float)))
     ts, tp = test["sales"]["table"][test["sales"]["chosen"]], test["price"]["table"][test["price"]["chosen"]]
     typical = {"sales": float(np.exp(ts["mae_log"])), "sales_within_2x": ts["within_2x"], "price": tp["mae_eur"]}
-    write_report(checks, val, test, rank242, decisions, leak, shift, imp_s, imp_p, typical)
+    write_report(checks, val, test, rank242, decisions, leak, shift, imp_s, imp_p, typical, bias_tables(items, test))
     final = final_models(items, blocks, weights, typical, use_analogue)
     final.to_parquet(PROCESSED_DIR / OUT_FILE, index=False)
     meta = {"created": datetime.now(timezone.utc).isoformat(timespec="seconds"),

@@ -144,6 +144,33 @@ Error reduction over the sub-family median (95% CI):
 - gradient boosting, no analogues: +1.24 to +1.82 €
 - gradient boosting + analogues: +1.21 to +1.79 €
 
+## Biases: where they come from (test splits, by category)
+
+Mean error as a ratio (geometric; > 0 = estimate too high):
+
+Sales on the 241 test half, price on the 242 test.
+
+|  | sales products | sales bias | price products | price bias |
+|---|---|---|---|---|
+| Apparel | 270 | 6.7% | 931 | -5.7% |
+| Footwear | 58 | -7.6% | 154 | 0.9% |
+| Hand Bag | 292 | 1.4% | 750 | -1.9% |
+| Jewellery | 621 | -14.7% | 1464 | -5.4% |
+| Wallet | 195 | -6.0% | 429 | -4.9% |
+
+Median units of the season the sales model learns from and of the season it is tested on:
+
+|  | 232 (training) | 241 test models |
+|---|---|---|
+| Apparel | 1390 | 1661 |
+| Footwear | 2210 | 2326 |
+| Hand Bag | 5538 | 6383 |
+| Jewellery | 3238 | 3512 |
+| Wallet | 3894 | 3466 |
+
+- **Sales:** the bias is mostly jewellery (under-estimated), and per category it does not follow the change of level between the seasons (apparel sold more and is over-estimated, jewellery sold a little more and is under-estimated). So it is not one season growth that a factor could remove, and with a single transition between whole seasons (232 → 241) no correction can be tested: **not corrected**. The estimates are at the level of the training seasons; a known growth plan (more stores, more stock) would scale them.
+- **Price:** markups rise between seasons (jewellery 232 → 241, wallets and hand bags 241 → 242). Three corrections were tried on half of the new 242 models (season index, more weight on 241): none gains clearly (`feature_selection.md`), so **none is applied**; the remaining bias is a pricing decision of 242 that the past seasons do not announce.
+
 ## Leakage checks and what each part adds (sales, test split; diagnostics, no choice made here)
 
 |  | spearman_within_cat | spearman_same_month | mae_log | bias_log | within_2x | top20_precision |

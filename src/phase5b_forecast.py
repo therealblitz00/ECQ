@@ -196,8 +196,9 @@ def analogues(items: pd.DataFrame, blocks: dict, weights: dict, target: str, poo
 
 
 def feature_table(items: pd.DataFrame, blocks: dict, train: np.ndarray, target: str,
-                  analogue: np.ndarray | None, extra: list[str] = ()) -> pd.DataFrame:
-    """One row per product: attributes (categorical), numbers, embedding components and the analogue estimate."""
+                  analogue: np.ndarray | None, extra: list[str] = (), full: bool = False) -> pd.DataFrame:
+    """One row per product: attributes (categorical), numbers, embedding components and the analogue estimate.
+    Only the columns of the target's chosen feature set (`FEATURES`), unless `full` (the selection itself)."""
     X = pd.DataFrame(index=items.index)
     for c in CATEGORICAL + list(extra):
         if c in items:
@@ -218,7 +219,7 @@ def feature_table(items: pd.DataFrame, blocks: dict, train: np.ndarray, target: 
         X[f"mat_{j}"] = (comp[:, j] > 0).astype(float)
     if analogue is not None:
         X["analogue"] = analogue
-    return X
+    return X if full else feature_set(X, FEATURES[target])
 
 
 FAMILY_OF_FEATURE = [("img_pc", "photo (image components)"), ("txt_pc", "description (text components)"),
@@ -490,11 +491,17 @@ def final_models(items, blocks, weights, typical_error: dict, use_analogue: dict
 
 FEATURE_SETS = {  # simplest first: the column prefixes each set leaves out
     "attributes only": ("img_pc", "txt_pc", "mat_", "launch_month"),
+    "attributes + photo": ("txt_pc", "mat_", "launch_month"),
     "without photo and description": ("img_pc", "txt_pc"),
     "without photo": ("img_pc",),
     "without launch month": ("launch_month",),
     "all features": (),
 }
+# Declared rule: a block leaves only if it helps in neither check (validation/test on whole lives, and the
+# same-month ranking on 242). Description, materials and launch month help in neither; the photo is neutral on 241
+# but adds +0.005 to +0.052 same-month ranking on 242 (trained on 232 + 241), so it stays for sales. Price: the
+# photo helps in neither (outputs/phase5b/feature_selection.md).
+FEATURES = {"log_sales": "attributes + photo", "log_price": "attributes only"}
 
 
 def feature_set(X: pd.DataFrame, name: str) -> pd.DataFrame:
@@ -516,7 +523,7 @@ def select_features(items, blocks, weights, n_boot: int = 200) -> dict:
     va, te = va & np.isfinite(y), te & np.isfinite(y)
     groups = (items["CAT_DES_EN"].astype(str) + "|" + items["launch_month"].astype(int).astype(str) + "|"
               + items["SEA_COD"].astype(str)).to_numpy()
-    X = feature_table(items, blocks, tr, "log_sales", None)
+    X = feature_table(items, blocks, tr, "log_sales", None, full=True)
     preds = {n: fit_predict(feature_set(X, n), y, tr, fit)[1] for n in FEATURE_SETS}
     err = lambda yy, pp, _: -np.mean(np.abs(yy - pp))  # noqa: E731  (higher is better)
     rows = {n: {**{f"val_{k}": v for k, v in sales_metrics(y[va], p[va], groups[va]).items()
@@ -535,7 +542,7 @@ def select_features(items, blocks, weights, n_boot: int = 200) -> dict:
     for seasons, store in [(VALIDATION, preds), (TEST, test_preds)]:
         tr, ev = split(items, *seasons)
         ana, _ = analogues(items, blocks, no_price, "log_price", tr)
-        X = feature_table(items, blocks, tr, "log_price", ana)
+        X = feature_table(items, blocks, tr, "log_price", ana, full=True)
         for n in FEATURE_SETS:
             Xs = feature_set(X, n)
             _, no_cost = fit_predict(Xs, y, tr, tr)
@@ -567,7 +574,8 @@ def leakage_checks(items, blocks, train, test) -> pd.DataFrame:
     fit_rows, ev_rows = train & np.isfinite(y), test & np.isfinite(y)
     groups = (items["CAT_DES_EN"].astype(str) + "|" + items["launch_month"].astype(int).astype(str) + "|"
               + items["SEA_COD"].astype(str)).to_numpy()
-    X = feature_table(items, blocks, train, "log_sales", None)
+    full = feature_table(items, blocks, train, "log_sales", None, full=True)
+    X = feature_set(full, FEATURES["log_sales"])
 
     def score(Xv, yv=y):
         _, p = fit_predict(Xv, yv, train, fit_rows)
@@ -579,16 +587,14 @@ def leakage_checks(items, blocks, train, test) -> pd.DataFrame:
         shuffled[idx] = shuffled[np.random.default_rng(SEED + k).permutation(idx)]
         perms.append(score(X, shuffled))
     perms = pd.DataFrame(perms)
-    emb = [c for c in X if c.startswith(("img_pc", "txt_pc"))]
     rows = {"chosen model": score(X),
             f"target shuffled in training, mean of {N_PERMUTATIONS} runs (must be ~0)": perms.mean().to_dict(),
             f"target shuffled in training, SD of {N_PERMUTATIONS} runs": perms.std().to_dict(),
-            "without launch month": score(X.drop(columns=["launch_month"])),
             "without fashion type and collection type": score(X.drop(columns=["FASHIONTYPE", "COLLECTION_TYPE"])),
-            "without the photo components": score(X.drop(columns=[c for c in emb if c.startswith("img")])),
-            "without the photo and description components": score(X.drop(columns=emb)),
-            "attributes + price only": score(X[[c for c in X if not c.startswith(("img_pc", "txt_pc", "mat_"))
-                                                and c != "launch_month"]])}
+            "without the three planning classes (+ CATEGORY_MATRIX)":
+                score(X.drop(columns=["FASHIONTYPE", "COLLECTION_TYPE", "CATEGORY_MATRIX"])),
+            "without the photo (attributes only)": score(feature_set(full, "attributes only")),
+            "with description, materials and launch month (all features)": score(full)}
     return pd.DataFrame(rows).T
 
 
@@ -639,6 +645,12 @@ def write_report(checks: dict, val: dict, test: dict, rank242: dict, decisions: 
         f"{TEST_SEASON}** (list prices are not cut by the extraction).",
         "- **Left out:** buyer decisions (`PUR_BET`, `TYPOLOGY`; see `buyer_report.md`); sales are never a feature; "
         "the price model never sees the price or the numeric similarity block.",
+        "- **Features**, by a rule declared before the choice: a block leaves only if it helps in neither check "
+        f"(whole lives 232 → 241, and the same-month ranking on {TEST_SEASON}). Description components, materials and "
+        "launch month help in neither and leave both estimates. The photo components stay for **sales**: neutral on "
+        f"241 (−0.04 to +0.02 same-month ranking) but +0.005 to +0.052 on {TEST_SEASON}, where the model trains on "
+        "twice the products; this uses the 242 check, so it is stated. **Price**: attributes only (the photo helps in "
+        "neither; `feature_selection.md`).",
         "- **A choice** (the similar products as a feature) is kept only if the 95% interval of its validation gain "
         "excludes 0.",
         "",

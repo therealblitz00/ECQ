@@ -262,5 +262,6 @@ def test_forecast_follows_its_contract():
     assert fc[config.KEY].is_unique
     for t in ("sales", "price"):
         assert fc[f"{t}_estimate"].notna().all() and (fc[f"{t}_estimate"] >= 0).all()
-        assert set(fc[f"{t}_estimate_kind"]) <= {"cross-validated (target not seen)", "forecast (no sales / new)"}
+        assert all(k.startswith(("cross-validated (target not seen)", "forecast")) for k in fc[f"{t}_estimate_kind"])
         assert fc[f"{t}_typical_error"].nunique() == 1
+    assert (fc["price_point_estimate"] > 0).all() and fc["price_point_estimate"].nunique() <= 40   # the list prices

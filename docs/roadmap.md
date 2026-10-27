@@ -285,10 +285,17 @@ There is no labelled ground truth, so combine several signals:
   `outputs/phase5b/forecast_report.md`.)*
 - [x] Estimates delivered for every product, never in-sample (cross-validated, grouped by model) and with the new-season
   typical error.
+- [x] Methodology fixes (2026-10-27): sales are whole-life units, learned and tested only on the seasons that had
+  finished selling (232 → the new 241 models, split in halves for the choices and the test); 242 sales are cut by the
+  extraction and only check the same-month ranking; no days on sale. Price = landed cost × estimated markup (the cost
+  carries the rise of prices between seasons), snapped to the nearest list price. Fast feature selection
+  (`phase5b_forecast.py select` → `outputs/phase5b/feature_selection.md`): "attributes only" for both targets, not yet
+  applied to `run`.
 
 **Output contract** (`data/processed/forecast.parquet`, one row per colourway): `PROD_CLR_EQUIV`; for `sales` and `price`:
-`<t>_estimate`, `<t>_estimate_kind` (cross-validated / forecast), `<t>_typical_error`, `<t>_analogue`,
-`<t>_analogue_keys` (up to 4, `|`-separated), `<t>_reasons` (three biggest SHAP effects).
+`<t>_estimate`, `<t>_estimate_kind` (cross-validated / forecast; sales of season 242 are forecast because they were cut;
+price without a landed cost says so), `<t>_typical_error`, `<t>_analogue`, `<t>_analogue_keys` (up to 4, `|`-separated),
+`<t>_reasons` (three biggest SHAP effects); `price_point_estimate` (nearest list price), `landed_cost`.
 
 ## Phase 6: Delivery and interface
 

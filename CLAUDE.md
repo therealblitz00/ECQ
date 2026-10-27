@@ -146,7 +146,8 @@ python -m venv .venv
 # Phase 5, 5b, 6 (rerun after Phase 3)
 .venv/Scripts/python src/phase5_explain.py build                 # -> data/processed/explanations.parquet + outputs/phase5/, ~3 min
 .venv/Scripts/python src/phase5_explain.py show 167718_BU        # explained top 5 of one product
-.venv/Scripts/python src/phase5b_forecast.py run                 # -> data/processed/forecast.parquet + outputs/phase5b/, ~6 min
+.venv/Scripts/python src/phase5b_forecast.py run                 # -> data/processed/forecast.parquet + outputs/phase5b/, ~30 min
+.venv/Scripts/python src/phase5b_forecast.py select              # fast feature selection -> outputs/phase5b/feature_selection.md, ~1 min
 .venv/Scripts/python src/phase6_deliver.py query 167718_BU       # similar products, why, sales and price estimates
 .venv/Scripts/python src/phase6_deliver.py report                # -> outputs/phase6/report.html
 

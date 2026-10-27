@@ -9501,5 +9501,6 @@
   "215398_GY",
   "215400_DG",
   "215400_GY"
- ]
+ ],
+ "provenance_note": "Written after encoding, by hand from the exploratory run (same crops and model as `embed --model dinov2 --no-person-crops`)."
 }

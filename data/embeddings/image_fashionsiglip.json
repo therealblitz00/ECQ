@@ -9501,5 +9501,6 @@
   "215400_GY"
  ],
  "library_version": "open_clip_torch 3.3.0",
- "torch_version": "2.14.1+cpu"
+ "torch_version": "2.14.1+cpu",
+ "provenance_note": "`library_version` and `torch_version` were added after encoding, from the environment that ran it."
 }

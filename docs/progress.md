@@ -414,7 +414,7 @@ kept only if it wins on signals it was not tuned on and no guarded metric drops 
 rule). Results that did not win are recorded too.
 
 **Where a change is measured** (the strongest signal first):
-1. **The team's judgements**: 147 sorted answers on **99 distinct queries** (10 queries were sorted by every member), 4,029 pairwise preferences (`outputs/phase4/feedback_*.jsonl`). Two ways:
+1. **The team's judgements**: 138 sorted answers (the latest of each member) on **99 distinct queries** (9 sorted by all five members, 1 by four), 4,029 pairwise preferences (`outputs/phase4/feedback_*.jsonl`). Two ways:
    current weights on all answers, and 5-fold cross-validation over queries with the weights refitted (same
    Bradley–Terry fit as Phase 4). Confidence intervals by paired bootstrap over queries (a query's pairs are not
    independent).
@@ -464,7 +464,8 @@ separate the team's similar / not similar candidates at all: Cohen's d −0.06, 
 
 ### 25.3 Image encoder: FashionSigLIP adopted, DINOv2 rejected
 
-Same item crops (Phase 1b), same trust mask, three challengers to CLIP ViT-B/32. Computed once on a laptop CPU (CLIP
+Same item crops (Phase 1b), same trust mask, three challengers to CLIP ViT-B/32 (the FashionSigLIP row includes the 6
+re-crops of §25.7; the effect of 6 photos out of 9,445 is negligible). Computed once on a laptop CPU (CLIP
 full photos, FashionCLIP and DINOv2 in 40 min; FashionSigLIP in about 1 h).
 
 | | CLIP B/32 (baseline) | FashionCLIP | DINOv2-small | **FashionSigLIP** |
@@ -518,17 +519,21 @@ every product in `similar_products.csv`, the brief's example in `brief_example.j
   shared attributes with their points, shared materials (rare ones weigh more), price/launch parts, differences (price,
   colour with the measured closeness of the two names, finish, sub-family) and the shared dominant photo colours.
 - **Completeness:** the parts add up to the score (largest gap 6.8e-07 on 2,000 pairs: float32 rounding).
-- **Sufficiency** (the test that matters; best match of 300 random queries, scores rounded like the engine, ties counted
-  against the match): keeping **only the two blocks the explanation names first**, the match stays in the top 5 for 86% of
-  the queries (still first 48%); two random blocks 53% (22%); the two named last 10% (4%). The short explanation a buyer
-  reads is enough to recover most matches.
+- **Sufficiency** (best match of 300 random queries, scores rounded like the engine, ties counted against the match):
+  keeping only the two blocks the explanation names first, the match stays in the top 5 for 86% of the queries; two random
+  blocks 53%, the two named last 10%. **But a control — the two blocks with the largest global weights — gives the same
+  86%:** the two blocks named first *are* the two heaviest (photo + attributes) in 292 of 300 matches, and in the 8 others
+  the difference (75% vs 62%) rests on too few cases to mean anything. So this test shows that the heavy blocks recover
+  the match, not that the per-match ranking of blocks adds information. What is specific to each match is inside the
+  blocks — which attributes and materials are shared, and the differences — and that part is exact by construction
+  (completeness), not something a test can make more or less true.
 - **Deletion** (for an additive score this mostly confirms the arithmetic): removing the block named first unseats the
   match in 50% of the queries (mean rank 5.7), a random block 32%, the block named last 19%.
 - **Agreement with the team** (Phase 4 feedback, only the candidates the engine proposed: 769 called similar, 134 not;
   Cohen's d with the pooled within-group SD): photo 0.96, description 0.49, catalogue attributes 0.44, materials 0.42,
   price/launch 0.28, photo colours −0.06. A first version also counted the 2 random candidates per query (easy to reject on
   any block) and divided by the total SD; it put the catalogue attributes first, an artefact of the easy cases.
-- **Cost:** 52,775 matches (10,555 products × top 5) explained in about 100 s (2 ms each) on a laptop.
+- **Cost:** 52,775 matches (10,555 products × top 5) explained in about 85 s (1.6 ms each) on a laptop.
 
 ### 25.5 Price and sales estimates (Phase 5b, new)
 
@@ -545,8 +550,11 @@ validation split, estimates never in-sample.)
   the training sales run into the test period: a limit of the data (no dated sales), stated, not corrected.
 - **Protocol:** every choice (which model, whether to add the similar products as a feature) is made on a **validation
   split, 232 → 241**; the **test split, 232 + 241 → 242**, is reported once. Both use only models never sold in the
-  training seasons. Validation: gradient boosting beats every baseline (same-month ranking 0.454 vs 0.316; price error
-  2.23 € vs 2.82 €); adding the similar products: −0.012 to +0.018, so the simpler model is kept.
+  training seasons. The choice is a rule in the code: gradient boosting beats every baseline on validation (same-month
+  ranking 0.454 vs 0.316; price error 2.23 € vs 2.82 €), and the similar products enter as a feature only if the 95%
+  interval of their validation gain excludes 0. It does not (sales −0.004 to +0.030 same month, price −0.10 to +0.02 €),
+  so the simpler model is kept for both. On the test season they would have helped a little (sales 0.43 vs 0.41 same
+  month, price 3.30 vs 3.41 €): reported, not used to choose.
 - **Left out:** `PUR_BET` (purchase depth) and `TYPOLOGY` (store tiers) encode the buyer's own expectation (with them,
   same-month ranking 0.41 → 0.53: reference only); the landed cost from the price model (with it 3.41 € → 2.74 €).
 
@@ -575,14 +583,14 @@ Error reduction over the sub-family median: gradient boosting 0.57 to 0.94 €.
 | Check | Within category | Same launch month |
 |---|---|---|
 | Chosen model | 0.538 | 0.413 |
-| Target shuffled in training (must fall to ~0) | −0.047 | −0.047 |
+| Target shuffled in training, 20 runs (must be ~0) | 0.04 ± 0.06 | 0.01 ± 0.03 |
 | Without time on sale and launch month | 0.514 | 0.417 |
 | Without fashion type and collection type | 0.454 | 0.342 |
 | Without the photo components | 0.383 | 0.382 |
 | Without the photo and description components | 0.376 | 0.374 |
 | Attributes + price only | 0.376 | 0.378 |
 
-- **No leakage found in the pipeline:** with the training target shuffled at random, the ranking falls to zero.
+- **No leakage found in the pipeline:** with the training target shuffled at random (20 runs), the ranking falls to zero.
 - **The photo matters within a category** (−0.16 without it) but little among products launched in the same month
   (−0.03): it mostly tells which kind of product sells, less which of two similar launches sells more.
 - **Fashion type and collection type** carry real signal and **their shares shift between seasons**: "Commercial Online"
@@ -601,7 +609,8 @@ sales — fashion type 0.36, the photo 0.30, collection type 0.22, planning cate
 price — planning category 0.29, weight 0.16, category 0.12, sub-family 0.05.
 
 **Delivered estimates are never in-sample:** products with a known target get a cross-validated estimate (5 folds grouped
-by model), the 379 without sales a forecast from all known products. On the known products the cross-validated error is
+by model, PROD_REF and PROD_REF_EQUIV joined so that re-coded items count as one model), the 379 without sales a
+forecast from all known products. On the known products the cross-validated error is
 0.56 log units (it was 0.33 when the model predicted its own training rows), still lower than a new season (1.13) because
 the folds mix seasons, so each estimate carries the **new-season typical error** (sales ×3.1, price ±3.41 €).
 
@@ -674,8 +683,9 @@ all fixed:
 | Forecast choices made on the test season; final (revised) store dates | Choices on 232 → 241, test reported once; planned store dates |
 | Planning classes said to be stable across seasons (false) | Measured and reported as a shift risk (§25.5) |
 | "The photo adds little" (the favourable metric) | Both metrics reported: −0.16 within category, −0.03 same month |
-| Explanation checks weak (deletion is near-tautological; team check pooled easy random candidates) | Sufficiency test added; Cohen's d on the engine's candidates (the ordering changed: §25.4) |
+| Explanation checks weak (deletion is near-tautological; team check pooled easy random candidates) | Sufficiency test added (and, after the second review, a largest-weights control that shows its limit, §25.4); Cohen's d on the engine's candidates (the ordering changed) |
 | Reference rows compared with the wrong model | Built from the chosen model |
-| Stale numbers from the CLIP run; "138 queries" | Regenerated from the reports; 99 distinct queries (147 answers) |
+| Stale numbers from the CLIP run; "138 queries" | Regenerated from the reports; 99 distinct queries (138 answers) |
 | Notebook explained the baseline | Sections 2–4 on the Sprint 3 engine, with the baseline beside it |
+| Second review (same day): sufficiency confounded by the block weights; the notebook's Cohen's d on CLIP similarities; the model choice written in prose, not computed; stale notebook cells; answer counts; roadmap without Phase 5b and contracts; folds grouped by PROD_REF only; one shuffled run | Largest-weights control and the rows where the explanation differs from it; Cohen's d on FashionSigLIP; the choice is a rule in the code (validation interval); notebook cells fixed; 138 answers / 99 queries; roadmap Phase 5b + output contracts + contract tests; folds and bootstrap by joined model codes; 20 shuffled runs; provenance notes in hand-written sidecars |
 | Minor: `open_clip_torch` missing from `requirements-vision.txt`, no library versions in the sidecar, excluded products listed as analogues, inconsistent weighting of the rank metrics, ties counted in the match's favour | Fixed (regression tests for the analogue keys and the re-crop rule) |

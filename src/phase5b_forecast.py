@@ -45,6 +45,7 @@ TEST_SEASON = "242"             # the newest season: forecast it from the two ol
 K_ANALOGUES = 10                # similar past products averaged by the analogue estimate
 PCS = 16                        # principal components kept from the image and text embeddings
 BOOT = 1000                     # bootstrap resamples (by model) for the confidence intervals
+N_PERMUTATIONS = 20             # shuffled-target runs of the leakage check
 CATEGORICAL = ["CAT_DES_EN", "GFA_DES_EN", "GFS_DES_EN", "CATEGORY_MATRIX", "CLR_DES", "CLR_TYPE", "FINISHING",
                "MATERIAL", "PRINT_TYPE", "DIMENSION", "OUTFIT", "FASHIONTYPE", "PROD_SEG", "NUMBER_OF_UNITS",
                "COLLECTION_TYPE", "MADE_IN", "SUP_COD"]
@@ -99,6 +100,20 @@ def split(items: pd.DataFrame, train_seasons=("232", "241"), test_season: str = 
     seen = set(items.loc[train, "PROD_REF"].astype(str))
     new_model = ~items["PROD_REF"].astype(str).isin(seen).to_numpy()
     return train, sea.eq(test_season).to_numpy() & new_model
+
+
+def model_groups(items: pd.DataFrame) -> np.ndarray:
+    """One id per model, joining PROD_REF and PROD_REF_EQUIV (re-coded items are the same model, as in the engine)."""
+    parent: dict[str, str] = {}
+
+    def find(x):
+        while parent.setdefault(x, x) != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+    for a, b in zip(items["PROD_REF"].astype(str), items["PROD_REF_EQUIV"].fillna(items["PROD_REF"]).astype(str)):
+        parent[find(a)] = find(b)
+    return np.array([find(a) for a in items["PROD_REF"].astype(str)])
 
 
 VALIDATION = (("232",), "241")
@@ -288,23 +303,26 @@ def run_sales(items, blocks, weights, train, test) -> dict:
     X0 = feature_table(items, blocks, train, "log_sales", None)
     model, preds["gradient boosting, no analogues"] = fit_predict(X0, y, train, fit_rows)   # the chosen model
     X = feature_table(items, blocks, train, "log_sales", ana)
-    _, preds["gradient boosting + analogues"] = fit_predict(X, y, train, fit_rows)
+    model_ana, preds["gradient boosting + analogues"] = fit_predict(X, y, train, fit_rows)
     Xb = feature_table(items, blocks, train, "log_sales", None, extra=BUYER_DECISIONS)   # chosen model + them
     _, ref = fit_predict(Xb, y, train, fit_rows)
     table = {n: sales_metrics(y[eval_rows], p[eval_rows], cats[eval_rows]) for n, p in preds.items()}
     table["reference: + buyer decisions (not used)"] = sales_metrics(y[eval_rows], ref[eval_rows], cats[eval_rows])
-    groups = items["PROD_REF"].astype(str).to_numpy()[eval_rows]
+    groups = model_groups(items)[eval_rows]
     m = lambda yy, pp, cc: sales_metrics(yy, pp, cc)["spearman_within_cat"]  # noqa: E731
     ci = {n: bootstrap_diff(m, y[eval_rows], preds["category median"][eval_rows], p[eval_rows], groups, cats[eval_rows])
           for n, p in preds.items() if n != "category median"}
-    ci_ana = bootstrap_diff(m, y[eval_rows], preds["gradient boosting, no analogues"][eval_rows],
+    m_month = lambda yy, pp, cc: sales_metrics(yy, pp, cc)["spearman_same_month"]  # noqa: E731
+    ci_ana = bootstrap_diff(m_month, y[eval_rows], preds["gradient boosting, no analogues"][eval_rows],
                             preds["gradient boosting + analogues"][eval_rows], groups, cats[eval_rows])
     m2 = lambda yy, pp, cc: sales_metrics(yy, pp, cc)["spearman_same_month"]  # noqa: E731
     ci_month = {n: bootstrap_diff(m2, y[eval_rows], preds["time on sale + category only"][eval_rows], p[eval_rows],
                                   groups, cats[eval_rows])
                 for n, p in preds.items() if n not in ("category median", "time on sale + category only")}
-    return {"y": y, "pred": preds["gradient boosting, no analogues"], "analogue": ana, "analogue_keys": ana_keys,
-            "model": model, "X": X0, "table": table, "ci_vs_category": ci, "ci_analogue_gain": ci_ana, "ci_same_month": ci_month,
+    return {"y": y, "preds": preds, "analogue": ana, "analogue_keys": ana_keys,
+            "variants": {False: (model, X0, "gradient boosting, no analogues"),
+                         True: (model_ana, X, "gradient boosting + analogues")},
+            "table": table, "ci_vs_category": ci, "ci_analogue_gain": ci_ana, "ci_same_month": ci_month,
             "n_fit": int(fit_rows.sum()), "n_eval": int(eval_rows.sum()), "eval_rows": eval_rows}
 
 
@@ -320,17 +338,21 @@ def run_price(items, blocks, weights, train, test) -> dict:
     X0 = feature_table(items, blocks, train, "log_price", None)
     model, preds["gradient boosting, no analogues"] = fit_predict(X0, y, train, fit_rows)   # the chosen model
     X = feature_table(items, blocks, train, "log_price", ana)
-    _, preds["gradient boosting + analogues"] = fit_predict(X, y, train, fit_rows)
+    model_ana, preds["gradient boosting + analogues"] = fit_predict(X, y, train, fit_rows)
     Xc = X0.assign(cost=pd.to_numeric(items["PRICE_LCP"], errors="coerce"))   # chosen model + the cost
     _, ref = fit_predict(Xc, y, train, fit_rows)
     table = {n: price_metrics(y[eval_rows], p[eval_rows], points) for n, p in preds.items()}
     table["reference: + landed cost (not used)"] = price_metrics(y[eval_rows], ref[eval_rows], points)
-    groups = items["PROD_REF"].astype(str).to_numpy()[eval_rows]
+    groups = model_groups(items)[eval_rows]
     m = lambda yy, pp, _: -price_metrics(yy, pp, points)["mae_eur"]  # noqa: E731  (higher is better)
     ci = {n: bootstrap_diff(m, y[eval_rows], preds["sub-family median"][eval_rows], p[eval_rows], groups, groups)
           for n, p in preds.items() if n not in ("category median", "sub-family median")}
-    return {"y": y, "pred": preds["gradient boosting, no analogues"], "analogue": ana, "analogue_keys": ana_keys,
-            "model": model, "X": X0, "table": table, "ci_vs_subfamily": ci, "n_fit": int(fit_rows.sum()),
+    ci_ana = bootstrap_diff(m, y[eval_rows], preds["gradient boosting, no analogues"][eval_rows],
+                            preds["gradient boosting + analogues"][eval_rows], groups, groups)
+    return {"y": y, "preds": preds, "analogue": ana, "analogue_keys": ana_keys,
+            "variants": {False: (model, X0, "gradient boosting, no analogues"),
+                         True: (model_ana, X, "gradient boosting + analogues")},
+            "table": table, "ci_vs_subfamily": ci, "ci_analogue_gain": ci_ana, "n_fit": int(fit_rows.sum()),
             "n_eval": int(eval_rows.sum()), "eval_rows": eval_rows}
 
 
@@ -352,17 +374,18 @@ def explain_one(model, X: pd.DataFrame, i: int, n: int = 5) -> list[tuple[str, f
     return [(f, float(v)) for f, v in fam.reindex(fam.abs().sort_values(ascending=False).index)[:n].items()]
 
 
-def out_of_fold(items, blocks, weights, target: str, folds: int = 5) -> tuple[np.ndarray, np.ndarray, pd.DataFrame]:
+def out_of_fold(items, blocks, weights, target: str, use_analogue: bool = False, analogue_est: np.ndarray | None = None,
+                folds: int = 5) -> tuple[np.ndarray, np.ndarray, pd.DataFrame]:
     """Estimates that never saw the product's own target: for products with a known target, 5-fold cross-fitting
     grouped by model (colourways of a model stay in the same fold); for products without one (new or never sold),
     the model fitted on every known product. Returns (estimate, kind, SHAP families per product)."""
     y = items[target].to_numpy(float)
     known = np.isfinite(y)
     allrows = np.ones(len(items), bool)
-    X = feature_table(items, blocks, allrows, target, None)
+    X = feature_table(items, blocks, allrows, target, analogue_est if use_analogue else None)
     est = np.full(len(items), np.nan)
     fam = pd.DataFrame(index=items.index, dtype=float)
-    refs = items["PROD_REF"].astype(str).to_numpy()
+    refs = model_groups(items)
     uniq = np.unique(refs[known])
     fold_of = dict(zip(uniq, np.random.default_rng(SEED).integers(0, folds, len(uniq))))
     fold = np.array([fold_of.get(r, -1) for r in refs])
@@ -379,14 +402,14 @@ def out_of_fold(items, blocks, weights, target: str, folds: int = 5) -> tuple[np
     return est, kind, fam.reindex(items.index)
 
 
-def final_models(items, blocks, weights, typical_error: dict) -> pd.DataFrame:
+def final_models(items, blocks, weights, typical_error: dict, use_analogue: dict) -> pd.DataFrame:
     """Per product: the estimate (never in-sample), its kind, the honest typical error measured on the test season,
     the three biggest SHAP effects, and the analogue estimate with its products (the buyer's reference)."""
     out = pd.DataFrame({KEY: items[KEY]})
     for target, w, name in [("log_sales", weights, "sales"), ("log_price", {**weights, "numeric": 0.0}, "price")]:
         y = items[target].to_numpy(float)
         ana, keys = analogues(items, blocks, w, target, np.isfinite(y))
-        est, kind, fam = out_of_fold(items, blocks, weights, target)
+        est, kind, fam = out_of_fold(items, blocks, weights, target, use_analogue[name], ana)
         conv = np.expm1 if name == "sales" else np.exp
         out[f"{name}_estimate"] = conv(est).round(0 if name == "sales" else 2)
         out[f"{name}_estimate_kind"] = kind
@@ -410,12 +433,17 @@ def leakage_checks(items, blocks, train, test) -> pd.DataFrame:
     def score(Xv, yv=y):
         _, p = fit_predict(Xv, yv, train, fit_rows)
         return sales_metrics(y[ev_rows], p[ev_rows], groups[ev_rows])
-    shuffled = y.copy()
     idx = np.flatnonzero(fit_rows)
-    shuffled[idx] = shuffled[np.random.default_rng(SEED).permutation(idx)]
+    perms = []
+    for k in range(N_PERMUTATIONS):
+        shuffled = y.copy()
+        shuffled[idx] = shuffled[np.random.default_rng(SEED + k).permutation(idx)]
+        perms.append(score(X, shuffled))
+    perms = pd.DataFrame(perms)
     emb = [c for c in X if c.startswith(("img_pc", "txt_pc"))]
     rows = {"chosen model": score(X),
-            "target shuffled in training (must fall to ~0)": score(X, shuffled),
+            f"target shuffled in training, mean of {N_PERMUTATIONS} runs (must be ~0)": perms.mean().to_dict(),
+            f"target shuffled in training, SD of {N_PERMUTATIONS} runs": perms.std().to_dict(),
             "without time on sale and launch month": score(X.drop(columns=["days_on_sale", "launch_month"])),
             "without fashion type and collection type": score(X.drop(columns=["FASHIONTYPE", "COLLECTION_TYPE"])),
             "without the photo components": score(X.drop(columns=[c for c in emb if c.startswith("img")])),
@@ -454,7 +482,8 @@ def write_report(checks: dict, val: dict, test: dict, decisions: dict, leak: pd.
         "",
         "## Protocol",
         "",
-        "- **Validation (choices): train 232 → test 241.** Which model and which features are chosen here.",
+        "- **Validation (choices): train 232 → test 241.** Which model and which features are chosen here, by a rule "
+        "in the code: the similar products enter as a feature only if the 95% interval of their validation gain excludes 0.",
         f"- **Test (reported once): train 232 + 241 → test {TEST_SEASON}**, with the choices of the validation.",
         "- **Time:** the planned store date (`STORE_DATE_PLANNED`, known when ordering) gives the launch month and the "
         "days on sale; the final date is revised for 56% of the products. The seasons overlap in time and the training "
@@ -512,8 +541,8 @@ def write_report(checks: dict, val: dict, test: dict, decisions: dict, leak: pd.
         "",
         _md(leak, pct=sp),
         "",
-        "- A training target shuffled at random must give ≈ 0: it does, so no information leaks through the pipeline "
-        "(joins, row order, components fitted on training rows).",
+        f"- A training target shuffled at random ({N_PERMUTATIONS} runs) must give ≈ 0: it does, so no information leaks "
+        "through the pipeline (joins, row order, components fitted on training rows).",
         "- The photo and description components matter **within a category** (removing both costs about "
         f"{leak.at['chosen model', 'spearman_within_cat'] - leak.at['without the photo and description components', 'spearman_within_cat']:.2f}) "
         "but little among products launched in the same month "
@@ -537,8 +566,12 @@ def write_report(checks: dict, val: dict, test: dict, decisions: dict, leak: pd.
         "- **Gradient boosting** (LightGBM): exact TreeSHAP values (`pred_contrib`), adding up to the estimate, "
         "milliseconds per product; grouped into business families because single principal components mean nothing.",
         "- **Similar past products**: their similarity-weighted mean, so the products themselves are the explanation. "
-        "Caveat: the engine's weights were tuned in Phase 4 with an objective that includes the sales correlation, so "
-        "this reference is slightly optimistic; the chosen model does not use the engine.",
+        "Caveats: the engine's weights were tuned in Phase 4 with an objective that includes the sales correlation, so "
+        "this reference is slightly optimistic; and the delivered reference averages products of any season, whose time "
+        "on sale differs (median units 3,377 / 3,637 / 1,336), without adjustment.",
+        "- **Planned store dates** go back to 2016–2017 for some products of seasons 232 and 241 (carry-overs keep their "
+        "first plan), which makes their days on sale large; the trees only use the order, and the same-month metric is "
+        "unaffected.",
         "",
     ]
     (REPORT_DIR / "forecast_report.md").write_text("\n".join(lines), encoding="utf-8")
@@ -554,35 +587,42 @@ def main() -> None:
 
     tr, te = split(items, *VALIDATION)
     val = {"sales": run_sales(items, blocks, weights, tr, te), "price": run_price(items, blocks, weights, tr, te)}
-    lo, hi = val["sales"]["ci_analogue_gain"]
-    st = val["sales"]["table"]
-    pt = val["price"]["table"]
+    # the choice is computed: the similar products enter as a feature only if their validation gain is clearly positive
+    use_analogue = {t: bool(val[t]["ci_analogue_gain"][0] > 0) for t in ("sales", "price")}
+    st, pt = val["sales"]["table"], val["price"]["table"]
+    chosen_name = {t: val[t]["variants"][use_analogue[t]][2] for t in use_analogue}
     decisions = {
-        "model": "Gradient boosting kept: on validation it beats every baseline on the same-month ranking "
-                 f"({st['gradient boosting, no analogues']['spearman_same_month']:.3f} vs "
-                 f"{max(v['spearman_same_month'] for k, v in st.items() if 'boosting' not in k and 'reference' not in k):.3f}) "
-                 f"and on the price error ({pt['gradient boosting, no analogues']['mae_eur']:.2f} € vs "
-                 f"{pt['sub-family median']['mae_eur']:.2f} €).",
-        "analogue": f"Similar past products as a feature: validation gain {lo:+.3f} to {hi:+.3f} on the ranking; "
-                    + ("kept." if lo > 0 else "the interval includes 0, so the simpler model without them is kept "
-                       "(they are still reported per product as the buyer's reference)."),
+        "model": "Gradient boosting beats every baseline on validation: same-month ranking "
+                 f"{st[chosen_name['sales']]['spearman_same_month']:.3f} vs "
+                 f"{max(v['spearman_same_month'] for k, v in st.items() if 'boosting' not in k and 'reference' not in k):.3f}; "
+                 f"price error {pt[chosen_name['price']]['mae_eur']:.2f} € vs {pt['sub-family median']['mae_eur']:.2f} €.",
+        **{f"analogue_{t}": f"Similar past products as a feature ({t}): validation gain "
+                            f"{val[t]['ci_analogue_gain'][0]:+.3f} to {val[t]['ci_analogue_gain'][1]:+.3f} "
+                            + ("(same-month ranking) -> kept." if t == "sales" and use_analogue[t] else
+                               "(same-month ranking) -> not kept (interval includes 0): the simpler model." if t == "sales" else
+                               "(€ of error saved) -> kept." if use_analogue[t] else
+                               "(€ of error saved) -> not kept (interval includes 0): the simpler model.")
+           for t in ("sales", "price")},
     }
 
     tr, te = split(items, *TEST)
     test = {"sales": run_sales(items, blocks, weights, tr, te), "price": run_price(items, blocks, weights, tr, te)}
+    for t in test:                                     # the chosen variant, decided on validation
+        test[t]["model"], test[t]["X"], test[t]["chosen"] = test[t]["variants"][use_analogue[t]]
     leak = leakage_checks(items, blocks, tr, te)
     leak.to_csv(REPORT_DIR / "leakage_checks.csv")
     shift = class_shift(items)
     imp_s = global_importance(test["sales"]["model"], test["sales"]["X"], test["sales"]["eval_rows"])
     imp_p = global_importance(test["price"]["model"], test["price"]["X"], test["price"]["eval_rows"])
-    typical = {"sales": float(np.exp(test["sales"]["table"]["gradient boosting, no analogues"]["mae_log"])),
-               "price": float(test["price"]["table"]["gradient boosting, no analogues"]["mae_eur"])}
+    typical = {"sales": float(np.exp(test["sales"]["table"][test["sales"]["chosen"]]["mae_log"])),
+               "price": float(test["price"]["table"][test["price"]["chosen"]]["mae_eur"])}
     write_report(checks, val, test, decisions, leak, shift, imp_s, imp_p, typical)
-    final = final_models(items, blocks, weights, typical)
+    final = final_models(items, blocks, weights, typical, use_analogue)
     final.to_parquet(PROCESSED_DIR / OUT_FILE, index=False)
     meta = {"created": datetime.now(timezone.utc).isoformat(timespec="seconds"), "validation": VALIDATION, "test": TEST,
             "k_analogues": K_ANALOGUES, "pcs": PCS, "lgb_params": LGB_PARAMS, "weights": weights,
-            "image_embedding": engine.image_embedding(), "decisions": decisions, "typical_error": typical,
+            "image_embedding": engine.image_embedding(), "decisions": decisions, "use_analogue": use_analogue,
+            "typical_error": typical,
             "sales_test": test["sales"]["table"], "price_test": test["price"]["table"]}
     (PROCESSED_DIR / "forecast.json").write_text(json.dumps(meta, indent=1, default=float), encoding="utf-8")
     print(pd.DataFrame(test["sales"]["table"]).T.round(3).to_string())

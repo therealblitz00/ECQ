@@ -28,5 +28,6 @@
  "auto": 13,
  "recropped": 6,
  "wall_seconds": 59690,
- "reviewed_file": "person_crops_reviewed.json"
+ "reviewed_file": "person_crops_reviewed.json",
+ "provenance_note": "Written after the run from its saved results (the experiment and the module share prompts and thresholds); the prose fields `auto_rule` / `recrop` replace the numeric keys `cmd_persons` writes (`person_min`, `item_min`, `max_share_of_crop`)."
 }

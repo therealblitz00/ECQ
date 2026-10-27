@@ -9,17 +9,20 @@ The engine score is a weighted mean of block similarities, and each block is a d
 ## Checks
 
 - **Completeness** (2,000 sampled pairs): the block contributions add up to the score up to 6.8e-07; the attribute parts add up to the categorical similarity up to 8.9e-08 (float32 rounding).
-- **Cost**: 1.59 ms per explained match on a laptop CPU (52,775 matches in 84 s), so every product is explained in the batch run.
-- **Faithfulness**, on the best match of random queries (scores rounded like the engine, ties counted against the match). *Deletion*: one block removed; for an additive score this mostly confirms the arithmetic. *Sufficiency*: only the two blocks the explanation names first are kept, i.e. the short explanation a buyer reads; is the match still in the top 5, compared with two random blocks or the two named last?
+- **Cost**: 1.58 ms per explained match on a laptop CPU (52,775 matches in 84 s), so every product is explained in the batch run.
+- **Faithfulness**, on the best match of random queries (scores rounded like the engine, ties counted against the match). *Deletion*: one block removed; for an additive score this mostly confirms the arithmetic. *Sufficiency*: only the two blocks the explanation names first are kept, i.e. the short explanation a buyer reads; is the match still in the top 5, compared with two random blocks, the two named last, and a control: the two blocks with the largest global weights. Most of the time the explanation names exactly those (photo + attributes), so the informative rows are the ones where it names other blocks than the control:
 
-| | mean_rank | median_rank | still_first | in_top5 |
-|---|---|---|---|---|
-| ('deletion: block removed', 'named first') | 5.71 | 2.00 | 0.50 | 0.81 |
-| ('deletion: block removed', 'named last') | 1.31 | 1.00 | 0.81 | 1.00 |
-| ('deletion: block removed', 'random') | 2.05 | 1.00 | 0.68 | 0.96 |
-| ('sufficiency: only 2 blocks kept', 'named first') | 2.98 | 2.00 | 0.48 | 0.86 |
-| ('sufficiency: only 2 blocks kept', 'named last') | 207.35 | 75.50 | 0.04 | 0.10 |
-| ('sufficiency: only 2 blocks kept', 'random') | 50.81 | 5.00 | 0.22 | 0.53 |
+| | pairs | mean_rank | median_rank | still_first | in_top5 |
+|---|---|---|---|---|---|
+| ('deletion: block removed', 'named first') | 300.00 | 5.71 | 2.00 | 0.50 | 0.81 |
+| ('deletion: block removed', 'named last') | 300.00 | 1.31 | 1.00 | 0.81 | 1.00 |
+| ('deletion: block removed', 'random') | 300.00 | 2.05 | 1.00 | 0.68 | 0.96 |
+| ('sufficiency, where the explanation names other blocks than the control', 'named first') | 8.00 | 4.00 | 4.00 | 0.25 | 0.75 |
+| ('sufficiency, where the explanation names other blocks than the control', 'two largest weights (control)') | 8.00 | 5.25 | 2.00 | 0.38 | 0.62 |
+| ('sufficiency: only 2 blocks kept', 'named first') | 300.00 | 2.98 | 2.00 | 0.48 | 0.86 |
+| ('sufficiency: only 2 blocks kept', 'named last') | 300.00 | 207.35 | 75.50 | 0.04 | 0.10 |
+| ('sufficiency: only 2 blocks kept', 'random') | 300.00 | 50.81 | 5.00 | 0.22 | 0.53 |
+| ('sufficiency: only 2 blocks kept', 'two largest weights (control)') | 300.00 | 3.02 | 2.00 | 0.49 | 0.86 |
 
 - **Agreement with the team** (Phase 4 feedback, only the candidates the engine proposed, 134 not similar, 769 similar judgements): mean block similarity of the candidates called *similar* vs *not similar*, and Cohen's d (difference / pooled within-group SD). A block with a large d separates what people see as similar, so it deserves its place in the explanation:
 

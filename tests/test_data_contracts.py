@@ -239,3 +239,28 @@ def test_the_recrop_rule_in_the_code_reproduces_the_committed_suggestions():
     assert (again["auto_rule"] == pc["auto_rule"]).all() and (again["recrop"] == pc["recrop"]).all()
     boxes = pc.loc[pc["recrop"], "item_box"]
     assert all(len(b) == 4 and 0 <= b[0] < b[2] <= 1 and 0 <= b[1] < b[3] <= 1 for b in boxes)
+
+
+def test_explanations_follow_their_contract():
+    path = config.PROCESSED_DIR / "explanations.parquet"
+    if not path.exists():
+        pytest.skip("run src/phase5_explain.py build")
+    ex = pd.read_parquet(path)
+    shares = [c for c in ex.columns if c.startswith("share_")]
+    assert len(shares) == 6 and set(ex["rank"]) <= set(range(1, 6))
+    assert ex.groupby("query").size().min() >= 4                       # the brief: at least 4 similar products
+    assert np.allclose(ex[shares].sum(axis=1), 1.0, atol=1e-4)           # the block shares add up to the score
+    assert ex["completeness_error"].max() < 1e-5
+    assert not (ex["query"] == ex["candidate"]).any()
+
+
+def test_forecast_follows_its_contract():
+    path = config.PROCESSED_DIR / "forecast.parquet"
+    if not path.exists():
+        pytest.skip("run src/phase5b_forecast.py run")
+    fc = pd.read_parquet(path)
+    assert fc[config.KEY].is_unique
+    for t in ("sales", "price"):
+        assert fc[f"{t}_estimate"].notna().all() and (fc[f"{t}_estimate"] >= 0).all()
+        assert set(fc[f"{t}_estimate_kind"]) <= {"cross-validated (target not seen)", "forecast (no sales / new)"}
+        assert fc[f"{t}_typical_error"].nunique() == 1

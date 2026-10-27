@@ -244,13 +244,19 @@ def faithfulness(ctx: Context, nb: pd.DataFrame, n_queries: int = 300, seed: int
             rows.append({"test": "deletion: block removed", "variant": label,
                          "new_rank": _rank_of(ctx, {**ctx.weights, b: 0.0}, qi, ci, pool)})
         rnd = list(rng.choice(ranked, 2, replace=False))
-        for label, keep in {"named first": ranked[:2], "named last": ranked[-2:], "random": rnd}.items():
+        heavy = sorted(ranked, key=lambda b: -ctx.weights[b])[:2]      # control: the two largest global weights
+        differs = set(ranked[:2]) != set(heavy)
+        for label, keep in {"named first": ranked[:2], "two largest weights (control)": heavy,
+                            "named last": ranked[-2:], "random": rnd}.items():
             w = {b: (ctx.weights[b] if b in keep else 0.0) for b in ctx.weights}
-            rows.append({"test": "sufficiency: only 2 blocks kept", "variant": label,
-                         "new_rank": _rank_of(ctx, w, qi, ci, pool)})
+            r_ = _rank_of(ctx, w, qi, ci, pool)
+            rows.append({"test": "sufficiency: only 2 blocks kept", "variant": label, "new_rank": r_})
+            if differs and label in ("named first", "two largest weights (control)"):
+                rows.append({"test": "sufficiency, where the explanation names other blocks than the control",
+                             "variant": label, "new_rank": r_})
     df = pd.DataFrame(rows)
     return df.groupby(["test", "variant"])["new_rank"].agg(
-        mean_rank="mean", median_rank="median", still_first=lambda x: (x == 1).mean(),
+        pairs="size", mean_rank="mean", median_rank="median", still_first=lambda x: (x == 1).mean(),
         in_top5=lambda x: (x <= 5).mean()).round(3)
 
 
@@ -347,7 +353,9 @@ def write_report(comp: dict, faith: pd.DataFrame, human: pd.DataFrame | None, ti
         "- **Faithfulness**, on the best match of random queries (scores rounded like the engine, ties counted against "
         "the match). *Deletion*: one block removed; for an additive score this mostly confirms the arithmetic. "
         "*Sufficiency*: only the two blocks the explanation names first are kept, i.e. the short explanation a buyer "
-        "reads; is the match still in the top 5, compared with two random blocks or the two named last?",
+        "reads; is the match still in the top 5, compared with two random blocks, the two named last, and a control: "
+        "the two blocks with the largest global weights. Most of the time the explanation names exactly those (photo + "
+        "attributes), so the informative rows are the ones where it names other blocks than the control:",
         "",
         md(faith, 2),
         "",

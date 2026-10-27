@@ -12,14 +12,14 @@
 
 ---
 
-## Status (last updated 2026-10-21)
+## Status (last updated 2026-10-27, branch `s3/andre`)
 
 This is the only place that tracks the status. The evidence for each item is in [progress.md](progress.md).
 
 | Sprint | Roadmap phases | Status |
 |---|---|---|
 | **Sprint 1: data cleaning and validation** | 0, 1, 1b | ✅ **Done**: setup, automatic checks, image pre-screen, review app, cleaning, manual review by the 5 members, every photo checked, merge (`items_clean.parquet`) |
-| **Sprint 2: features and modelling** | 1 (rest), 2a, 2b, 3, 4 | ✅ **Done**: Phase 2a (4 tabular/text blocks, missing attributes filled where reliable), Phase 2b (image embeddings, colour palettes), Phase 3 (`neighbours.parquet`) and Phase 4 (evaluation, tuning, weights learned from the team's 138 sorted queries, applied as a 25% blend). Notebook: `notebooks/phase2_features.ipynb` |
+| **Sprint 2: features and modelling** | 1 (rest), 2a, 2b, 3, 4 | ✅ **Done**: Phase 2a (4 tabular/text blocks, missing attributes filled where reliable), Phase 2b (image embeddings, colour palettes), Phase 3 (`neighbours.parquet`) and Phase 4 (evaluation, tuning, weights learned from the team's 138 sorted answers on 99 distinct queries, applied as a 25% blend). Notebook: `notebooks/phase2_features.ipynb` |
 | Sprint 3: explanations, estimates and delivery | 2b (improvements), 5, 5b, 6 | 🟡 **Done on branch `s3/andre`, awaiting the team's review**: baseline frozen and compared (`phase4_compare.py`); explanations for every match (Phase 5); price and sales estimates with SHAP (Phase 5b); CLI + HTML report (Phase 6); FashionSigLIP image encoder and 6 re-cropped photos of a model adopted; rejected with evidence: fusion standardisation, lower colour/theme weights, DINOv2, diversity cap, blind automatic re-cropping. Notebook: `notebooks/phase3_explanations_estimates.ipynb` (progress.md §25) |
 
 | Phase | Status | Done | Still to do |
@@ -261,18 +261,40 @@ There is no labelled ground truth, so combine several signals:
 
 ## Phase 5: Explainability and output
 
-- [ ] **Explanation for each match**, calculated from the data:
+- [x] **Explanation for each match**, calculated from the data *(2026-10-27, `src/phase5_explain.py`: exact decomposition of the
+  score — block shares, shared attributes and materials with their points, price/launch parts, differences, close colours
+  from `colour_reference.parquet`, shared dominant photo colours; checks: completeness, deletion, sufficiency with a
+  largest-weights control, Cohen's d against the team's judgements)*:
   - the blocks that contributed most to the score (e.g. *visual 0.45, category 0.30, material 0.15*);
   - attributes shared with the query (*same family: Hoop Earrings; same finish: Golden; shared materials: Zinc, Pearl*);
   - the main difference (*price €8.99 vs €12.99, different colour*); two different colour names that look alike are reported as close colours from `colour_reference.parquet` (*Navy ≈ Midnight Blue*);
-  - visual evidence: palette swatches, and an optional Grad-CAM image or patch-similarity overlay.
-- [ ] Optional: an LLM writes a one-sentence summary **using only the computed facts** (no new claims).
-- [ ] Output in the format the brief requires: query → ≥4 SKUs, each with its matching attributes. Export as JSON and CSV.
+  - visual evidence: palette swatches *(shared dominant colours: done)*, and an optional Grad-CAM image or patch-similarity overlay *(not done)*.
+- [ ] Optional: an LLM writes a one-sentence summary **using only the computed facts** (no new claims). *(Not done: the summary is a template of the computed facts.)*
+- [x] Output in the format the brief requires: query → ≥4 SKUs, each with its matching attributes. *(`outputs/phase5/similar_products.csv`, top 5 for every product; `outputs/phase5/brief_example.json`.)*
+
+**Output contract** (`data/processed/explanations.parquet`, one row per (query, rank ≤ 5)): `query`, `rank`, `candidate`,
+`score`, `share_<block>` (the six blocks; they add up to 1), `shared_attributes` / `shared_materials` / `numeric_parts` /
+`differences` (JSON text), `shared_photo_colours`, `summary`, `completeness_error`.
+
+## Phase 5b: Price and sales estimates *(added in Sprint 3)*
+
+- [x] Sales and price estimates for new products from their attributes, photo and description (LightGBM), with exact
+  TreeSHAP explanations, against baselines (category, sub-family / family + price band, the similar products of the
+  engine). *(2026-10-27, `src/phase5b_forecast.py`: planned store dates; choices on validation 232 → 241 by a rule in the
+  code, test 232 + 241 → 242 once; leakage checks `outputs/phase5b/leakage_checks.csv`; report
+  `outputs/phase5b/forecast_report.md`.)*
+- [x] Estimates delivered for every product, never in-sample (cross-validated, grouped by model) and with the new-season
+  typical error.
+
+**Output contract** (`data/processed/forecast.parquet`, one row per colourway): `PROD_CLR_EQUIV`; for `sales` and `price`:
+`<t>_estimate`, `<t>_estimate_kind` (cross-validated / forecast), `<t>_typical_error`, `<t>_analogue`,
+`<t>_analogue_keys` (up to 4, `|`-separated), `<t>_reasons` (three biggest SHAP effects).
 
 ## Phase 6: Delivery and interface
 
-- [ ] Batch CLI: `parfois-sim build` and `parfois-sim query 167718_BU`.
-- [ ] Demo UI (Streamlit, or a static HTML report): the query image next to the matches, with the explanations and sales data.
+- [x] Batch CLI *(`src/phase6_deliver.py query KEY`; the build steps are the phase scripts)*.
+- [x] Demo UI as a static HTML report *(`src/phase6_deliver.py report` → `outputs/phase6/report.html`: query photo next to
+  its matches, block-share bars, shared attributes, differences, sales and price estimates with their typical error)*.
 - [ ] Final report or slides: method, evaluation, limitations, business use cases (finding substitutes, overstock risk, trends).
 - [ ] *(Stretch)* **Buyer assistant agent:** a single LLM agent with tools wrapping the engine (`find_similar`, `filter`, `explain`, `sales_summary`), plus a few test conversations.
 - [ ] *(Stretch)* Trend clustering: cluster the embeddings per season and track which clusters grow.

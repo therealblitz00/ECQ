@@ -72,6 +72,10 @@ Current scripts in `src/`:
 | `phase4_eval.py` | Evaluation: proxy hit rate, attribute agreement, sales check, ablations, weight tuning (`run`, `--apply` writes `phase3_weights.json`) and the blind human review sheet (`sheet`; never overwrites verdicts) → `outputs/phase4/` |
 | `phase4_feedback.py` | Interactive human feedback: fixed candidate pools (`pool` → `outputs/phase4/feedback_pool.json`, committed; never depends on the learned weights), the sorting app (`app --id N`, standard library + pandas; each member appends to `feedback_<n>.jsonl` only), and Bradley-Terry fitting of the block weights with held-out check (`fit`, `--apply` writes `phase3_weights.json` only if the check passes) |
 | `phase2b_palettes.py` | Dominant colours per trusted photo (k-means in LAB on the product pixels) → `data/embeddings/palettes.parquet` + `.json`. Light environment, ~2.5 min |
+| `phase2b_image_encoders.py` | Photos with a person re-cropped to the item (`persons` → `data/embeddings/person_crops.parquet`) and image embeddings from other encoders (`embed --model fashionsiglip` → `data/embeddings/image_<model>.npy` + `.json`). Heavy; vision machine only (+ `open_clip_torch`) |
+| `phase5_explain.py` | Explanation of every match, an exact decomposition of the engine score (block shares, shared attributes/materials, differences, close colours) → `data/processed/explanations.parquet`, `outputs/phase5/` (brief's format, checks). CLI: `build`, `show KEY` |
+| `phase5b_forecast.py` | Sales and price estimates for new products (temporal test, baselines, LightGBM + exact TreeSHAP) → `data/processed/forecast.parquet`, `outputs/phase5b/forecast_report.md` |
+| `phase6_deliver.py` | Delivery: `query KEY` (similar products, why, estimates) and `report` → `outputs/phase6/report.html` |
 
 New code goes into `src/phase<N>_<topic>.py`, one module per roadmap phase (move to a package
 only when a phase outgrows one file). Import paths and constants from `config.py` instead of
@@ -136,6 +140,13 @@ python -m venv .venv
 .venv/Scripts/python src/phase4_eval.py run --apply              # also write the chosen weights (then rerun phase3_engine.py build)
 .venv/Scripts/python src/phase4_feedback.py app --id 4           # sorting app on http://localhost:8766 (pool built once with `pool`)
 .venv/Scripts/python src/phase4_feedback.py fit --apply          # learn the weights from everybody's feedback_<n>.jsonl
+
+# Phase 5, 5b, 6 (rerun after Phase 3)
+.venv/Scripts/python src/phase5_explain.py build                 # -> data/processed/explanations.parquet + outputs/phase5/, ~3 min
+.venv/Scripts/python src/phase5_explain.py show 167718_BU        # explained top 5 of one product
+.venv/Scripts/python src/phase5b_forecast.py run                 # -> data/processed/forecast.parquet + outputs/phase5b/, ~6 min
+.venv/Scripts/python src/phase6_deliver.py query 167718_BU       # similar products, why, sales and price estimates
+.venv/Scripts/python src/phase6_deliver.py report                # -> outputs/phase6/report.html
 
 # Phase 1b (vision environment only)
 .venv/Scripts/python src/phase1b_image_audit.py --limit 300   # quick trial

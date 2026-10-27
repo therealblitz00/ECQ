@@ -113,6 +113,7 @@ the app replaces them.
 | [docs/archive/](docs/archive/) | Older documents kept for reference (resolved audit) |
 | [notebooks/phase1_preprocessing.ipynb](notebooks/phase1_preprocessing.ipynb) | Sprint 1 preprocessing step by step, with tables and charts (needs `requirements-notebook.txt`) |
 | [notebooks/phase2_features.ipynb](notebooks/phase2_features.ipynb) | Sprint 2 features and modelling step by step: the six blocks, the filled attributes, palettes and colour names; the similarity model, its evaluation and the weights learned from the team |
+| [notebooks/phase3_explanations_estimates.ipynb](notebooks/phase3_explanations_estimates.ipynb) | Sprint 3 step by step: the baseline, explanations of every match and their checks, price and sales estimates with SHAP, improvements kept and rejected against the baseline (needs `requirements-notebook.txt`) |
 
 **Naming:** the work is organised in **phases** (0, 1, 1b, 2a, …), and code and output folders use the phase number (`phase1_checks.py`, `outputs/phase1b/`). Sprints are only the calendar: the roadmap shows which phases each sprint covers.
 
@@ -136,6 +137,9 @@ the app replaces them.
 │   ├── phase3_engine.py       similarity engine (build | query) + phase3_weights.json
 │   ├── phase4_eval.py         evaluation, weight tuning, human review sheet (run | sheet)
 │   ├── phase4_feedback.py     interactive feedback app + weights learned from it (pool | app | fit)
+│   ├── phase5_explain.py      explanation of every match (build | show)
+│   ├── phase5b_forecast.py    sales and price estimates with SHAP (run)
+│   ├── phase6_deliver.py      command line and HTML report (query | report)
 │   └── review_app.py          browser review app
 ├── tests/                     pytest suite
 ├── data/

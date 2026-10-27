@@ -3,3 +3,4 @@
 pandas>=2.0
 pyarrow>=14
 pillow>=10
+lightgbm>=4.3     # Phase 5b estimates (gradient boosting with exact SHAP values)

@@ -22,3 +22,4 @@ outputs/phase1b/*.log
 # Test and lint caches
 .pytest_cache/
 .ruff_cache/
+.venv-*/

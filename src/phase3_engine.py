@@ -5,7 +5,8 @@
     python src/phase3_engine.py query 167718_BU --k 5   # one item, printed
 
 Inputs (light environment, no torch): the Phase 2a blocks (`features_<block>.npy`, `feature_meta.json`), the
-CLIP image embeddings (`data/embeddings/image_clip.npy`) and the colour palettes (`palettes.parquet`).
+image embeddings (`data/embeddings/<image_embedding>.npy`, CLIP by default, set in phase3_weights.json)
+and the colour palettes (`palettes.parquet`).
 Rerun after `phase2a_features.py`.
 
 Score of a candidate c for a query q:
@@ -54,6 +55,11 @@ def load_weights(path: Path = WEIGHTS_FILE) -> dict[str, float]:
     return {b: float(w) for b, w in json.loads(path.read_text(encoding="utf-8"))["weights"].items()}
 
 
+def image_embedding(path: Path = WEIGHTS_FILE) -> str:
+    """Stem of the image embedding the engine uses (`data/embeddings/<stem>.npy` + `.json`); CLIP by default."""
+    return json.loads(path.read_text(encoding="utf-8")).get("image_embedding", "image_clip")
+
+
 def aligned(keys: list[str], emb: np.ndarray, emb_keys: list[str], use: np.ndarray) -> np.ndarray:
     """Rows of `emb` in the order of `keys`; zeros for keys not embedded or not allowed by `use`."""
     pos = pd.Series(range(len(emb_keys)), index=emb_keys)
@@ -65,15 +71,18 @@ def aligned(keys: list[str], emb: np.ndarray, emb_keys: list[str], use: np.ndarr
     return np.divide(out, norms, out=np.zeros_like(out), where=norms > 0)  # float16 files: renormalise
 
 
-def load_blocks(items: pd.DataFrame) -> dict[str, np.ndarray]:
-    """Every block as a float32 matrix in the row order of `items` (sorted by KEY, like the Phase 2a files)."""
+def load_blocks(items: pd.DataFrame, image: str | None = None) -> dict[str, np.ndarray]:
+    """Every block as a float32 matrix in the row order of `items` (sorted by KEY, like the Phase 2a files).
+
+    `image`: stem of the image embedding (default: `image_embedding` in phase3_weights.json, else image_clip)."""
     keys = items[KEY].tolist()
     meta = json.loads((PROCESSED_DIR / "feature_meta.json").read_text(encoding="utf-8"))
     if meta["keys"] != keys:
         raise SystemExit("feature_meta.json does not match the Phase 1 table. Run: python src/phase2a_features.py")
     blocks = {b: np.load(PROCESSED_DIR / meta["blocks"][b]["file"]) for b in TABULAR if b in meta["blocks"]}
-    clip = json.loads((EMB_DIR / "image_clip.json").read_text(encoding="utf-8"))
-    blocks["image"] = aligned(keys, np.load(EMB_DIR / "image_clip.npy").astype(np.float32), clip["keys"],
+    stem = image or image_embedding()
+    clip = json.loads((EMB_DIR / f"{stem}.json").read_text(encoding="utf-8"))
+    blocks["image"] = aligned(keys, np.load(EMB_DIR / f"{stem}.npy").astype(np.float32), clip["keys"],
                               items["img_trusted"].fillna(False).to_numpy(bool))
     pal = pd.read_parquet(EMB_DIR / "palettes.parquet")
     blocks["palette"] = aligned(keys, np.stack(pal["palette_vector"].map(np.asarray)).astype(np.float32),

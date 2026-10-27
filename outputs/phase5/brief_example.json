@@ -1,0 +1,464 @@
+[
+ {
+  "query": "167718_BU",
+  "rank": 1,
+  "candidate": "210347_NV",
+  "score": 0.87971,
+  "share_image": 0.4393287007529075,
+  "share_categorical": 0.33632739462842015,
+  "share_text": 0.08574697562944684,
+  "share_composition": 0.06323455314266777,
+  "share_palette": 0.00035251682565718746,
+  "share_numeric": 0.07500971594452079,
+  "shared_attributes": [
+   {
+    "attribute": "family",
+    "value": "Earrings",
+    "points": 0.05379464681798488
+   },
+   {
+    "attribute": "sub-family",
+    "value": "Dangle",
+    "points": 0.05379464681798488
+   },
+   {
+    "attribute": "planning category",
+    "value": "52 - Earrings Long",
+    "points": 0.02689732340899244
+   },
+   {
+    "attribute": "finish",
+    "value": "Golden",
+    "points": 0.02689732340899244
+   },
+   {
+    "attribute": "theme",
+    "value": "STARRY NIGHT",
+    "points": 0.02689732340899244
+   },
+   {
+    "attribute": "metal",
+    "value": null,
+    "points": 0.017931550175132517
+   },
+   {
+    "attribute": "print",
+    "value": "No Print",
+    "points": 0.017931550175132517
+   },
+   {
+    "attribute": "size type",
+    "value": "Long",
+    "points": 0.017931550175132517
+   },
+   {
+    "attribute": "colour type",
+    "value": "Fashion",
+    "points": 0.008965774469664147
+   },
+   {
+    "attribute": "fashion type",
+    "value": "Fashion",
+    "points": 0.008965774469664147
+   },
+   {
+    "attribute": "segment",
+    "value": "Woman",
+    "points": 0.008965774469664147
+   },
+   {
+    "attribute": "units",
+    "value": "Set 1 Pair",
+    "points": 0.008965774469664147
+   }
+  ],
+  "shared_materials": [
+   {
+    "material": "Glass",
+    "points": 0.03042488762860993
+   },
+   {
+    "material": "Iron",
+    "points": 0.016659262503374253
+   },
+   {
+    "material": "Polyester",
+    "points": 0.008543919612820208
+   }
+  ],
+  "numeric_parts": {
+   "price": 0.03770674126488822,
+   "launch": 0.01885337063244411,
+   "season": 0.009426685316222054
+  },
+  "differences": [
+   "different colour: Navy vs Burgundy"
+  ],
+  "shared_photo_colours": "",
+  "summary": "photo 44%, catalogue attributes 34%, description 9%. same family: Earrings; same sub-family: Dangle; same planning category: 52 - Earrings Long; shared materials: Glass, Iron, Polyester. Differs in different colour: Navy vs Burgundy.",
+  "completeness_error": 1.2586572206707558e-07
+ },
+ {
+  "query": "167718_BU",
+  "rank": 2,
+  "candidate": "210347_OR",
+  "score": 0.832487,
+  "share_image": 0.4632143307598116,
+  "share_categorical": 0.323096049689587,
+  "share_text": 0.08809084741555687,
+  "share_composition": 0.06682154645674498,
+  "share_palette": 0.0,
+  "share_numeric": 0.058776785084481635,
+  "shared_attributes": [
+   {
+    "attribute": "family",
+    "value": "Earrings",
+    "points": 0.05379465024630015
+   },
+   {
+    "attribute": "sub-family",
+    "value": "Dangle",
+    "points": 0.05379465024630015
+   },
+   {
+    "attribute": "planning category",
+    "value": "52 - Earrings Long",
+    "points": 0.026897325123150077
+   },
+   {
+    "attribute": "finish",
+    "value": "Golden",
+    "points": 0.026897325123150077
+   },
+   {
+    "attribute": "metal",
+    "value": null,
+    "points": 0.017931551317904353
+   },
+   {
+    "attribute": "print",
+    "value": "No Print",
+    "points": 0.017931551317904353
+   },
+   {
+    "attribute": "size type",
+    "value": "Long",
+    "points": 0.017931551317904353
+   },
+   {
+    "attribute": "colour type",
+    "value": "Fashion",
+    "points": 0.008965775041050025
+   },
+   {
+    "attribute": "fashion type",
+    "value": "Fashion",
+    "points": 0.008965775041050025
+   },
+   {
+    "attribute": "segment",
+    "value": "Woman",
+    "points": 0.008965775041050025
+   },
+   {
+    "attribute": "units",
+    "value": "Set 1 Pair",
+    "points": 0.008965775041050025
+   }
+  ],
+  "shared_materials": [
+   {
+    "material": "Glass",
+    "points": 0.03042488762860993
+   },
+   {
+    "material": "Iron",
+    "points": 0.016659262503374253
+   },
+   {
+    "material": "Polyester",
+    "points": 0.008543919612820208
+   }
+  ],
+  "numeric_parts": {
+   "price": 0.03770674424816256,
+   "launch": 0.0017974816326217613,
+   "season": 0.00942668606204064
+  },
+  "differences": [
+   "different colour: Orange vs Burgundy"
+  ],
+  "shared_photo_colours": "",
+  "summary": "photo 46%, catalogue attributes 32%, description 9%. same family: Earrings; same sub-family: Dangle; same planning category: 52 - Earrings Long; shared materials: Glass, Iron, Polyester. Differs in different colour: Orange vs Burgundy.",
+  "completeness_error": 3.667886256941699e-07
+ },
+ {
+  "query": "167718_BU",
+  "rank": 3,
+  "candidate": "214234_BU",
+  "score": 0.819277,
+  "share_image": 0.459974419504239,
+  "share_categorical": 0.3501926479771902,
+  "share_text": 0.09086362247953308,
+  "share_composition": 0.0,
+  "share_palette": 0.04112151162952215,
+  "share_numeric": 0.05784822999097867,
+  "shared_attributes": [
+   {
+    "attribute": "family",
+    "value": "Earrings",
+    "points": 0.05379464663565159
+   },
+   {
+    "attribute": "sub-family",
+    "value": "Dangle",
+    "points": 0.05379464663565159
+   },
+   {
+    "attribute": "colour",
+    "value": "Burgundy",
+    "points": 0.03586309775710106
+   },
+   {
+    "attribute": "planning category",
+    "value": "52 - Earrings Long",
+    "points": 0.026897323317825794
+   },
+   {
+    "attribute": "theme",
+    "value": "STARRY NIGHT",
+    "points": 0.026897323317825794
+   },
+   {
+    "attribute": "print",
+    "value": "No Print",
+    "points": 0.01793155011435475
+   },
+   {
+    "attribute": "size type",
+    "value": "Long",
+    "points": 0.01793155011435475
+   },
+   {
+    "attribute": "colour type",
+    "value": "Fashion",
+    "points": 0.008965774439275265
+   },
+   {
+    "attribute": "fashion type",
+    "value": "Fashion",
+    "points": 0.008965774439275265
+   },
+   {
+    "attribute": "segment",
+    "value": "Woman",
+    "points": 0.008965774439275265
+   },
+   {
+    "attribute": "units",
+    "value": "Set 1 Pair",
+    "points": 0.008965774439275265
+   }
+  ],
+  "shared_materials": [],
+  "numeric_parts": {
+   "price": 0.023830261808811485,
+   "launch": 0.014136775645222407,
+   "season": 0.009426686868285135
+  },
+  "differences": [
+   "price 7.99 € vs 8.99 €",
+   "finish Black Plating vs Golden"
+  ],
+  "shared_photo_colours": "burgundy",
+  "summary": "photo 46%, catalogue attributes 35%, description 9%. same family: Earrings; same sub-family: Dangle; same colour: Burgundy; photo colours: burgundy. Differs in price 7.99 € vs 8.99 €; finish Black Plating vs Golden.",
+  "completeness_error": 3.5358476635494185e-07
+ },
+ {
+  "query": "167718_BU",
+  "rank": 4,
+  "candidate": "210305_LL",
+  "score": 0.808538,
+  "share_image": 0.45141492626754776,
+  "share_categorical": 0.33266619641616746,
+  "share_text": 0.08948872157791357,
+  "share_composition": 0.0652902948099672,
+  "share_palette": 0.0006222415351256309,
+  "share_numeric": 0.06051776105096466,
+  "shared_attributes": [
+   {
+    "attribute": "family",
+    "value": "Earrings",
+    "points": 0.05379465024630015
+   },
+   {
+    "attribute": "sub-family",
+    "value": "Dangle",
+    "points": 0.05379465024630015
+   },
+   {
+    "attribute": "planning category",
+    "value": "52 - Earrings Long",
+    "points": 0.026897325123150077
+   },
+   {
+    "attribute": "finish",
+    "value": "Golden",
+    "points": 0.026897325123150077
+   },
+   {
+    "attribute": "metal",
+    "value": null,
+    "points": 0.017931551317904353
+   },
+   {
+    "attribute": "print",
+    "value": "No Print",
+    "points": 0.017931551317904353
+   },
+   {
+    "attribute": "size type",
+    "value": "Long",
+    "points": 0.017931551317904353
+   },
+   {
+    "attribute": "colour type",
+    "value": "Fashion",
+    "points": 0.008965775041050025
+   },
+   {
+    "attribute": "fashion type",
+    "value": "Fashion",
+    "points": 0.008965775041050025
+   },
+   {
+    "attribute": "segment",
+    "value": "Woman",
+    "points": 0.008965775041050025
+   },
+   {
+    "attribute": "units",
+    "value": "Set 1 Pair",
+    "points": 0.008965775041050025
+   }
+  ],
+  "shared_materials": [
+   {
+    "material": "Glass",
+    "points": 0.028872477550019874
+   },
+   {
+    "material": "Iron",
+    "points": 0.015809233903181952
+   },
+   {
+    "material": "Polyester",
+    "points": 0.008107971932191356
+   }
+  ],
+  "numeric_parts": {
+   "price": 0.03770674424816256,
+   "launch": 0.0017974816326217613,
+   "season": 0.00942668606204064
+  },
+  "differences": [
+   "different colour: Lilac vs Burgundy"
+  ],
+  "shared_photo_colours": "",
+  "summary": "photo 45%, catalogue attributes 33%, description 9%. same family: Earrings; same sub-family: Dangle; same planning category: 52 - Earrings Long; shared materials: Glass, Iron, Polyester. Differs in different colour: Lilac vs Burgundy.",
+  "completeness_error": 1.1453562231977799e-07
+ },
+ {
+  "query": "167718_BU",
+  "rank": 5,
+  "candidate": "210347_TG",
+  "score": 0.804053,
+  "share_image": 0.46045018600379095,
+  "share_categorical": 0.3345218053013112,
+  "share_text": 0.08892062643352017,
+  "share_composition": 0.06918457955524855,
+  "share_palette": 0.0,
+  "share_numeric": 0.046922155441761704,
+  "shared_attributes": [
+   {
+    "attribute": "family",
+    "value": "Earrings",
+    "points": 0.05379465024630015
+   },
+   {
+    "attribute": "sub-family",
+    "value": "Dangle",
+    "points": 0.05379465024630015
+   },
+   {
+    "attribute": "planning category",
+    "value": "52 - Earrings Long",
+    "points": 0.026897325123150077
+   },
+   {
+    "attribute": "finish",
+    "value": "Golden",
+    "points": 0.026897325123150077
+   },
+   {
+    "attribute": "metal",
+    "value": null,
+    "points": 0.017931551317904353
+   },
+   {
+    "attribute": "print",
+    "value": "No Print",
+    "points": 0.017931551317904353
+   },
+   {
+    "attribute": "size type",
+    "value": "Long",
+    "points": 0.017931551317904353
+   },
+   {
+    "attribute": "colour type",
+    "value": "Fashion",
+    "points": 0.008965775041050025
+   },
+   {
+    "attribute": "fashion type",
+    "value": "Fashion",
+    "points": 0.008965775041050025
+   },
+   {
+    "attribute": "segment",
+    "value": "Woman",
+    "points": 0.008965775041050025
+   },
+   {
+    "attribute": "units",
+    "value": "Set 1 Pair",
+    "points": 0.008965775041050025
+   }
+  ],
+  "shared_materials": [
+   {
+    "material": "Glass",
+    "points": 0.03042488762860993
+   },
+   {
+    "material": "Iron",
+    "points": 0.016659262503374253
+   },
+   {
+    "material": "Polyester",
+    "points": 0.008543919612820208
+   }
+  ],
+  "numeric_parts": {
+   "price": 0.03770674359647538,
+   "launch": 2.1158993448415003e-05
+  },
+  "differences": [
+   "different colour: Pastel Green vs Burgundy"
+  ],
+  "shared_photo_colours": "",
+  "summary": "photo 46%, catalogue attributes 33%, description 9%. same family: Earrings; same sub-family: Dangle; same planning category: 52 - Earrings Long; shared materials: Glass, Iron, Polyester. Differs in different colour: Pastel Green vs Burgundy.",
+  "completeness_error": 5.204348564324945e-07
+ }
+]

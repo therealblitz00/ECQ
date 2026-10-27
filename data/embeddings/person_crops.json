@@ -1,0 +1,39 @@
+{
+ "created": "2026-10-27T12:23:51+00:00",
+ "clip": "openai/clip-vit-base-patch32",
+ "detector": "google/owlv2-base-patch16-ensemble",
+ "filter": "CLIP whole-photo person probability >= 0.15 (2,454 of 9,445 trusted photos)",
+ "auto_rule": "OWLv2 person >= 0.10, expected item >= 0.10, item box < 70% of the Phase 1b crop (13 photos)",
+ "recrop": "the auto-rule photos confirmed by eye on a before/after sheet: 6 of 13 (the other 7 were packshots with printed faces or jewellery sets cut to one piece)",
+ "verified_by_eye": [
+  "211451_BM",
+  "221878_BK",
+  "221878_WT",
+  "222924_BK",
+  "223997_NM",
+  "224206_IG"
+ ],
+ "owl_person": [
+  "a photo of a person",
+  "a photo of a human face",
+  "a photo of a human hand",
+  "a photo of human legs"
+ ],
+ "person_prompts": [
+  "a person",
+  "a fashion model wearing the item",
+  "a woman's face",
+  "a hand wearing jewellery",
+  "legs and feet of a person"
+ ],
+ "product_prompts": [
+  "a product photo on a white background",
+  "a packshot of a fashion accessory",
+  "a garment laid flat",
+  "shoes on a white background"
+ ],
+ "checked": 2454,
+ "auto": 13,
+ "recropped": 6,
+ "wall_seconds": 59690
+}

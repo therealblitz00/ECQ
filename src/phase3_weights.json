@@ -8,5 +8,7 @@
   "palette": 0.034,
   "numeric": 0.066
  },
- "tuned": "phase4_feedback.py fit (138 queries, 5 members) blended 25% with the earlier tuning, 2026-10-21"
+ "tuned": "phase4_feedback.py fit (138 queries, 5 members) blended 25% with the earlier tuning, 2026-10-21",
+ "image_embedding": "image_fashionsiglip",
+ "note_image": "Sprint 3: FashionSigLIP chosen over CLIP ViT-B/32 (outputs/phase4/compare_report.md); same weights as Sprint 2."
 }

@@ -20,7 +20,7 @@ This is the only place that tracks the status. The evidence for each item is in 
 |---|---|---|
 | **Sprint 1: data cleaning and validation** | 0, 1, 1b | ✅ **Done**: setup, automatic checks, image pre-screen, review app, cleaning, manual review by the 5 members, every photo checked, merge (`items_clean.parquet`) |
 | **Sprint 2: features and modelling** | 1 (rest), 2a, 2b, 3, 4 | ✅ **Done**: Phase 2a (4 tabular/text blocks, missing attributes filled where reliable), Phase 2b (image embeddings, colour palettes), Phase 3 (`neighbours.parquet`) and Phase 4 (evaluation, tuning, weights learned from the team's 138 sorted queries, applied as a 25% blend). Notebook: `notebooks/phase2_features.ipynb` |
-| Sprint 3: explanations, estimates and delivery | 2b (improvements), 5, 5b, 6 | 🟡 **In progress** on branch `s3/andre` (not pushed): baseline frozen; explanations for every match (Phase 5), price and sales estimates with SHAP (Phase 5b), CLI + HTML report (Phase 6); FashionSigLIP adopted as image encoder; full-body photos being re-cropped. Rejected with evidence: fusion standardisation, lower colour/theme weights, DINOv2 (progress.md §25) |
+| Sprint 3: explanations, estimates and delivery | 2b (improvements), 5, 5b, 6 | 🟡 **Done on branch `s3/andre`, awaiting the team's review**: baseline frozen and compared (`phase4_compare.py`); explanations for every match (Phase 5); price and sales estimates with SHAP (Phase 5b); CLI + HTML report (Phase 6); FashionSigLIP image encoder and 6 re-cropped photos of a model adopted; rejected with evidence: fusion standardisation, lower colour/theme weights, DINOv2, diversity cap, blind automatic re-cropping. Notebook: `notebooks/phase3_explanations_estimates.ipynb` (progress.md §25) |
 
 | Phase | Status | Done | Still to do |
 |---|---|---|---|
@@ -31,10 +31,10 @@ This is the only place that tracks the status. The evidence for each item is in 
 | 2b. Visual features | ✅ | Image embeddings (`data/embeddings/image_clip.npy`), colour palettes (`phase2b_palettes.py`) | Optional, **after the team's sorting**: DINOv2, CLIP tags |
 | 3. Similarity engine | ✅ | Weighted per-block cosine, like-for-like candidates, fallback without a trusted photo, top-10 for every colourway (`phase3_engine.py` → `neighbours.parquet`) | – |
 | 4. Evaluation | ✅ | Fixed evaluation script (`phase4_eval.py`): proxy hit rate, attribute agreement, sales check, ablations, weights tuned on half of the models; interactive feedback (`phase4_feedback.py`): 138 of 140 queries sorted, weights applied as a 25% blend | Optional: André's last 2 queries (refit only) |
-| 2b+. Visual features, Sprint 3 | 🟡 | Encoders compared (CLIP, FashionCLIP, DINOv2, FashionSigLIP): FashionSigLIP adopted (`phase2b_image_encoders.py`) | Re-crop photos of a person wearing the item, then re-embed |
-| 5. Explainability and output | 🟡 | Exact decomposition of every match (`phase5_explain.py`): block shares, shared attributes/materials, differences, close colours; completeness, faithfulness and team-agreement checks; brief's format (`outputs/phase5/similar_products.csv`) | Rebuild on the final engine |
-| 5b. Price and sales estimates | 🟡 | `phase5b_forecast.py`: temporal test on season 242, baselines, gradient boosting + TreeSHAP, analogue estimate from similar products | Rebuild on the final engine |
-| 6. Delivery and interface | 🟡 | `phase6_deliver.py query` / `report` (static HTML) | Sprint 3 notebook, final report |
+| 2b+. Visual features, Sprint 3 | ✅ | Encoders compared (CLIP, FashionCLIP, DINOv2, FashionSigLIP): FashionSigLIP adopted; photos of a person checked (OWLv2), 6 re-cropped after a check by eye (`phase2b_image_encoders.py`) | – |
+| 5. Explainability and output | ✅ | Exact decomposition of every match (`phase5_explain.py`): block shares, shared attributes/materials, differences, close colours; completeness, faithfulness and team-agreement checks; brief's format (`outputs/phase5/similar_products.csv`) | Optional: LLM one-line summary of the computed facts |
+| 5b. Price and sales estimates | ✅ | `phase5b_forecast.py`: temporal test on season 242, baselines, gradient boosting + TreeSHAP, analogue estimate from similar products, leakage checks | – |
+| 6. Delivery and interface | 🟡 | `phase6_deliver.py query` / `report` (static HTML), Sprint 3 notebook | Final report or slides; optional buyer assistant |
 
 **Next:**
 1. **Phase 5** (explanations): they read `sim_<block>` / `contrib_<block>` from `neighbours.parquet`, rebuilt with the new weights.

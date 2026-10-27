@@ -582,20 +582,64 @@ products are reported per product as the buyer's reference.
   (random 21%). The photo and description add little (+0.03 same month). With accumulated sales only (no stores, no weeks),
   this is a ranking aid for comparing new products, not an order-quantity forecast.
 
-### 25.6 Delivery (Phase 6)
-
-`src/phase6_deliver.py query KEY` (similar products, why, sales and price estimates) and `report` →
-`outputs/phase6/report.html` (self-contained: the brief's example, 2 products per category and one without a photo).
-
-### 25.7 Photos of a person wearing the item — *in progress*
-
-*Pending: OWLv2 on the 2,454 photos the whole-photo CLIP filter flags; calibration by eye; re-cropped FashionSigLIP
-embeddings; measurement against the baseline.*
-
-
 **What drives the estimates** (mean |SHAP| of each family's total effect per product, test season, log units):
 sales — fashion type (0.33), the photo (0.33), collection type (0.22: "Exclusive Online" and "Commercial Online" products
 sell less), planning category (0.13), supplier (0.12), colour (0.09), time on sale (0.06), description (0.06); price —
 planning category (0.30), weight (0.16), category (0.12), sub-family and family (0.05 each). A first version summed the
 absolute SHAP of every column of a family, which inflated families with many columns (the 16 photo components); found when
 the Sprint 3 notebook recomputed it, and fixed.
+
+### 25.6 Delivery (Phase 6)
+
+`src/phase6_deliver.py query KEY` (similar products, why, sales and price estimates) and `report` →
+`outputs/phase6/report.html` (self-contained: the brief's example, 2 products per category and one without a photo).
+
+### 25.7 Photos of a person wearing the item: 6 re-cropped after a check by eye
+
+Phase 1b crops a photo on a white background to its non-white pixels; when a model wears the item, that crop is the whole
+person (the swimsuit `211451_BM` was embedded as white trousers). Two stages (`src/phase2b_image_encoders.py persons`, run
+once, results in `data/embeddings/person_crops.parquet` + `.json`):
+
+1. **CLIP on the whole photo** ("a person", "a face", "a hand wearing jewellery"… against "a product on a white
+   background"…): a cheap filter. A first version that scored the stored *crop* embeddings was poor (about 7 real people in
+   its top 48: the crop hides the context). On the whole photo the top is mostly people; a random sample of 96 photos below
+   0.3 had 1 person, so the filter keeps everything ≥ 0.15: **2,454 of 9,445 trusted photos**.
+2. **OWLv2** on those (CPU, 16.6 h, far more than estimated: about 20–40 CPU-seconds per photo): a "person / face / hand /
+   legs" score and the box of the expected item. Calibrated on contact sheets: ≥ 0.16 is almost always a person (about 41 of
+   the top 48), 0.10–0.16 about two thirds (60 of 89), 0.05–0.10 rarely (4 of 48).
+
+**Finding: the problem is much smaller than feared.** Of the 137 photos with a person (score ≥ 0.10), **88 had already been
+cropped to the item by the detector in Phase 1b** (they were not packshots): the new box is identical. Only models on a
+white background were cropped by threshold. Automatic rule — person ≥ 0.10, item ≥ 0.10, item box < 70% of the current
+crop — selects 13 photos; checked before/after by eye, **6 are better** (swimsuit, 4 dresses and trousers worn by a model)
+and **7 worse** (packshots of t-shirts with printed faces, zooms into prints, jewellery sets cut to one piece): precision
+46%, too low to apply blindly. **Only the 6 confirmed by eye are re-cropped** (the machine suggests, a person decides, as in
+the Phase 1 review); the file keeps both the automatic decision and the confirmed one.
+
+Effect: 6 products of 9,445, so no aggregate metric can move; for those products the photo now shows the item (the
+swimsuit's 5 nearest photos: trousers and jumpsuits before, dresses, tops and a kimono after; cosine between its old and new
+vector 0.74).
+
+### 25.8 The improved engine against the baseline
+
+`src/phase4_compare.py run` → `outputs/phase4/compare_report.md`. Same weights; only the image embedding differs (CLIP →
+FashionSigLIP with the 6 re-crops, `image_embedding` in `src/phase3_weights.json`).
+
+| | Baseline (Sprint 2) | Sprint 3 |
+|---|---|---|
+| Team preferences, fixed weights | 70.5% | **72.1%** (+1.6, CI −0.4 to +3.4, positive in 94%) |
+| Team preferences, 5-fold CV refit | 72.8% | **74.0%** (+1.2, CI −0.8 to +3.0, positive in 87%) |
+| Photo alone: same sub-family / material / finish | 57.7% / 30.3% / 58.5% | **68.1% / 39.1% / 61.9%** |
+| `hit@4` / same sub-family / same material | 91.5% / 90.2% / 73.9% | 91.0% / 89.7% / 74.5% |
+| Sales correlation | 0.618 | 0.614 |
+| Brief's four answers (engine rank) | 452 / 44 / 66 / 659 | 269 / 30 / 56 / 575 |
+
+All guards within 1 point. The gain on the team's judgements is positive but within the noise of 138 sorted queries; the
+gain on what the photos show (labels never seen by the encoder) is large. The brief's own answers move up but stay far:
+the catalogue attributes (other colour, theme, finish) keep them down, and the team's preferences say those attributes
+matter (§25.2).
+
+Downstream on the Sprint 3 engine (rebuilt): explanations are more faithful (removing the block named first now unseats the
+best match in 50% of the queries, 43% before); sales ranking unchanged (0.575 / 0.410 same month); price error 3.42 € (3.47 €
+before), similar-products estimate 3.77 € (3.85 €). The checked before/after sheet of the 13 automatic re-crops:
+`outputs/phase2b/person_recrops_checked.jpg`.

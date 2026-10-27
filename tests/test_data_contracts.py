@@ -210,3 +210,23 @@ def test_colour_reference_covers_every_colour_name():
     measured = ref["no_reference"].isna()
     assert ref.loc[measured, ["L", "a", "b"]].notna().all().all() and ref.loc[measured, "hex"].str.match(r"^#[0-9a-f]{6}$").all()
     assert ref.loc[~measured, ["L", "a", "b"]].isna().all().all()
+
+
+def test_fashionsiglip_embeddings_match_their_sidecar_and_the_clip_rows():
+    meta = json.loads((config.EMB_DIR / "image_fashionsiglip.json").read_text(encoding="utf-8"))
+    clip = json.loads((config.EMB_DIR / "image_clip.json").read_text(encoding="utf-8"))
+    emb = np.load(config.EMB_DIR / "image_fashionsiglip.npy")
+    assert emb.shape == (meta["n"], meta["dim"]) and emb.dtype == np.float16
+    assert meta["keys"] == clip["keys"]                     # same photos, same row order as the baseline
+    norms = np.linalg.norm(emb.astype(np.float32), axis=1)
+    assert np.allclose(norms, 1.0, atol=1e-2)
+
+
+def test_person_recrops_are_confirmed_suggestions_of_the_automatic_rule():
+    pc = pd.read_parquet(config.EMB_DIR / "person_crops.parquet")
+    meta = json.loads((config.EMB_DIR / "person_crops.json").read_text(encoding="utf-8"))
+    assert pc[config.KEY].is_unique
+    assert not (pc["recrop"] & ~pc["auto_rule"]).any()        # nothing re-cropped that the rule did not suggest
+    assert sorted(pc.loc[pc["recrop"], config.KEY]) == sorted(meta["verified_by_eye"])
+    boxes = pc.loc[pc["recrop"], "item_box"]
+    assert all(len(b) == 4 and 0 <= b[0] < b[2] <= 1 and 0 <= b[1] < b[3] <= 1 for b in boxes)

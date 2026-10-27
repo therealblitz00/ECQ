@@ -104,3 +104,11 @@ def test_analogues_never_use_the_products_own_model():
 def test_constant_estimate_with_float_noise_in_its_std_still_ranks_nothing():
     p = np.full(30, 7.3)                                    # np.std of this is ~1e-15, not 0
     assert fc.spearman(np.arange(30.0), p) == 0.0
+
+
+def test_compare_bootstrap_is_zero_centred_for_identical_engines():
+    import phase4_compare as pc
+    t = pd.DataFrame({"right": [3, 5, 2, 7], "pairs": [5, 6, 4, 9]}, index=list("abcd"))
+    assert pc.accuracy(t) == pytest.approx(17 / 24)
+    lo, hi, p_pos = pc.boot_diff(t, t.copy(), n=200)
+    assert lo == hi == 0.0 and p_pos == 0.0

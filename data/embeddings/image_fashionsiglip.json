@@ -9499,5 +9499,7 @@
   "215398_GY",
   "215400_DG",
   "215400_GY"
- ]
+ ],
+ "library_version": "open_clip_torch 3.3.0",
+ "torch_version": "2.14.1+cpu"
 }

@@ -6,3 +6,4 @@ torch>=2.9
 transformers>=4.45
 numpy>=1.26
 scipy>=1.11
+open_clip_torch>=2.24   # FashionSigLIP (Phase 2b image encoders)

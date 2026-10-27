@@ -3,16 +3,8 @@
  "clip": "openai/clip-vit-base-patch32",
  "detector": "google/owlv2-base-patch16-ensemble",
  "filter": "CLIP whole-photo person probability >= 0.15 (2,454 of 9,445 trusted photos)",
- "auto_rule": "OWLv2 person >= 0.10, expected item >= 0.10, item box < 70% of the Phase 1b crop (13 photos)",
- "recrop": "the auto-rule photos confirmed by eye on a before/after sheet: 6 of 13 (the other 7 were packshots with printed faces or jewellery sets cut to one piece)",
- "verified_by_eye": [
-  "211451_BM",
-  "221878_BK",
-  "221878_WT",
-  "222924_BK",
-  "223997_NM",
-  "224206_IG"
- ],
+ "auto_rule": "OWLv2 person >= 0.10 AND expected item >= 0.10 AND item box < 70% of the Phase 1b crop (phase2b_image_encoders.auto_rule)",
+ "recrop": "auto_rule AND accepted in person_crops_reviewed.json (human check by eye)",
  "owl_person": [
   "a photo of a person",
   "a photo of a human face",
@@ -35,5 +27,6 @@
  "checked": 2454,
  "auto": 13,
  "recropped": 6,
- "wall_seconds": 59690
+ "wall_seconds": 59690,
+ "reviewed_file": "person_crops_reviewed.json"
 }

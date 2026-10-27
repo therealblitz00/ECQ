@@ -1,0 +1,20 @@
+{
+ "note": "Human review of the automatic re-crop suggestions (phase2b_image_encoders.auto_rule), checked on a before/after contact sheet (outputs/phase2b/person_recrops_checked.jpg) on 2026-10-27. Edit by hand only; never regenerated.",
+ "accepted": [
+  "211451_BM",
+  "221878_BK",
+  "221878_WT",
+  "222924_BK",
+  "223997_NM",
+  "224206_IG"
+ ],
+ "rejected": {
+  "217344_BM": "packshot, printed face",
+  "218331_HM": "earring pair cut to one",
+  "221710_BM": "zoom into a print",
+  "222670_WT": "packshot, printed face",
+  "223386_WT": "packshot, printed figures",
+  "223430_BM": "zoom into a print",
+  "224667_GD": "bracelet set cut to one"
+ }
+}

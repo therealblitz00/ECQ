@@ -224,9 +224,18 @@ def test_fashionsiglip_embeddings_match_their_sidecar_and_the_clip_rows():
 
 def test_person_recrops_are_confirmed_suggestions_of_the_automatic_rule():
     pc = pd.read_parquet(config.EMB_DIR / "person_crops.parquet")
-    meta = json.loads((config.EMB_DIR / "person_crops.json").read_text(encoding="utf-8"))
+    review = json.loads((config.EMB_DIR / "person_crops_reviewed.json").read_text(encoding="utf-8"))
     assert pc[config.KEY].is_unique
     assert not (pc["recrop"] & ~pc["auto_rule"]).any()        # nothing re-cropped that the rule did not suggest
-    assert sorted(pc.loc[pc["recrop"], config.KEY]) == sorted(meta["verified_by_eye"])
+    assert sorted(pc.loc[pc["recrop"], config.KEY]) == sorted(review["accepted"])
+    assert set(pc.loc[pc["auto_rule"], config.KEY]) == set(review["accepted"]) | set(review["rejected"])  # all reviewed
+
+
+def test_the_recrop_rule_in_the_code_reproduces_the_committed_suggestions():
+    import phase2b_image_encoders as ie
+    pc = pd.read_parquet(config.EMB_DIR / "person_crops.parquet")
+    masks = pd.read_parquet(config.EMB_DIR / "masks.parquet").set_index(config.KEY)
+    again = ie.decide(pc.drop(columns=["auto_rule", "recrop"]), masks)
+    assert (again["auto_rule"] == pc["auto_rule"]).all() and (again["recrop"] == pc["recrop"]).all()
     boxes = pc.loc[pc["recrop"], "item_box"]
     assert all(len(b) == 4 and 0 <= b[0] < b[2] <= 1 and 0 <= b[1] < b[3] <= 1 for b in boxes)

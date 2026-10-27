@@ -9,26 +9,29 @@ The engine score is a weighted mean of block similarities, and each block is a d
 ## Checks
 
 - **Completeness** (2,000 sampled pairs): the block contributions add up to the score up to 6.8e-07; the attribute parts add up to the categorical similarity up to 8.9e-08 (float32 rounding).
-- **Cost**: 2.54 ms per explained match on a laptop CPU (52,775 matches in 134 s), so every product is explained in the batch run.
-- **Faithfulness (deletion test)**: for the best match of random queries, one block is removed (weight 0) and the match's new rank is measured. Removing the block the explanation names **first** should move the match most:
+- **Cost**: 1.59 ms per explained match on a laptop CPU (52,775 matches in 84 s), so every product is explained in the batch run.
+- **Faithfulness**, on the best match of random queries (scores rounded like the engine, ties counted against the match). *Deletion*: one block removed; for an additive score this mostly confirms the arithmetic. *Sufficiency*: only the two blocks the explanation names first are kept, i.e. the short explanation a buyer reads; is the match still in the top 5, compared with two random blocks or the two named last?
 
-| | mean | median | share no longer first |
-|---|---|---|---|
-| named first | 5.71 | 1.50 | 0.50 |
-| named last | 1.30 | 1.00 | 0.18 |
-| random | 2.67 | 1.00 | 0.32 |
-
-- **Agreement with the team** (candidates sorted in the Phase 4 feedback app): mean block similarity of the candidates the team called *similar* vs *not similar*. A large standardised difference means the block separates what people see as similar, so it deserves its place in the explanation:
-
-| | not similar | similar | difference | difference / sd |
+| | mean_rank | median_rank | still_first | in_top5 |
 |---|---|---|---|---|
-| score | 0.511 | 0.758 | 0.247 | 1.416 |
-| catalogue attributes | 0.411 | 0.744 | 0.333 | 1.344 |
-| photo | 0.646 | 0.783 | 0.137 | 1.257 |
-| description | 0.672 | 0.854 | 0.182 | 1.089 |
-| materials | 0.503 | 0.778 | 0.276 | 0.789 |
-| price and launch | 0.440 | 0.668 | 0.229 | 0.751 |
-| photo colours | 0.372 | 0.512 | 0.139 | 0.352 |
+| ('deletion: block removed', 'named first') | 5.71 | 2.00 | 0.50 | 0.81 |
+| ('deletion: block removed', 'named last') | 1.31 | 1.00 | 0.81 | 1.00 |
+| ('deletion: block removed', 'random') | 2.05 | 1.00 | 0.68 | 0.96 |
+| ('sufficiency: only 2 blocks kept', 'named first') | 2.98 | 2.00 | 0.48 | 0.86 |
+| ('sufficiency: only 2 blocks kept', 'named last') | 207.35 | 75.50 | 0.04 | 0.10 |
+| ('sufficiency: only 2 blocks kept', 'random') | 50.81 | 5.00 | 0.22 | 0.53 |
+
+- **Agreement with the team** (Phase 4 feedback, only the candidates the engine proposed, 134 not similar, 769 similar judgements): mean block similarity of the candidates called *similar* vs *not similar*, and Cohen's d (difference / pooled within-group SD). A block with a large d separates what people see as similar, so it deserves its place in the explanation:
+
+| | not similar | similar | difference | Cohen's d |
+|---|---|---|---|---|
+| photo | 0.711 | 0.789 | 0.079 | 0.964 |
+| score | 0.709 | 0.774 | 0.065 | 0.813 |
+| description | 0.809 | 0.867 | 0.058 | 0.489 |
+| catalogue attributes | 0.706 | 0.763 | 0.058 | 0.436 |
+| materials | 0.678 | 0.800 | 0.122 | 0.422 |
+| price and launch | 0.618 | 0.690 | 0.072 | 0.276 |
+| photo colours | 0.559 | 0.534 | -0.024 | -0.062 |
 
 ## Mean share of the score per block, by rank
 

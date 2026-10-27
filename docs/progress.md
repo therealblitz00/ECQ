@@ -414,7 +414,7 @@ kept only if it wins on signals it was not tuned on and no guarded metric drops 
 rule). Results that did not win are recorded too.
 
 **Where a change is measured** (the strongest signal first):
-1. **The team's judgements**: 138 sorted queries, 4,029 pairwise preferences (`outputs/phase4/feedback_*.jsonl`). Two ways:
+1. **The team's judgements**: 147 sorted answers on **99 distinct queries** (10 queries were sorted by every member), 4,029 pairwise preferences (`outputs/phase4/feedback_*.jsonl`). Two ways:
    current weights on all answers, and 5-fold cross-validation over queries with the weights refitted (same
    Bradley–Terry fit as Phase 4). Confidence intervals by paired bootstrap over queries (a query's pairs are not
    independent).
@@ -459,9 +459,8 @@ The brief's four answers for `167718_BU` have other colours and another theme, a
 | Colour 0 + theme 0 | 67.4% | 70.7% | 525 / 80 / 113 / 729 | 94.9% | 81.7% | 0.569 |
 
 The team values colour (removing it loses up to 3 points), the brief's answers get *worse*, and theme 0 costs 4 points of
-sales correlation for a team gain inside the noise (±2.5 points). **Not adopted.** (Colour of the photo palette is the block
-that separates the team's similar / not similar candidates least: 0.35 SD, against 1.34 for the catalogue attributes,
-§25.4.)
+sales correlation for a team gain inside the noise (±2.5 points). **Not adopted.** (The colours of the photo palette do not
+separate the team's similar / not similar candidates at all: Cohen's d −0.06, §25.4.)
 
 ### 25.3 Image encoder: FashionSigLIP adopted, DINOv2 rejected
 
@@ -482,11 +481,18 @@ full photos, FashionCLIP and DINOv2 in 40 min; FashionSigLIP in about 1 h).
 - **DINOv2** loses colour (25%) and the team's agreement: rejected, as the fashion product-matching literature found
   (CLIP-type encoders beat DINOv2 on fashion images).
 - **FashionSigLIP** (Marqo, trained on fashion products) wins on every label the encoders never saw (+10.4 points of
-  sub-family, +8.8 of material from the photo alone, on > 5,000 queries) and keeps every guard within 1 point. On the
-  team's preferences the gain is +1.5 points (current weights, CI −0.3 to +3.4) and +1.2 (CV, CI −0.8 to +3.1): positive
-  in 88–95% of the resamples but **not significant at 95%** with 138 queries. **Adopted** for the improved version, with
+  sub-family, +8.8 of material from the photo alone, on the 4,716 test-half products with a trusted photo) and keeps every
+  guard within 1 point. On the team's preferences the gain is +1.5 points (fixed weights, CI −0.4 to +3.4, positive in 94%
+  of the resamples) and +1.2 (CV, CI −0.8 to +3.0, 87%): **not significant at 95%** with 99 sorted queries.
+  Caveats on this evidence: the encoder was picked as the best of three on the same team metric; the photo-only labels
+  (category, material, colour) are close to what a fashion encoder was trained on, so that test favours it; the team's
+  candidate pools were built with the CLIP engine and the fixed weights were fitted on CLIP similarities, which, if
+  anything, favours the baseline. **Adopted** for the improved version, with
   that caveat; the CLIP baseline stays for comparison. New: `src/phase2b_image_encoders.py embed`, and the engine reads
   the embedding named in `phase3_weights.json` (`image_embedding`, CLIP by default).
+- **Reproducible:** the FashionCLIP and DINOv2 embeddings are committed (`data/embeddings/image_*_nopersoncrops.*`), and
+  `python src/phase4_compare.py encoders image_clip image_fashionclip_nopersoncrops image_dinov2_nopersoncrops
+  image_fashionsiglip` regenerates `outputs/phase2b/image_encoders.csv` (same numbers as the first, exploratory run).
 
 ### 25.3b Diversity: at most 1 or 2 colours of one model in the top 5 — rejected
 
@@ -505,89 +511,99 @@ The problem is rare (4.6 distinct models out of 5 already). One colour per model
 ### 25.4 Explanations for every match (Phase 5)
 
 `src/phase5_explain.py build` → `data/processed/explanations.parquet`, `outputs/phase5/` (report, the brief's format for
-every product in `similar_products.csv`, the brief's example in `brief_example.json`).
+every product in `similar_products.csv`, the brief's example in `brief_example.json`). Numbers on the Sprint 3 engine.
 
 - **Method:** the score is a weighted mean of block similarities, and each block is a dot product of unit rows split into
   named slices, so the explanation is an **exact decomposition** (no surrogate, no sampling, no LLM): share of each block,
   shared attributes with their points, shared materials (rare ones weigh more), price/launch parts, differences (price,
   colour with the measured closeness of the two names, finish, sub-family) and the shared dominant photo colours.
-- **Completeness:** the parts add up to the score (float32 rounding only).
-- **Faithfulness (deletion test, best match of 300 random queries):** removing the block the explanation names first moves
-  the match to rank 6.5 on average (43% lose first place); removing a random block 2.5 (38%); the block named last 1.4 (21%).
-- **Agreement with the team:** standardised difference between the candidates the team called similar and not similar —
-  catalogue attributes 1.34 SD, description 1.09, photo 1.07, materials 0.79, price/launch 0.75, photo colours 0.35.
-- **Cost:** 52,775 matches (10,555 products × top 5) explained in 162 s (3 ms each) on a laptop.
+- **Completeness:** the parts add up to the score (largest gap 6.8e-07 on 2,000 pairs: float32 rounding).
+- **Sufficiency** (the test that matters; best match of 300 random queries, scores rounded like the engine, ties counted
+  against the match): keeping **only the two blocks the explanation names first**, the match stays in the top 5 for 86% of
+  the queries (still first 48%); two random blocks 53% (22%); the two named last 10% (4%). The short explanation a buyer
+  reads is enough to recover most matches.
+- **Deletion** (for an additive score this mostly confirms the arithmetic): removing the block named first unseats the
+  match in 50% of the queries (mean rank 5.7), a random block 32%, the block named last 19%.
+- **Agreement with the team** (Phase 4 feedback, only the candidates the engine proposed: 769 called similar, 134 not;
+  Cohen's d with the pooled within-group SD): photo 0.96, description 0.49, catalogue attributes 0.44, materials 0.42,
+  price/launch 0.28, photo colours −0.06. A first version also counted the 2 random candidates per query (easy to reject on
+  any block) and divided by the total SD; it put the catalogue attributes first, an artefact of the easy cases.
+- **Cost:** 52,775 matches (10,555 products × top 5) explained in about 100 s (2 ms each) on a laptop.
 
 ### 25.5 Price and sales estimates (Phase 5b, new)
 
-`src/phase5b_forecast.py run` → `data/processed/forecast.parquet`, `outputs/phase5b/forecast_report.md`.
+`src/phase5b_forecast.py run` → `data/processed/forecast.parquet`, `outputs/phase5b/forecast_report.md`,
+`outputs/phase5b/leakage_checks.csv`. (Rewritten after the independent review, §25.9: planned dates, choices on a
+validation split, estimates never in-sample.)
 
-- **Prices checked:** no list price is missing, 0 € or negative (3.99 € to 250 €, 40 price points). What is missing:
-  sales for 370 colourways (no sales row) and 0 units for 9 (one with a positive amount), landed cost for 175 colourways.
+- **Prices checked:** no list price is missing, 0 € or negative (3.99 € to 250 €, 40 price points). Missing instead:
+  sales for 370 colourways (no sales row) and 0 units for 9 (one with a positive amount), landed cost for 168 colourways.
   Products without sales are unknown, not zero: out of training and evaluation, but they get an estimate.
 - **Time on sale:** sales are accumulated until the extraction, so season 242 sold a median of 1,336 units against
-  3,377 / 3,637 for 232 / 241, and inside a season later launches sold less (median Spearman −0.26). The test is temporal
-  (trained on 232 + 241, tested on 242, models never sold before), and the honest sales metric ranks only products
-  launched in the same month. Trees cannot extrapolate the days on sale from the old seasons (300–650 days) to the new
-  one (0–250): the model that knows only the category and the time on sale ranks the test season *backwards* (−0.12).
-- **Buyer decisions left out:** `PUR_BET` (purchase depth) and `TYPOLOGY` (store tiers) encode the buyer's own
-  expectation; with them the ranking rises from 0.58 to 0.62 (reported as a reference, not used). Landed cost is left out
-  of the price model for the same reason (price = cost × markup; with it the error drops from 3.47 € to 2.79 €).
+  3,377 / 3,637 for 232 / 241. The launch month and the days on sale come from the **planned** store date
+  (`STORE_DATE_PLANNED`, known when ordering; the final date is revised for 56% of the products). The seasons overlap and
+  the training sales run into the test period: a limit of the data (no dated sales), stated, not corrected.
+- **Protocol:** every choice (which model, whether to add the similar products as a feature) is made on a **validation
+  split, 232 → 241**; the **test split, 232 + 241 → 242**, is reported once. Both use only models never sold in the
+  training seasons. Validation: gradient boosting beats every baseline (same-month ranking 0.454 vs 0.316; price error
+  2.23 € vs 2.82 €); adding the similar products: −0.012 to +0.018, so the simpler model is kept.
+- **Left out:** `PUR_BET` (purchase depth) and `TYPOLOGY` (store tiers) encode the buyer's own expectation (with them,
+  same-month ranking 0.41 → 0.53: reference only); the landed cost from the price model (with it 3.41 € → 2.74 €).
 
-| Sales, season 242, new models (3,393 products; price: 3,728) | Within category | Same launch month | Top-20% precision |
+| Sales, test season 242, new models (3,393 products) | Within category | Same launch month | Top-20% precision |
 |---|---|---|---|
 | Category median | 0.00 | 0.00 | 21% (random) |
-| Family + price band median | 0.26 | 0.20 | 34% |
-| Similar past products (engine, 10 nearest) | 0.33 | 0.28 | 37% |
-| **Gradient boosting (chosen)** | **0.57** | **0.41** | 38% |
-| + similar past products as a feature | 0.58 | 0.41 | 38% |
+| Time on sale + category only | 0.00 | 0.04 | 30% |
+| Family + price band median | 0.22 | 0.18 | 34% |
+| Similar past products (engine, 10 nearest) | 0.31 | 0.28 | 37% |
+| **Gradient boosting (chosen on validation)** | **0.54** | **0.41** | 39% |
 
-Gains over the time-on-sale model, same launch month (95% CI): similar products +0.24 to +0.32, gradient boosting +0.37 to
-+0.44. Adding the similar products to the gradient boosting: −0.004 to +0.018, so the simpler model is kept and the similar
-products are reported per product as the buyer's reference.
+Same-month gain over the time-on-sale model (95% CI, bootstrap over models): similar products +0.19 to +0.29, gradient
+boosting +0.33 to +0.42.
 
-| Price, season 242, new models | Mean error | Exact list price | Right or next list price |
+| Price, test season 242, new models (3,728 products) | Mean error | Exact list price | Right or next list price |
 |---|---|---|---|
 | Category median | 5.76 € | 23% | 45% |
 | Sub-family median | 4.16 € | 33% | 60% |
-| Similar past products (engine, no price block) | 3.85 € | 30% | 67% |
-| **Gradient boosting (chosen)** | **3.47 €** | 31% | **71%** |
+| Similar past products (engine, no price block) | 3.77 € | 31% | 68% |
+| **Gradient boosting (chosen)** | **3.41 €** | 33% | **72%** |
 
-- **Explanations:** exact TreeSHAP values from LightGBM (`pred_contrib`), grouped into business families (photo, description,
-  materials, each attribute, price, time on sale); milliseconds per product, so every product gets its main effects.
-- A unit test caught a bug in the first version of the price metric (`exp(log(p))` is not bit-exact, so the true price was
-  not found among the list prices and the price-point accuracy was underestimated); fixed before any number was reported.
+Error reduction over the sub-family median: gradient boosting 0.57 to 0.94 €.
 
-**Leakage checks and honest limits** (sales model, season 242, new models):
+**Leakage checks and what each part adds** (sales, test split, `outputs/phase5b/leakage_checks.csv`):
 
 | Check | Within category | Same launch month |
 |---|---|---|
-| Chosen model | 0.574 | 0.408 |
-| Target shuffled in training (must fall to ~0) | −0.026 | −0.026 |
-| Without time on sale and launch month | 0.539 | 0.398 |
-| Without fashion type and collection type | 0.468 | 0.332 |
-| Without the photo and description components | 0.445 | 0.382 |
-| Attributes + price only | 0.451 | 0.390 |
+| Chosen model | 0.538 | 0.413 |
+| Target shuffled in training (must fall to ~0) | −0.047 | −0.047 |
+| Without time on sale and launch month | 0.514 | 0.417 |
+| Without fashion type and collection type | 0.454 | 0.342 |
+| Without the photo components | 0.383 | 0.382 |
+| Without the photo and description components | 0.376 | 0.374 |
+| Attributes + price only | 0.376 | 0.378 |
 
-- **No leakage found in the chosen model:** with the training target shuffled, the ranking falls to zero. The calendar adds
-  little once products launched in the same month are compared.
-- **Fashion type and collection type** (Basic, Capsule, Commercial Online, Exclusive Online…) carry real signal; they are
-  planning classifications present in every season with similar shares, not sales outcomes, and mostly capture the channel
-  (online-only products sell less). To confirm with Parfois that none of their values is assigned after launch.
-- **One known leak, in the reference estimate only:** the engine's weights were tuned in Phase 4 with an objective that
-  includes the sales correlation (on half of the models, all seasons), so the "similar past products" estimate is slightly
+- **No leakage found in the pipeline:** with the training target shuffled at random, the ranking falls to zero.
+- **The photo matters within a category** (−0.16 without it) but little among products launched in the same month
+  (−0.03): it mostly tells which kind of product sells, less which of two similar launches sells more.
+- **Fashion type and collection type** carry real signal and **their shares shift between seasons**: "Commercial Online"
+  1.9% / 2.5% / 7.1% of the colourways in 232 / 241 / 242, collection "Online" 0% / 0.6% / 3.3%, "Limited Edition" 2.0% /
+  1.0% / 0%. They mostly capture the channel (online-only products sell less). A risk for new seasons, and a question for
+  Parfois: are they assigned before launch?
+- **A known leak in the reference estimate only:** the engine's weights were tuned in Phase 4 with an objective that
+  includes the sales correlation (half of the models, all seasons), so the "similar past products" estimate is slightly
   optimistic. The chosen model does not use the engine.
-- **Absolute quality is modest.** The model ranks the new products of a category clearly better than the baselines, but a
-  mean error of 1.12 in log units means the units are typically off by a factor of about 3, and it finds 38% of the top 20%
-  (random 21%). The photo and description add little (+0.03 same month). With accumulated sales only (no stores, no weeks),
-  this is a ranking aid for comparing new products, not an order-quantity forecast.
+- **Absolute quality is modest:** the units are typically off by a factor of about 3 (mean absolute log error 1.13) and
+  39% of the estimated top 20% really are (random 21%). With accumulated sales only (no stores, no weeks), this is a
+  ranking aid for comparing new products, not an order-quantity forecast.
 
 **What drives the estimates** (mean |SHAP| of each family's total effect per product, test season, log units):
-sales — fashion type (0.33), the photo (0.33), collection type (0.22: "Exclusive Online" and "Commercial Online" products
-sell less), planning category (0.13), supplier (0.12), colour (0.09), time on sale (0.06), description (0.06); price —
-planning category (0.30), weight (0.16), category (0.12), sub-family and family (0.05 each). A first version summed the
-absolute SHAP of every column of a family, which inflated families with many columns (the 16 photo components); found when
-the Sprint 3 notebook recomputed it, and fixed.
+sales — fashion type 0.36, the photo 0.30, collection type 0.22, planning category 0.15, supplier 0.11, colour 0.10;
+price — planning category 0.29, weight 0.16, category 0.12, sub-family 0.05.
+
+**Delivered estimates are never in-sample:** products with a known target get a cross-validated estimate (5 folds grouped
+by model), the 379 without sales a forecast from all known products. On the known products the cross-validated error is
+0.56 log units (it was 0.33 when the model predicted its own training rows), still lower than a new season (1.13) because
+the folds mix seasons, so each estimate carries the **new-season typical error** (sales ×3.1, price ±3.41 €).
 
 ### 25.6 Delivery (Phase 6)
 
@@ -627,19 +643,39 @@ FashionSigLIP with the 6 re-crops, `image_embedding` in `src/phase3_weights.json
 
 | | Baseline (Sprint 2) | Sprint 3 |
 |---|---|---|
-| Team preferences, fixed weights | 70.5% | **72.1%** (+1.6, CI −0.4 to +3.4, positive in 94%) |
+| Team preferences, fixed weights | 70.5% | **72.1%** (+1.5, CI −0.4 to +3.4, positive in 94%) |
 | Team preferences, 5-fold CV refit | 72.8% | **74.0%** (+1.2, CI −0.8 to +3.0, positive in 87%) |
 | Photo alone: same sub-family / material / finish | 57.7% / 30.3% / 58.5% | **68.1% / 39.1% / 61.9%** |
 | `hit@4` / same sub-family / same material | 91.5% / 90.2% / 73.9% | 91.0% / 89.7% / 74.5% |
 | Sales correlation | 0.618 | 0.614 |
 | Brief's four answers (engine rank) | 452 / 44 / 66 / 659 | 269 / 30 / 56 / 575 |
 
-All guards within 1 point. The gain on the team's judgements is positive but within the noise of 138 sorted queries; the
+All guards within 1 point. The gain on the team's judgements is positive but within the noise of 99 sorted queries; the
 gain on what the photos show (labels never seen by the encoder) is large. The brief's own answers move up but stay far:
 the catalogue attributes (other colour, theme, finish) keep them down, and the team's preferences say those attributes
 matter (§25.2).
 
-Downstream on the Sprint 3 engine (rebuilt): explanations are more faithful (removing the block named first now unseats the
-best match in 50% of the queries, 43% before); sales ranking unchanged (0.575 / 0.410 same month); price error 3.42 € (3.47 €
-before), similar-products estimate 3.77 € (3.85 €). The checked before/after sheet of the 13 automatic re-crops:
-`outputs/phase2b/person_recrops_checked.jpg`.
+Downstream, everything is rebuilt on the Sprint 3 engine: neighbours, explanations (§25.4) and estimates (§25.5; the
+image components of the estimates now come from FashionSigLIP). The checked before/after sheet of the 13 automatic
+re-crops: `outputs/phase2b/person_recrops_checked.jpg`.
+
+### 25.9 Independent review and the fixes (2026-10-27)
+
+After the main tasks a separate agent reviewed the branch (read-only: code, outputs, docs, rules; `pytest` and `ruff`
+passed). It found no error in the engine or the explanations' arithmetic (no negative contribution in 105,550 neighbour
+rows, completeness ≤ 1e-6, every product ≥ 4 matches, no colour of the query's own model in any top 5), and these problems,
+all fixed:
+
+| Finding | Fix |
+|---|---|
+| **Delivered estimates were in-sample** (refitted on every product and shown next to its real sales: error 0.33 instead of 1.13) | Cross-validated estimates grouped by model; each carries its kind and the new-season typical error (§25.5); CLI and HTML report say so |
+| **Person re-crops not reproducible** (thresholds in the code ≠ the ones used; rerunning would overwrite the human decision) | Real thresholds in the code; the human decision in `data/embeddings/person_crops_reviewed.json`, never regenerated; a test checks the code reproduces the 13 suggestions and 6 re-crops |
+| **Evidence without committed code** (leakage table, encoder comparison) | `phase5b_forecast.py` writes `leakage_checks.csv`; `phase4_compare.py encoders` + committed candidate embeddings |
+| Forecast choices made on the test season; final (revised) store dates | Choices on 232 → 241, test reported once; planned store dates |
+| Planning classes said to be stable across seasons (false) | Measured and reported as a shift risk (§25.5) |
+| "The photo adds little" (the favourable metric) | Both metrics reported: −0.16 within category, −0.03 same month |
+| Explanation checks weak (deletion is near-tautological; team check pooled easy random candidates) | Sufficiency test added; Cohen's d on the engine's candidates (the ordering changed: §25.4) |
+| Reference rows compared with the wrong model | Built from the chosen model |
+| Stale numbers from the CLIP run; "138 queries" | Regenerated from the reports; 99 distinct queries (147 answers) |
+| Notebook explained the baseline | Sections 2–4 on the Sprint 3 engine, with the baseline beside it |
+| Minor: `open_clip_torch` missing from `requirements-vision.txt`, no library versions in the sidecar, excluded products listed as analogues, inconsistent weighting of the rank metrics, ties counted in the match's favour | Fixed (regression tests for the analogue keys and the re-crop rule) |

@@ -210,62 +210,84 @@ def completeness(ctx: Context, nb: pd.DataFrame, n: int = 2000, seed: int = 0) -
     return {"max_error_blocks": block_err, "max_error_attributes": cat_err, "pairs": len(s)}
 
 
-def faithfulness(ctx: Context, nb: pd.DataFrame, n_queries: int = 300, seed: int = 0) -> pd.DataFrame:
-    """Deletion test: drop one block (weight 0) and see how far the explained match falls in its query's ranking.
+def _rank_of(ctx: Context, w: dict, qi: int, ci: int, pool: np.ndarray) -> int:
+    """Rank of candidate ci for query qi under weights w, scores rounded like the engine; ties count against it."""
+    s = np.round(engine.score_matrix(ctx.blocks, ctx.has, w, np.array([qi]), pool)[0].astype(np.float64), engine.DECIMALS)
+    return int((s >= s[pool == ci][0]).sum())
 
-    If the explanation is faithful, dropping the block it names first moves the match more than dropping the block
-    it names last, or a random block."""
+
+def faithfulness(ctx: Context, nb: pd.DataFrame, n_queries: int = 300, seed: int = 0) -> pd.DataFrame:
+    """Two tests on the best match of random queries.
+
+    - Deletion (necessity): drop the block the explanation names first / last / a random one, and see how far the match
+      falls. For an additive score this mostly confirms the arithmetic, so it is reported but not over-read.
+    - Sufficiency: keep ONLY the two blocks the explanation names first (the short explanation a buyer reads) and see
+      whether the match is still in the top 5, against two random blocks and the two named last. This asks whether the
+      short explanation is enough to recover the match, which the arithmetic does not guarantee."""
     rng = np.random.default_rng(seed)
     queries = rng.choice(nb["query"].unique(), size=min(n_queries, nb["query"].nunique()), replace=False)
     first = nb[(nb["rank"] == 1) & nb["query"].isin(queries)]
     blocks = [b for b, w in ctx.weights.items() if w > 0]
-    rows = []
-    groups = {tuple(sorted(k)) if isinstance(k, tuple) else k: v for k, v in
-              ctx.items.groupby("CAT_DES_EN", sort=True).indices.items()}
+    groups = dict(ctx.items.groupby("CAT_DES_EN", sort=True).indices.items())
     cat_of = ctx.items["CAT_DES_EN"].to_numpy()
+    rows = []
     for r in first.to_dict("records"):
         qi, ci = int(ctx.pos[r["query"]]), int(ctx.pos[r["candidate"]])
         pool = np.asarray(groups[cat_of[qi]])
         pool = pool[~engine.excluded(ctx.items, np.array([qi]), pool, include_siblings=False)[0]]
         present = {b: r.get(f"contrib_{b}", 0) or 0 for b in blocks}
         ranked = [b for b, v in sorted(present.items(), key=lambda kv: -kv[1]) if v > 0]
-        if len(ranked) < 2:
+        if len(ranked) < 4:
             continue
-        picks = {"named first": ranked[0], "named last": ranked[-1], "random": ranked[rng.integers(len(ranked))]}
-        for label, b in picks.items():
-            w = {**ctx.weights, b: 0.0}
-            s = engine.score_matrix(ctx.blocks, ctx.has, w, np.array([qi]), pool)[0]
-            new_rank = int((s > s[pool == ci][0]).sum()) + 1
-            rows.append({"removed": label, "block": b, "new_rank": new_rank})
+        for label, b in {"named first": ranked[0], "named last": ranked[-1],
+                         "random": ranked[rng.integers(len(ranked))]}.items():
+            rows.append({"test": "deletion: block removed", "variant": label,
+                         "new_rank": _rank_of(ctx, {**ctx.weights, b: 0.0}, qi, ci, pool)})
+        rnd = list(rng.choice(ranked, 2, replace=False))
+        for label, keep in {"named first": ranked[:2], "named last": ranked[-2:], "random": rnd}.items():
+            w = {b: (ctx.weights[b] if b in keep else 0.0) for b in ctx.weights}
+            rows.append({"test": "sufficiency: only 2 blocks kept", "variant": label,
+                         "new_rank": _rank_of(ctx, w, qi, ci, pool)})
     df = pd.DataFrame(rows)
-    return df.groupby("removed")["new_rank"].agg(["mean", "median", lambda x: (x > 1).mean()]).rename(
-        columns={"<lambda_0>": "share no longer first"})
+    return df.groupby(["test", "variant"])["new_rank"].agg(
+        mean_rank="mean", median_rank="median", still_first=lambda x: (x == 1).mean(),
+        in_top5=lambda x: (x <= 5).mean()).round(3)
 
 
 def human_alignment(ctx: Context) -> pd.DataFrame | None:
-    """Mean block shares of the candidates the team called similar vs not similar (feedback pools)."""
+    """Block similarities of the candidates the team called similar vs not similar (Phase 4 feedback pools).
+
+    Only the candidates the engine proposed are used (the 2 random items per query are left out, they are easy), and
+    the difference is divided by the pooled within-group SD (Cohen's d), so it is not inflated by the gap itself."""
     pool_path = ROOT / "outputs" / "phase4" / "feedback_pool.json"
     if not pool_path.exists():
         return None
     import phase4_feedback as fb
     pool, recs = fb.load_pool(), fb.read_feedback()
+    random_ = {(q["query"], c["key"]) for q in pool["queries"] for c in q["candidates"] if c.get("random")}
     rows = []
     for r in recs:
         for label, keys in (("similar", r["similar"]), ("not similar", r["not"])):
             for c in keys:
+                if (r["query"], c) in random_:
+                    continue
                 qi, ci = int(ctx.pos[r["query"]]), int(ctx.pos[c])
                 br = engine.pair_breakdown(ctx.blocks, ctx.has, ctx.weights, np.array([qi]), np.array([ci]))
                 total = sum(float(br[f"contrib_{b}"][0]) for b in ctx.weights if f"contrib_{b}" in br)
                 rows.append({"verdict": label, "score": total,
                              **{BLOCK_LABEL[b]: float(br[f"sim_{b}"][0]) for b in ctx.weights
                                 if f"sim_{b}" in br and np.isfinite(br[f"sim_{b}"][0])}})
-    del pool
     df = pd.DataFrame(rows)
-    out = df.groupby("verdict").mean().T
+    g = df.groupby("verdict")
+    out = g.mean().T
+    n = g.size()
+    var = g.var().T
+    pooled = np.sqrt(((n["similar"] - 1) * var["similar"] + (n["not similar"] - 1) * var["not similar"])
+                     / (n["similar"] + n["not similar"] - 2))
     out["difference"] = out["similar"] - out["not similar"]
-    sd = df.drop(columns="verdict").std()
-    out["difference / sd"] = out["difference"] / sd
-    return out.sort_values("difference / sd", ascending=False)
+    out["Cohen's d"] = out["difference"] / pooled
+    out.attrs["pairs"] = ", ".join(f"{int(v):,} {k}" for k, v in n.items())
+    return out.sort_values("Cohen's d", ascending=False)
 
 
 # --------------------------------------------------------------------------- outputs
@@ -322,18 +344,19 @@ def write_report(comp: dict, faith: pd.DataFrame, human: pd.DataFrame | None, ti
         f"{comp['max_error_attributes']:.1e} (float32 rounding).",
         f"- **Cost**: {timing['ms_per_pair']:.2f} ms per explained match on a laptop CPU "
         f"({timing['pairs']:,} matches in {timing['seconds']:.0f} s), so every product is explained in the batch run.",
-        "- **Faithfulness (deletion test)**: for the best match of random queries, one block is removed (weight 0) "
-        "and the match's new rank is measured. Removing the block the explanation names **first** should move the "
-        "match most:",
+        "- **Faithfulness**, on the best match of random queries (scores rounded like the engine, ties counted against "
+        "the match). *Deletion*: one block removed; for an additive score this mostly confirms the arithmetic. "
+        "*Sufficiency*: only the two blocks the explanation names first are kept, i.e. the short explanation a buyer "
+        "reads; is the match still in the top 5, compared with two random blocks or the two named last?",
         "",
         md(faith, 2),
         "",
     ]
     if human is not None:
-        lines += ["- **Agreement with the team** (candidates sorted in the Phase 4 feedback app): mean block similarity "
-                  "of the candidates the team called *similar* vs *not similar*. A large standardised difference "
-                  "means the block separates what people see as similar, so it deserves its place in the "
-                  "explanation:", "", md(human, 3), ""]
+        lines += ["- **Agreement with the team** (Phase 4 feedback, only the candidates the engine proposed, "
+                  f"{human.attrs['pairs']} judgements): mean block similarity of the candidates called *similar* vs "
+                  "*not similar*, and Cohen's d (difference / pooled within-group SD). A block with a large d separates "
+                  "what people see as similar, so it deserves its place in the explanation:", "", md(human, 3), ""]
     lines += ["## Mean share of the score per block, by rank", "", md(mean_shares, 3), "", "## Examples", "",
               *ex_lines,
               "## Files", "",

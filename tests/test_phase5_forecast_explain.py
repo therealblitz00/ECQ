@@ -112,3 +112,12 @@ def test_compare_bootstrap_is_zero_centred_for_identical_engines():
     assert pc.accuracy(t) == pytest.approx(17 / 24)
     lo, hi, p_pos = pc.boot_diff(t, t.copy(), n=200)
     assert lo == hi == 0.0 and p_pos == 0.0
+
+
+def test_analogue_keys_never_list_an_excluded_product():
+    items = pd.DataFrame({KEY: ["A_BK", "A_RD", "B_BK"], "PROD_REF": ["A", "A", "B"], "PROD_REF_EQUIV": ["A", "A", "B"],
+                          "CAT_DES_EN": ["Rings"] * 3, "target": [10.0, 20.0, 1.0]})
+    blocks = {"categorical": unit([1, 0], [1, 0], [0.6, 0.8])}
+    est, keys = fc.analogues(items, blocks, {"categorical": 1.0}, "target", np.ones(3, bool), k=3)
+    assert keys[0] == ["B_BK"]                              # A_RD (own model) is excluded, not listed with score -inf
+    assert est[0] == pytest.approx(1.0)

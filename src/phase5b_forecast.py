@@ -1,6 +1,6 @@
 """Phase 5b: explainable sales and price estimates for a product, from its attributes, photo and similar products.
 
-    python src/phase5b_forecast.py run         # -> data/processed/forecast.parquet + outputs/phase5b/forecast_report.md
+    python src/phase5b_forecast.py run         # -> data/processed/forecast.parquet + outputs/phase5b/ (report, leakage checks)
 
 Business use (brief, slide 4): buyers must size the order of a NEW product. The engine already finds similar
 products; here their sales (and prices) become an estimate, next to a model that learns from all attributes.
@@ -10,8 +10,10 @@ Data decisions (each measured in the report):
   unknown, not zero: they are left out of training and evaluation, and still get an estimate.
 - Price: every colourway has a list price (no 0 and no missing value: checked in the report), so all are used.
 - Time: SALES_QTY is accumulated until the extraction, so later launches had less time to sell (season 242 sells
-  about a third of the older seasons). The model gets the days on sale; evaluation is temporal: trained on the two
-  older seasons, tested on the newest one, on models never seen in training (truly new products).
+  about a third of the older seasons). The model gets the days on sale from the planned store date. Choices are made on
+  a validation split (232 -> 241); the test split (232 + 241 -> 242) is reported once; both use only models never seen
+  in training (truly new products).
+- Delivered estimates are never in-sample: cross-validated (grouped by model) where the target is known.
 - Buyer decisions (PUR_BET purchase depth, TYPOLOGY store tiers) are left out: they encode the buyer's own
   expectation of the sales we want to estimate. A reference model with them is reported, not used.
 - The price model never sees the price (nor the numeric similarity block, which contains it); landed cost is left
@@ -62,9 +64,11 @@ def load() -> tuple[pd.DataFrame, dict[str, np.ndarray]]:
         for col in ["MATERIAL"]:
             fill = inf[inf["column"] == col].set_index(KEY)["value"]
             items[col] = items[col].where(items[col].notna(), items[KEY].map(fill))
-    d = pd.to_datetime(items["STORE_DATE_FINAL"])
-    items["days_on_sale"] = (d.max() - d).dt.days.astype(float)
-    items["launch_month"] = d.dt.month.astype(float)
+    # the planned store date is what a buyer knows when ordering (the final date is revised for 56% of the products);
+    # the extraction date is unknown, so the last final store date stands in for it
+    planned = pd.to_datetime(items["STORE_DATE_PLANNED"])
+    items["days_on_sale"] = (pd.to_datetime(items["STORE_DATE_FINAL"]).max() - planned).dt.days.astype(float)
+    items["launch_month"] = planned.dt.month.astype(float)
     items["log_sales"] = np.log1p(items["SALES_QTY"].where(items["SALES_QTY"] > 0))
     items["log_price"] = np.log(items["PRICE_BASE_W_VAT"].astype(float))
     return items, blocks
@@ -85,12 +89,31 @@ def data_checks(items: pd.DataFrame) -> dict:
             "days_vs_sales_within_season": float(np.median(within))}
 
 
-def split(items: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
-    """Train: the older seasons. Test: the newest season, only models never sold in the older ones (new products)."""
-    old = items["SEA_COD"].astype(str).ne(TEST_SEASON).to_numpy()
-    seen = set(items.loc[old, "PROD_REF"].astype(str))
+def split(items: pd.DataFrame, train_seasons=("232", "241"), test_season: str = TEST_SEASON) -> tuple[np.ndarray, np.ndarray]:
+    """Train: the given seasons. Test: one later season, only models never sold in the training seasons (new products).
+
+    Choices (which model, which features) are made on the validation split 232 -> 241; the test split
+    232 + 241 -> 242 is reported once with those choices."""
+    sea = items["SEA_COD"].astype(str)
+    train = sea.isin(train_seasons).to_numpy()
+    seen = set(items.loc[train, "PROD_REF"].astype(str))
     new_model = ~items["PROD_REF"].astype(str).isin(seen).to_numpy()
-    return old, (~old) & new_model
+    return train, sea.eq(test_season).to_numpy() & new_model
+
+
+VALIDATION = (("232",), "241")
+TEST = (("232", "241"), TEST_SEASON)
+
+
+def class_shift(items: pd.DataFrame, cols=("FASHIONTYPE", "COLLECTION_TYPE"), top: int = 4) -> pd.DataFrame:
+    """Share of the most variable values of the planning classes by season (they drive the sales estimate)."""
+    rows = []
+    for c in cols:
+        t = pd.crosstab(items[c], items["SEA_COD"].astype(str), normalize="columns")
+        spread = (t.max(axis=1) - t.min(axis=1)).sort_values(ascending=False)
+        for v in spread.index[:top]:
+            rows.append({"attribute": c, "value": v, **t.loc[v].round(3).to_dict()})
+    return pd.DataFrame(rows)
 
 
 # --------------------------------------------------------------------------- features
@@ -123,11 +146,11 @@ def analogues(items: pd.DataFrame, blocks: dict, weights: dict, target: str, poo
             s[ref[q][:, None] == ref[cand][None, :]] = -np.inf     # never the product's own model
             top = np.argsort(-s, axis=1, kind="stable")[:, :k]
             sc = np.take_along_axis(s, top, axis=1)
-            w = np.clip(sc, 0, None)
+            w = np.where(np.isfinite(sc), np.clip(sc, 0, None), 0.0)   # excluded candidates (own model) never count
             yy = y[cand][top]
             est[q] = np.where(w.sum(1) > 0, (w * yy).sum(1) / np.maximum(w.sum(1), 1e-12), np.nan)
-            for qi, row in zip(q, top):
-                keys[qi] = items[KEY].to_numpy()[cand[row]].tolist()
+            for qi, row, srow in zip(q, top, sc):
+                keys[qi] = items[KEY].to_numpy()[cand[row[np.isfinite(srow)]]].tolist()
     return est, keys
 
 
@@ -207,15 +230,16 @@ def sales_metrics(y: np.ndarray, p: np.ndarray, groups: np.ndarray) -> dict:
 
     `groups` holds "category|launch month"; the category is the part before the bar."""
     cats = np.array([g.split("|")[0] for g in groups])
-    within = [spearman(y[cats == c], p[cats == c]) for c in np.unique(cats) if (cats == c).sum() > 10]
-    month = [(spearman(y[groups == g], p[groups == g]), (groups == g).sum()) for g in np.unique(groups)
-             if (groups == g).sum() > 10]
+
+    def weighted(keys_):  # mean of the per-group rank correlations, weighted by group size (both metrics alike)
+        res = [(spearman(y[keys_ == g], p[keys_ == g]), (keys_ == g).sum()) for g in np.unique(keys_)
+               if (keys_ == g).sum() > 10]
+        return float(np.average([r for r, _ in res], weights=[n for _, n in res])) if res else 0.0
     top_true = pd.Series(y).groupby(cats).rank(pct=True).to_numpy() > 0.8
     # ties broken at random, so a constant estimate picks a random 20% (its fair score: the base rate)
     jitter = np.random.default_rng(SEED).random(len(p)) * 1e-9
     top_pred = pd.Series(p + jitter).groupby(cats).rank(pct=True).to_numpy() > 0.8
-    return {"spearman_within_cat": float(np.mean(within)),
-            "spearman_same_month": float(np.average([m for m, _ in month], weights=[n for _, n in month])),
+    return {"spearman_within_cat": weighted(cats), "spearman_same_month": weighted(groups),
             "mae_log": float(np.mean(np.abs(y - p))), "top20_precision": float(top_true[top_pred].mean())}
 
 
@@ -265,7 +289,7 @@ def run_sales(items, blocks, weights, train, test) -> dict:
     model, preds["gradient boosting, no analogues"] = fit_predict(X0, y, train, fit_rows)   # the chosen model
     X = feature_table(items, blocks, train, "log_sales", ana)
     _, preds["gradient boosting + analogues"] = fit_predict(X, y, train, fit_rows)
-    Xb = feature_table(items, blocks, train, "log_sales", ana, extra=BUYER_DECISIONS)
+    Xb = feature_table(items, blocks, train, "log_sales", None, extra=BUYER_DECISIONS)   # chosen model + them
     _, ref = fit_predict(Xb, y, train, fit_rows)
     table = {n: sales_metrics(y[eval_rows], p[eval_rows], cats[eval_rows]) for n, p in preds.items()}
     table["reference: + buyer decisions (not used)"] = sales_metrics(y[eval_rows], ref[eval_rows], cats[eval_rows])
@@ -297,7 +321,7 @@ def run_price(items, blocks, weights, train, test) -> dict:
     model, preds["gradient boosting, no analogues"] = fit_predict(X0, y, train, fit_rows)   # the chosen model
     X = feature_table(items, blocks, train, "log_price", ana)
     _, preds["gradient boosting + analogues"] = fit_predict(X, y, train, fit_rows)
-    Xc = X.assign(cost=pd.to_numeric(items["PRICE_LCP"], errors="coerce"))
+    Xc = X0.assign(cost=pd.to_numeric(items["PRICE_LCP"], errors="coerce"))   # chosen model + the cost
     _, ref = fit_predict(Xc, y, train, fit_rows)
     table = {n: price_metrics(y[eval_rows], p[eval_rows], points) for n, p in preds.items()}
     table["reference: + landed cost (not used)"] = price_metrics(y[eval_rows], ref[eval_rows], points)
@@ -328,35 +352,83 @@ def explain_one(model, X: pd.DataFrame, i: int, n: int = 5) -> list[tuple[str, f
     return [(f, float(v)) for f, v in fam.reindex(fam.abs().sort_values(ascending=False).index)[:n].items()]
 
 
-def final_models(items, blocks, weights) -> pd.DataFrame:
-    """Estimates for every product, models refitted on all products with a known target (all seasons), plus the
-    analogue estimate (similarity-weighted mean of the most similar products of other models) and its products."""
+def out_of_fold(items, blocks, weights, target: str, folds: int = 5) -> tuple[np.ndarray, np.ndarray, pd.DataFrame]:
+    """Estimates that never saw the product's own target: for products with a known target, 5-fold cross-fitting
+    grouped by model (colourways of a model stay in the same fold); for products without one (new or never sold),
+    the model fitted on every known product. Returns (estimate, kind, SHAP families per product)."""
+    y = items[target].to_numpy(float)
+    known = np.isfinite(y)
     allrows = np.ones(len(items), bool)
-    out = pd.DataFrame({KEY: items[KEY]})
-    for target, w in [("log_sales", weights), ("log_price", {**weights, "numeric": 0.0})]:
-        y = items[target].to_numpy(float)
-        fit_rows = np.isfinite(y)
-        ana, keys = analogues(items, blocks, w, target, fit_rows)
-        # final model without the analogue feature: adding it did not help significantly on the test season
-        # (report), so the simpler model is kept; the analogue estimate is still given as the buyer's reference
-        X = feature_table(items, blocks, allrows, target, None)
+    X = feature_table(items, blocks, allrows, target, None)
+    est = np.full(len(items), np.nan)
+    fam = pd.DataFrame(index=items.index, dtype=float)
+    refs = items["PROD_REF"].astype(str).to_numpy()
+    uniq = np.unique(refs[known])
+    fold_of = dict(zip(uniq, np.random.default_rng(SEED).integers(0, folds, len(uniq))))
+    fold = np.array([fold_of.get(r, -1) for r in refs])
+    parts = [(known & (fold != f), known & (fold == f)) for f in range(folds)] + [(known, ~known)]
+    for fit_rows, pred_rows in parts:
+        if not pred_rows.any():
+            continue
         model, pred = fit_predict(X, y, allrows, fit_rows)
-        sv = shap_values(model, X)
-        fam = sv.drop(columns="expected_value").T.groupby(lambda c: feature_family(c)).sum().T
-        name = "sales" if target == "log_sales" else "price"
-        out[f"{name}_estimate"] = np.expm1(pred).round(0) if name == "sales" else np.exp(pred).round(2)
-        out[f"{name}_analogue"] = np.expm1(ana).round(0) if name == "sales" else np.exp(ana).round(2)
+        est[pred_rows] = pred[pred_rows]
+        sv = shap_values(model, X[pred_rows]).drop(columns="expected_value")
+        f_ = sv.T.groupby(lambda c: feature_family(c)).sum().T
+        fam = f_ if fam.empty else pd.concat([fam, f_])
+    kind = np.where(known, "cross-validated (target not seen)", "forecast (no sales / new)")
+    return est, kind, fam.reindex(items.index)
+
+
+def final_models(items, blocks, weights, typical_error: dict) -> pd.DataFrame:
+    """Per product: the estimate (never in-sample), its kind, the honest typical error measured on the test season,
+    the three biggest SHAP effects, and the analogue estimate with its products (the buyer's reference)."""
+    out = pd.DataFrame({KEY: items[KEY]})
+    for target, w, name in [("log_sales", weights, "sales"), ("log_price", {**weights, "numeric": 0.0}, "price")]:
+        y = items[target].to_numpy(float)
+        ana, keys = analogues(items, blocks, w, target, np.isfinite(y))
+        est, kind, fam = out_of_fold(items, blocks, weights, target)
+        conv = np.expm1 if name == "sales" else np.exp
+        out[f"{name}_estimate"] = conv(est).round(0 if name == "sales" else 2)
+        out[f"{name}_estimate_kind"] = kind
+        out[f"{name}_typical_error"] = typical_error[name]
+        out[f"{name}_analogue"] = conv(ana).round(0 if name == "sales" else 2)
         out[f"{name}_analogue_keys"] = ["|".join(k[:4]) for k in keys]
         top = fam.apply(lambda r: r.reindex(r.abs().sort_values(ascending=False).index)[:3], axis=1)
-        out[f"{name}_reasons"] = [
-            "; ".join(f"{f} {'+' if v > 0 else '−'}{abs(v):.2f}" for f, v in r.dropna().items()) for _, r in top.iterrows()]
+        out[f"{name}_reasons"] = ["; ".join(f"{f} {'+' if v > 0 else '−'}{abs(v):.2f}" for f, v in r.dropna().items())
+                                  for _, r in top.iterrows()]
     return out
+
+
+def leakage_checks(items, blocks, train, test) -> pd.DataFrame:
+    """Diagnostics of the sales model on the test split (they choose nothing): shuffled target and feature ablations."""
+    y = items["log_sales"].to_numpy(float)
+    fit_rows, ev_rows = train & np.isfinite(y), test & np.isfinite(y)
+    groups = (items["CAT_DES_EN"].astype(str) + "|" + items["launch_month"].astype(int).astype(str) + "|"
+              + items["SEA_COD"].astype(str)).to_numpy()
+    X = feature_table(items, blocks, train, "log_sales", None)
+
+    def score(Xv, yv=y):
+        _, p = fit_predict(Xv, yv, train, fit_rows)
+        return sales_metrics(y[ev_rows], p[ev_rows], groups[ev_rows])
+    shuffled = y.copy()
+    idx = np.flatnonzero(fit_rows)
+    shuffled[idx] = shuffled[np.random.default_rng(SEED).permutation(idx)]
+    emb = [c for c in X if c.startswith(("img_pc", "txt_pc"))]
+    rows = {"chosen model": score(X),
+            "target shuffled in training (must fall to ~0)": score(X, shuffled),
+            "without time on sale and launch month": score(X.drop(columns=["days_on_sale", "launch_month"])),
+            "without fashion type and collection type": score(X.drop(columns=["FASHIONTYPE", "COLLECTION_TYPE"])),
+            "without the photo components": score(X.drop(columns=[c for c in emb if c.startswith("img")])),
+            "without the photo and description components": score(X.drop(columns=emb)),
+            "attributes + price only": score(X[[c for c in X if not c.startswith(("img_pc", "txt_pc", "mat_"))
+                                                and c not in ("days_on_sale", "launch_month")]])}
+    return pd.DataFrame(rows).T
 
 
 # --------------------------------------------------------------------------- report
 def _md(df: pd.DataFrame, pct: set[str] = frozenset(), digits: int = 3) -> str:
     cols = list(df.columns)
-    lines = ["| " + " | ".join([""] + cols) + " |", "|" + "---|" * (len(cols) + 1)]
+    lines = ["| " + " | ".join([""] + [str(c) for c in cols]) + " |", "|" + "---|" * (len(cols) + 1)]
     for idx, r in df.iterrows():
         cells = [f"{v:.1%}" if c in pct and pd.notna(v) else (f"{v:.{digits}f}" if isinstance(v, float) else str(v))
                  for c, v in r.items()]
@@ -364,100 +436,109 @@ def _md(df: pd.DataFrame, pct: set[str] = frozenset(), digits: int = 3) -> str:
     return "\n".join(lines)
 
 
-def write_report(checks: dict, sales: dict, price: dict, imp_s: pd.Series, imp_p: pd.Series,
-                 examples: list[str], items: pd.DataFrame) -> None:
+def write_report(checks: dict, val: dict, test: dict, decisions: dict, leak: pd.DataFrame, shift: pd.DataFrame,
+                 imp_s: pd.Series, imp_p: pd.Series, typical: dict) -> None:
     REPORT_DIR.mkdir(parents=True, exist_ok=True)
-    st = pd.DataFrame(sales["table"]).T
-    pt = pd.DataFrame(price["table"]).T
-    ci_s = "\n".join(f"- {n}: {lo:+.3f} to {hi:+.3f}" for n, (lo, hi) in sales["ci_vs_category"].items())
-    ci_p = "\n".join(f"- {n}: {lo:+.2f} to {hi:+.2f} € (less error is positive)"
-                     for n, (lo, hi) in price["ci_vs_subfamily"].items())
-    ex_lines = []
-    it = items.set_index(KEY)
-    for k in examples:
-        i = int(np.flatnonzero(items[KEY].to_numpy() == k)[0])
-        r = it.loc[k]
-        es = explain_one(sales["model"], sales["X"], i)
-        ep = explain_one(price["model"], price["X"], i)
-        sold = "unknown" if pd.isna(r["SALES_QTY"]) else f"{int(r['SALES_QTY']):,}"
-        ex_lines += [f"**{k}** ({r['GFS_DES_EN']}, {r['CLR_DES']}, season {r['SEA_COD']}): sold {sold}, "
-                     f"estimate {np.expm1(sales['pred'][i]):,.0f}; price {r['PRICE_BASE_W_VAT']:.2f} €, "
-                     f"estimate {np.exp(price['pred'][i]):.2f} €",
-                     "- sales, biggest effects (log units): " + ", ".join(f"{f} {v:+.2f}" for f, v in es),
-                     "- price, biggest effects (log units): " + ", ".join(f"{f} {v:+.2f}" for f, v in ep),
-                     "- similar past products used by the analogue: " + ", ".join(sales["analogue_keys"][i][:4]), ""]
+    s_v, p_v = pd.DataFrame(val["sales"]["table"]).T, pd.DataFrame(val["price"]["table"]).T
+    s_t, p_t = pd.DataFrame(test["sales"]["table"]).T, pd.DataFrame(test["price"]["table"]).T
+    sp = {"top20_precision"}
+    pp = {"mape", "exact_price_point", "within_1_point"}
+    ci_s = "\n".join(f"- {n}: {lo:+.3f} to {hi:+.3f}" for n, (lo, hi) in test["sales"]["ci_same_month"].items())
+    ci_p = "\n".join(f"- {n}: {lo:+.2f} to {hi:+.2f} €" for n, (lo, hi) in test["price"]["ci_vs_subfamily"].items())
     lines = [
         "# Phase 5b: explainable sales and price estimates",
         "",
-        f"Generated by `src/phase5b_forecast.py run` ({datetime.now(timezone.utc):%Y-%m-%d}). Trained on seasons "
-        f"232 and 241; every number below is measured on season {TEST_SEASON}, on models never sold before "
-        "(new products). Intervals: 95% bootstrap over models.",
+        f"Generated by `src/phase5b_forecast.py run` ({datetime.now(timezone.utc):%Y-%m-%d}). Products are colourways; "
+        "tests use only models never sold in the training seasons (new products); intervals are 95% bootstrap over "
+        "models.",
+        "",
+        "## Protocol",
+        "",
+        "- **Validation (choices): train 232 → test 241.** Which model and which features are chosen here.",
+        f"- **Test (reported once): train 232 + 241 → test {TEST_SEASON}**, with the choices of the validation.",
+        "- **Time:** the planned store date (`STORE_DATE_PLANNED`, known when ordering) gives the launch month and the "
+        "days on sale; the final date is revised for 56% of the products. The seasons overlap in time and the training "
+        "sales are accumulated until the extraction, so they include months of the test season: a limit of the data "
+        "(no dated sales), stated rather than corrected.",
+        "- **Left out:** buyer decisions (`PUR_BET`, `TYPOLOGY`) and the landed cost (reference rows only); sales are "
+        "never a feature; the price model never sees the price or the numeric similarity block.",
         "",
         "## The data the decisions rest on",
         "",
         f"- **Price:** {checks['price_missing']} missing, {checks['price_zero_or_less']} at 0 € or less; "
-        f"{checks['price_points']} list prices from {checks['price_min']:.2f} € to {checks['price_max']:.2f} €. "
-        "Every product has a usable price.",
-        f"- **Landed cost** (`PRICE_LCP`): missing for {checks['cost_missing']} colourways. Not used (see the reference row).",
-        f"- **Sales:** {checks['sales_missing']} colourways have no sales row and {checks['sales_zero']} have 0 units: "
-        "unknown, so left out of training and evaluation (they still get an estimate).",
+        f"{checks['price_points']} list prices from {checks['price_min']:.2f} € to {checks['price_max']:.2f} €.",
+        f"- **Landed cost** missing for {checks['cost_missing']} colourways. **Sales:** {checks['sales_missing']} "
+        f"colourways without a sales row, {checks['sales_zero']} with 0 units: unknown, left out of training and "
+        "evaluation (they still get an estimate).",
         f"- **Time on sale:** median units by season {checks['median_units_by_season']}; inside a season and category, "
-        f"later launches sold less (median Spearman of units vs days on sale "
-        f"{checks['days_vs_sales_within_season']:+.2f}). Hence the `days_on_sale` feature and the temporal test.",
+        f"units vs days on sale (planned date): median Spearman {checks['days_vs_sales_within_season']:+.2f}.",
+        "- **Planning classes change between seasons** (share of the colourways):",
         "",
-        f"## Sales (log units), {sales['n_fit']:,} training / {sales['n_eval']:,} test products",
+        _md(shift.set_index(["attribute", "value"]), digits=3),
         "",
-        "`spearman_within_cat`: how well the estimate ranks the products of a category (what a buyer compares). "
-        "`spearman_same_month`: the same, only among products of a category launched in the same month, so the time "
-        "on sale cannot help. `top20_precision`: of the products the estimate puts in the top 20% of their category, "
-        "the share that really were (a random pick scores 20%).",
+        "  They are among the strongest drivers below, so their shift (e.g. more \"Commercial Online\" in 242) is a "
+        "risk; to confirm with Parfois when they are assigned.",
         "",
-        _md(st, pct={"top20_precision"}),
+        "## Validation (232 → 241): the choices",
         "",
-        "Gain in ranking over the category median:",
+        _md(s_v, pct=sp),
+        "",
+        _md(p_v, pct=pp),
+        "",
+        *[f"- {d}" for d in decisions.values()],
+        "",
+        f"## Test (232 + 241 → {TEST_SEASON}): sales, {test['sales']['n_fit']:,} training / "
+        f"{test['sales']['n_eval']:,} test products",
+        "",
+        "`spearman_within_cat` / `spearman_same_month`: rank correlation of estimate and real units within a category / "
+        "only among products of a category launched in the same month (time on sale cannot help), weighted by group "
+        "size. `top20_precision`: share of the estimated top 20% of a category that really were (random 20%).",
+        "",
+        _md(s_t, pct=sp),
+        "",
+        "Same-month gain over the model that only knows the category and the time on sale (95% CI):",
         "",
         ci_s,
         "",
-        "Gain in ranking among products launched in the same month (time on sale removed), over the model that only "
-        "knows the category and the time on sale:",
+        f"## Test: price, {test['price']['n_fit']:,} training / {test['price']['n_eval']:,} test products",
         "",
-        "\n".join(f"- {n}: {lo:+.3f} to {hi:+.3f}" for n, (lo, hi) in sales["ci_same_month"].items()),
+        _md(p_t, pct=pp),
         "",
-        f"Gain of adding the similar past products to the gradient boosting: {sales['ci_analogue_gain'][0]:+.3f} to "
-        f"{sales['ci_analogue_gain'][1]:+.3f}. The interval includes 0, so the **chosen model is the gradient "
-        "boosting without them** (simpler, as good); the similar past products are still reported per product as the "
-        "buyer's reference.",
-        "",
-        "What drives the estimate (mean |SHAP|, log units, test products):",
-        "",
-        _md(imp_s.round(3).to_frame("mean |SHAP|")),
-        "",
-        f"## Price, {price['n_fit']:,} training / {price['n_eval']:,} test products",
-        "",
-        "The model never sees the price, the numeric similarity block or the cost. `within_1_point`: the estimate, "
-        "rounded to the nearest of the 40 list prices, is the right one or its neighbour.",
-        "",
-        _md(pt, pct={"mape", "exact_price_point", "within_1_point"}),
-        "",
-        "Error reduction over the sub-family median:",
+        "Error reduction over the sub-family median (95% CI):",
         "",
         ci_p,
         "",
-        "What drives the estimate (mean |SHAP|, log units, test products):",
+        "## Leakage checks and what each part adds (sales, test split; diagnostics, no choice made here)",
         "",
-        _md(imp_p.round(3).to_frame("mean |SHAP|")),
+        _md(leak, pct=sp),
         "",
-        "## Examples (explanations per product)",
+        "- A training target shuffled at random must give ≈ 0: it does, so no information leaks through the pipeline "
+        "(joins, row order, components fitted on training rows).",
+        "- The photo and description components matter **within a category** (removing both costs about "
+        f"{leak.at['chosen model', 'spearman_within_cat'] - leak.at['without the photo and description components', 'spearman_within_cat']:.2f}) "
+        "but little among products launched in the same month "
+        f"({leak.at['chosen model', 'spearman_same_month'] - leak.at['without the photo and description components', 'spearman_same_month']:.2f}).",
         "",
-        *ex_lines,
+        "## What drives the estimates (mean |SHAP| of each family's total effect per product, test products, log units)",
+        "",
+        _md(pd.DataFrame({"sales": imp_s, "price": imp_p}).fillna(0).sort_values("sales", ascending=False), digits=3),
+        "",
+        "## The delivered estimates (`data/processed/forecast.parquet`)",
+        "",
+        "Never in-sample: products with known sales or price get a **cross-validated** estimate (5 folds grouped by "
+        "model, so neither the product nor its other colours were seen), products without sales a forecast from all "
+        "known products. Each row carries its kind, the three biggest SHAP effects, the similar past products and the "
+        f"**typical error measured on the test season**: sales × {typical['sales']:.1f} either way (exp of the mean "
+        f"absolute log error), price ± {typical['price']:.2f} €. With accumulated sales only (no stores, no weeks), the "
+        "sales estimate is a ranking aid for comparing new products, not an order-quantity forecast.",
+        "",
         "## How the explanations are computed",
         "",
-        "- **Gradient boosting** (LightGBM): SHAP values by TreeSHAP (`pred_contrib`). They are exact for the "
-        "model (no sampling), add up to the estimate, and cost milliseconds per product, so every product gets them.",
-        "- **Similar past products**: the estimate is their similarity-weighted mean, so the products themselves are "
-        "the explanation (keys listed per product in `data/processed/forecast.parquet`).",
-        "- Features are grouped into families (photo components, description components, materials, attributes…) "
-        "before reporting, because single principal components have no business meaning.",
+        "- **Gradient boosting** (LightGBM): exact TreeSHAP values (`pred_contrib`), adding up to the estimate, "
+        "milliseconds per product; grouped into business families because single principal components mean nothing.",
+        "- **Similar past products**: their similarity-weighted mean, so the products themselves are the explanation. "
+        "Caveat: the engine's weights were tuned in Phase 4 with an objective that includes the sales correlation, so "
+        "this reference is slightly optimistic; the chosen model does not use the engine.",
         "",
     ]
     (REPORT_DIR / "forecast_report.md").write_text("\n".join(lines), encoding="utf-8")
@@ -469,23 +550,45 @@ def main() -> None:
     ap.parse_args()
     items, blocks = load()
     weights = engine.load_weights()
-    train, test = split(items)
     checks = data_checks(items)
-    sales = run_sales(items, blocks, weights, train, test)
-    price = run_price(items, blocks, weights, train, test)
-    imp_s = global_importance(sales["model"], sales["X"], sales["eval_rows"])
-    imp_p = global_importance(price["model"], price["X"], price["eval_rows"])
-    known_test = items.loc[sales["eval_rows"], KEY].tolist()
-    examples = [known_test[i] for i in np.random.default_rng(SEED).choice(len(known_test), 3, replace=False)]
-    write_report(checks, sales, price, imp_s, imp_p, examples, items)
-    final = final_models(items, blocks, weights)
+
+    tr, te = split(items, *VALIDATION)
+    val = {"sales": run_sales(items, blocks, weights, tr, te), "price": run_price(items, blocks, weights, tr, te)}
+    lo, hi = val["sales"]["ci_analogue_gain"]
+    st = val["sales"]["table"]
+    pt = val["price"]["table"]
+    decisions = {
+        "model": "Gradient boosting kept: on validation it beats every baseline on the same-month ranking "
+                 f"({st['gradient boosting, no analogues']['spearman_same_month']:.3f} vs "
+                 f"{max(v['spearman_same_month'] for k, v in st.items() if 'boosting' not in k and 'reference' not in k):.3f}) "
+                 f"and on the price error ({pt['gradient boosting, no analogues']['mae_eur']:.2f} € vs "
+                 f"{pt['sub-family median']['mae_eur']:.2f} €).",
+        "analogue": f"Similar past products as a feature: validation gain {lo:+.3f} to {hi:+.3f} on the ranking; "
+                    + ("kept." if lo > 0 else "the interval includes 0, so the simpler model without them is kept "
+                       "(they are still reported per product as the buyer's reference)."),
+    }
+
+    tr, te = split(items, *TEST)
+    test = {"sales": run_sales(items, blocks, weights, tr, te), "price": run_price(items, blocks, weights, tr, te)}
+    leak = leakage_checks(items, blocks, tr, te)
+    leak.to_csv(REPORT_DIR / "leakage_checks.csv")
+    shift = class_shift(items)
+    imp_s = global_importance(test["sales"]["model"], test["sales"]["X"], test["sales"]["eval_rows"])
+    imp_p = global_importance(test["price"]["model"], test["price"]["X"], test["price"]["eval_rows"])
+    typical = {"sales": float(np.exp(test["sales"]["table"]["gradient boosting, no analogues"]["mae_log"])),
+               "price": float(test["price"]["table"]["gradient boosting, no analogues"]["mae_eur"])}
+    write_report(checks, val, test, decisions, leak, shift, imp_s, imp_p, typical)
+    final = final_models(items, blocks, weights, typical)
     final.to_parquet(PROCESSED_DIR / OUT_FILE, index=False)
-    meta = {"created": datetime.now(timezone.utc).isoformat(timespec="seconds"), "test_season": TEST_SEASON,
+    meta = {"created": datetime.now(timezone.utc).isoformat(timespec="seconds"), "validation": VALIDATION, "test": TEST,
             "k_analogues": K_ANALOGUES, "pcs": PCS, "lgb_params": LGB_PARAMS, "weights": weights,
-            "sales_test": sales["table"], "price_test": price["table"]}
+            "image_embedding": engine.image_embedding(), "decisions": decisions, "typical_error": typical,
+            "sales_test": test["sales"]["table"], "price_test": test["price"]["table"]}
     (PROCESSED_DIR / "forecast.json").write_text(json.dumps(meta, indent=1, default=float), encoding="utf-8")
-    print(pd.DataFrame(sales["table"]).T.round(3).to_string())
-    print(pd.DataFrame(price["table"]).T.round(3).to_string())
+    print(pd.DataFrame(test["sales"]["table"]).T.round(3).to_string())
+    print(pd.DataFrame(test["price"]["table"]).T.round(3).to_string())
+    print(leak.round(3).to_string())
+    print(decisions)
     print(f"-> {PROCESSED_DIR / OUT_FILE}, report {REPORT_DIR / 'forecast_report.md'}")
 
 

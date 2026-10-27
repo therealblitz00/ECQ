@@ -1,6 +1,8 @@
 """Phase 4: compare the current engine with the Sprint 2 baseline on the same signals.
 
     python src/phase4_compare.py run          # -> outputs/phase4/compare_report.md + compare_metrics.csv
+    python src/phase4_compare.py encoders image_clip image_fashionclip_nopersoncrops image_dinov2_nopersoncrops ...
+                                              # -> outputs/phase2b/image_encoders.csv: same signals, one row per embedding
 
 The baseline is the Sprint 2 engine: the same weights with the CLIP image embedding (`image_clip`). The current engine
 is whatever `src/phase3_weights.json` sets (`image_embedding`, weights). Signals, strongest first:
@@ -166,11 +168,43 @@ def write_report(df: pd.DataFrame, diffs: dict, guards_ok: bool, weights: dict, 
     (REPORT_DIR / "compare_report.md").write_text("\n".join(text), encoding="utf-8")
 
 
+def encoders(stems: list[str]) -> pd.DataFrame:
+    """The same signals for several image embeddings (data/embeddings/<stem>.npy), same weights for all.
+
+    The candidates of `phase2b_image_encoders.py embed --model <name> --no-person-crops` (same crops as CLIP)."""
+    items = phase1_clean.load_items()
+    weights = engine.load_weights()
+    test_q = items.loc[~ev.split_models(items), KEY].tolist()
+    gid = ev.known_groups(items)
+    pools = ev.visual_pools(items, engine.load_blocks(items, image=BASELINE_IMAGE)["image"])
+    rows = {}
+    for stem in stems:
+        blocks = engine.load_blocks(items, image=stem)
+        m = ev.metrics(items, engine.neighbours(items, blocks, weights, k=10, queries=test_q), gid, pools)
+        fixed, cv = team_tables(items, blocks["image"], weights)
+        alone = engine.neighbours(items, {"image": blocks["image"]}, {"image": 1.0}, k=len(items), queries=[BRIEF_QUERY])
+        alone = alone.set_index("candidate")["rank"]
+        rows[stem] = {"team, fixed weights": accuracy(fixed), "team, 5-fold CV refit": accuracy(cv),
+                      **image_label_agreement(items, blocks["image"], test_q),
+                      "brief ranks (photo alone)": [int(alone.get(k, -1)) for k in BRIEF_ANSWER],
+                      "brief ranks (engine)": brief_ranks(items, blocks, weights),
+                      **{k: m[k] for k in ["hit@4", "same_subfamily", "same_material", "sales_corr"]}}
+        print(stem, rows[stem], flush=True)
+    df = pd.DataFrame(rows).T
+    df.index.name = "encoder"
+    df.to_csv(ROOT / "outputs" / "phase2b" / "image_encoders.csv")
+    return df
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("cmd", choices=["run"])
-    ap.parse_args()
-    run()
+    ap.add_argument("cmd", choices=["run", "encoders"])
+    ap.add_argument("stems", nargs="*", help="encoders: image embedding stems in data/embeddings/")
+    args = ap.parse_args()
+    if args.cmd == "encoders":
+        encoders(args.stems or [BASELINE_IMAGE, engine.image_embedding()])
+    else:
+        run()
 
 
 if __name__ == "__main__":

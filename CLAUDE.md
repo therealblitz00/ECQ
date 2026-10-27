@@ -72,7 +72,7 @@ Current scripts in `src/`:
 | `phase4_eval.py` | Evaluation: proxy hit rate, attribute agreement, sales check, ablations, weight tuning (`run`, `--apply` writes `phase3_weights.json`) and the blind human review sheet (`sheet`; never overwrites verdicts) → `outputs/phase4/` |
 | `phase4_feedback.py` | Interactive human feedback: fixed candidate pools (`pool` → `outputs/phase4/feedback_pool.json`, committed; never depends on the learned weights), the sorting app (`app --id N`, standard library + pandas; each member appends to `feedback_<n>.jsonl` only), and Bradley-Terry fitting of the block weights with held-out check (`fit`, `--apply` writes `phase3_weights.json` only if the check passes) |
 | `phase2b_palettes.py` | Dominant colours per trusted photo (k-means in LAB on the product pixels) → `data/embeddings/palettes.parquet` + `.json`. Light environment, ~2.5 min |
-| `phase2b_image_encoders.py` | Photos with a person re-cropped to the item (`persons` → `data/embeddings/person_crops.parquet`) and image embeddings from other encoders (`embed --model fashionsiglip` → `data/embeddings/image_<model>.npy` + `.json`). Heavy; vision machine only (+ `open_clip_torch`) |
+| `phase2b_image_encoders.py` | Photos with a person: suggested re-crops (`persons` → `data/embeddings/person_crops.parquet`; only the suggestions accepted in the hand-edited `person_crops_reviewed.json` are applied, never overwritten) and image embeddings from other encoders (`embed --model fashionsiglip` → `data/embeddings/image_<model>.npy` + `.json`). Heavy; vision machine only (+ `open_clip_torch`) |
 | `phase4_compare.py` | The current engine (`image_embedding` and weights of `phase3_weights.json`) against the Sprint 2 baseline (CLIP) on the team's preferences (fixed and cross-validated, bootstrap CI), photo-only label agreement, guards and the brief's example → `outputs/phase4/compare_report.md` |
 | `phase5_explain.py` | Explanation of every match, an exact decomposition of the engine score (block shares, shared attributes/materials, differences, close colours) → `data/processed/explanations.parquet`, `outputs/phase5/` (brief's format, checks). CLI: `build`, `show KEY` |
 | `phase5b_forecast.py` | Sales and price estimates for new products (temporal test, baselines, LightGBM + exact TreeSHAP) → `data/processed/forecast.parquet`, `outputs/phase5b/forecast_report.md` |
@@ -103,7 +103,7 @@ redefining them.
    task says otherwise.
 8. **A notebook never calls a project Python file.** No `import` of anything in `src/`, no `sys.path` tricks,
    no `%run`, no `subprocess`/`!python`. Every step is written in the notebook itself with pandas, NumPy,
-   matplotlib and Pillow, reading only data files (`data/`, `outputs/`). Steps that were not done in code
+   matplotlib, Pillow and LightGBM (`requirements-notebook.txt`), reading only data files (`data/`, `outputs/`). Steps that were not done in code
    (the manual review) or are too heavy to rerun (CLIP, embeddings) are **described**, and their saved
    results are loaded as data. Notebooks are course deliverables: a reader must be able to follow every step.
 

@@ -67,8 +67,11 @@ def cmd_query(args: argparse.Namespace) -> None:
     if d["fc"] is not None:
         f = d["fc"].set_index(KEY).loc[args.key]
         sold = "unknown" if pd.isna(r["SALES_QTY"]) else f"{int(r['SALES_QTY']):,}"
-        print(f"  sales: estimate {f['sales_estimate']:,.0f} units (sold {sold}); {f['sales_reasons']}")
-        print(f"  price: estimate {f['price_estimate']:.2f} € (list {r['PRICE_BASE_W_VAT']:.2f} €); {f['price_reasons']}")
+        print(f"  sales: estimate {f['sales_estimate']:,.0f} units ({f['sales_estimate_kind']}; typically off by a factor "
+              f"of {f['sales_typical_error']:.1f}); sold {sold}; similar past products sold ~{f['sales_analogue']:,.0f}; "
+              f"{f['sales_reasons']}")
+        print(f"  price: estimate {f['price_estimate']:.2f} € ({f['price_estimate_kind']}; typical error ± "
+              f"{f['price_typical_error']:.2f} €); list {r['PRICE_BASE_W_VAT']:.2f} €; {f['price_reasons']}")
 
 
 # --------------------------------------------------------------------------- HTML report
@@ -116,9 +119,12 @@ def query_block(d: dict, q: str) -> str:
         f = d["fc"].set_index(KEY).loc[q]
         r = d["items"].loc[q]
         sold = "no sales data" if pd.isna(r["SALES_QTY"]) else f"sold {int(r['SALES_QTY']):,}"
-        fc = (f'<p class="fc"><b>Sales estimate</b> {f["sales_estimate"]:,.0f} units ({sold}). '
-              f'Main effects: {html.escape(f["sales_reasons"])}.<br><b>Price estimate</b> {f["price_estimate"]:.2f} € '
-              f'(list {r["PRICE_BASE_W_VAT"]:.2f} €). Main effects: {html.escape(f["price_reasons"])}.</p>')
+        fc = (f'<p class="fc"><b>Sales estimate</b> {f["sales_estimate"]:,.0f} units, {html.escape(f["sales_estimate_kind"])}; '
+              f'typically off by a factor of {f["sales_typical_error"]:.1f}, so read it as a ranking aid ({sold}; similar '
+              f'past products sold about {f["sales_analogue"]:,.0f}). Main effects: {html.escape(f["sales_reasons"])}.<br>'
+              f'<b>Price estimate</b> {f["price_estimate"]:.2f} € ({html.escape(f["price_estimate_kind"])}, typical error '
+              f'± {f["price_typical_error"]:.2f} €; list {r["PRICE_BASE_W_VAT"]:.2f} €). '
+              f'Main effects: {html.escape(f["price_reasons"])}.</p>')
     return (f'<section><h3>{html.escape(q)}</h3><div class="row">{card(d, q, "<em>query</em>")}'
             f'<div class="arrow">→</div>{"".join(cards)}</div>{fc}</section>')
 
@@ -158,7 +164,7 @@ display:flex;flex-direction:column;gap:3px}} .card img,.noimg{{width:150px;heigh
 <h1>Parfois: similar products, explained</h1>
 <p class="lede">For each product: its 5 most similar products in the same category (never another colour of the same
 model), the share of the score that comes from each kind of information (bar), what they share and how they differ,
-and the sales and price estimates of Phase 5b with their main effects. Generated {datetime.now(timezone.utc):%Y-%m-%d}
+and the sales and price estimates of Phase 5b (never fitted on the product itself) with their typical error and main effects. Generated {datetime.now(timezone.utc):%Y-%m-%d}
 by <code>src/phase6_deliver.py report</code> from the batch files.</p>
 <h2>The brief's example</h2><p>The brief gives four similar products for {BRIEF_QUERY}. Their rank in our engine
 (out of all candidates of the category):</p><table><tr><th>brief answer</th><th>engine rank</th><th>out of</th></tr>{rows}</table>

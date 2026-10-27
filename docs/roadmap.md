@@ -289,8 +289,8 @@ There is no labelled ground truth, so combine several signals:
   finished selling (232 → the new 241 models, split in halves for the choices and the test); 242 sales are cut by the
   extraction and only check the same-month ranking; no days on sale. Price = landed cost × estimated markup (the cost
   carries the rise of prices between seasons), snapped to the nearest list price. Fast feature selection
-  (`phase5b_forecast.py select` → `outputs/phase5b/feature_selection.md`): "attributes only" for both targets, not yet
-  applied to `run`.
+  (`phase5b_forecast.py select` → `outputs/phase5b/feature_selection.md`) and a declared rule (a block leaves only if it
+  helps in neither the 241 test nor the 242 ranking check): sales use attributes + photo, price attributes only.
 
 **Output contract** (`data/processed/forecast.parquet`, one row per colourway): `PROD_CLR_EQUIV`; for `sales` and `price`:
 `<t>_estimate`, `<t>_estimate_kind` (cross-validated / forecast; sales of season 242 are forecast because they were cut;

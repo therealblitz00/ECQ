@@ -182,7 +182,7 @@ def write_report(res: list[dict]) -> str:
         L.append(f"**{r['label']}**\n")
         L.append(fc._md(df if r["units"] else df[RANK_ONLY], pct={"top20_precision", "within_2x"}))
         L.append("")
-        for (b, a, metric), (lo, hi) in r["ci"].items():
+        for (b, _a, metric), (lo, hi) in r["ci"].items():
             if "without" in b:
                 L.append(f"- {metric}: {b} − model: {lo:+.3f} to {hi:+.3f}")
         L.append("")

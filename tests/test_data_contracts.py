@@ -265,3 +265,21 @@ def test_forecast_follows_its_contract():
         assert all(k.startswith(("cross-validated (target not seen)", "forecast")) for k in fc[f"{t}_estimate_kind"])
         assert fc[f"{t}_typical_error"].nunique() == 1
     assert (fc["price_point_estimate"] > 0).all() and fc["price_point_estimate"].nunique() <= 40   # the list prices
+    for t in ("sales", "price"):                                       # the 80% range brackets the estimate
+        assert (fc[f"{t}_low"] <= fc[f"{t}_estimate"]).all() and (fc[f"{t}_estimate"] <= fc[f"{t}_high"]).all()
+        sizes = fc[f"{t}_reasons"].map(lambda s: [float(p.rsplit(" ", 1)[1].replace("−", "").replace("+", ""))
+                                                  for p in s.split("; ") if p])
+        assert sizes.map(lambda v: len(v) <= 3 and v == sorted(v, reverse=True)).all()   # biggest effect first
+
+
+def test_estimates_csv_matches_forecast():
+    path, fpath = config.ROOT / "outputs" / "phase5b" / "estimates.csv", config.PROCESSED_DIR / "forecast.parquet"
+    if not (path.exists() and fpath.exists()):
+        pytest.skip("run src/phase5b_forecast.py run")
+    est = pd.read_csv(path, dtype={config.KEY: str})
+    fc = pd.read_parquet(fpath).set_index(config.KEY)
+    assert est[config.KEY].is_unique and len(est) == len(fc)            # every product, once
+    cols = ["sales_estimate", "sales_low", "sales_high", "price_estimate", "price_point_estimate", "price_low",
+            "price_high"]
+    assert np.allclose(est.set_index(config.KEY).loc[fc.index, cols].to_numpy(float), fc[cols].to_numpy(float),
+                       equal_nan=True)                                 # the same values the query prints

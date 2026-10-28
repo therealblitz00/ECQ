@@ -347,10 +347,18 @@ def run_sales(items, blocks, weights, train, test) -> dict:
     ci_month = {n: bootstrap_diff(m2, y[eval_rows], preds["launch month + category only"][eval_rows], p[eval_rows],
                                   groups, cats[eval_rows])
                 for n, p in preds.items() if n not in ("category median", "launch month + category only")}
+    m_err = lambda yy, pp, cc: -sales_metrics(yy, pp, cc)["mae_log"]  # noqa: E731  (higher is better)
+    sim = preds["similar past products (engine)"][eval_rows]
+    ci_vs_ana = {v: {"same-month ranking": bootstrap_diff(m_month, y[eval_rows], sim, preds[v][eval_rows], groups,
+                                                          cats[eval_rows]),
+                     "units error saved (log)": bootstrap_diff(m_err, y[eval_rows], sim, preds[v][eval_rows], groups,
+                                                               cats[eval_rows])}
+                 for v in ("gradient boosting, no analogues", "gradient boosting + analogues")}
     return {"y": y, "preds": preds, "analogue": ana, "analogue_keys": ana_keys,
             "variants": {False: (model, X0, "gradient boosting, no analogues"),
                          True: (model_ana, X, "gradient boosting + analogues")},
             "table": table, "ci_vs_category": ci, "ci_analogue_gain": ci_ana, "ci_same_month": ci_month,
+            "ci_vs_analogue": ci_vs_ana,
             "n_fit": int(fit_rows.sum()), "n_eval": int(eval_rows.sum()), "eval_rows": eval_rows}
 
 
@@ -386,10 +394,13 @@ def run_price(items, blocks, weights, train, test) -> dict:
           for n, p in preds.items() if n not in ("category median", "sub-family median")}
     ci_ana = bootstrap_diff(m, y[eval_rows], preds["gradient boosting, no analogues"][eval_rows],
                             preds["gradient boosting + analogues"][eval_rows], groups, groups)
+    ci_vs_ana = {v: {"€ of error saved": bootstrap_diff(m, y[eval_rows], preds["similar past products (engine)"][eval_rows],
+                                                        preds[v][eval_rows], groups, groups)}
+                 for v in ("gradient boosting, no analogues", "gradient boosting + analogues")}
     return {"y": y, "preds": preds, "analogue": ana, "analogue_keys": ana_keys,
             "variants": {False: (model, X0c, "gradient boosting, no analogues"),
                          True: (model_ana, X, "gradient boosting + analogues")},
-            "table": table, "ci_vs_subfamily": ci, "ci_analogue_gain": ci_ana, "n_fit": int(fit_rows.sum()),
+            "table": table, "ci_vs_subfamily": ci, "ci_analogue_gain": ci_ana, "ci_vs_analogue": ci_vs_ana, "n_fit": int(fit_rows.sum()),
             "n_eval": int(eval_rows.sum()), "eval_rows": eval_rows}
 
 
@@ -461,6 +472,7 @@ def final_models(items, blocks, weights, typical_error: dict, use_analogue: dict
     est, kind, fam = out_of_fold(items, blocks, "log_sales", life, use_analogue["sales"], ana)
     kind = np.where(np.isfinite(y) & ~life, f"forecast (season {TEST_SEASON} was still selling)", kind)
     parts = {"sales": (np.expm1(est).round(0), kind, fam, np.expm1(ana).round(0), keys)}
+    est_s = est
 
     no_price = {**weights, "numeric": 0.0}
     ana, keys = analogues(items, blocks, no_price, "log_price", np.isfinite(items["log_price"].to_numpy(float)))
@@ -479,15 +491,35 @@ def final_models(items, blocks, weights, typical_error: dict, use_analogue: dict
         out[f"{name}_estimate"] = value
         if name == "price":
             out["price_point_estimate"] = points[np.abs(value[:, None] - points[None, :]).argmin(axis=1)]
+        lo, hi = typical_error[f"{name}_range_log"]
+        if name == "sales":
+            out["sales_low"], out["sales_high"] = np.expm1(np.maximum(est_s + lo, 0)).round(0), np.expm1(est_s + hi).round(0)
+        else:
+            out["price_low"], out["price_high"] = np.exp(est + lo).round(2), np.exp(est + hi).round(2)
         out[f"{name}_estimate_kind"] = kind
         out[f"{name}_typical_error"] = typical_error[name]
         out[f"{name}_analogue"] = ana_v
         out[f"{name}_analogue_keys"] = ["|".join(k[:4]) for k in keys]
-        top = fam.apply(lambda r: r.reindex(r.abs().sort_values(ascending=False).index)[:3], axis=1)
-        out[f"{name}_reasons"] = ["; ".join(f"{f} {'+' if v > 0 else '−'}{abs(v):.2f}" for f, v in r.dropna().items())
-                                  for _, r in top.iterrows()]
+        # the three biggest effects, biggest first (a Series returned by apply would be re-sorted by name)
+        out[f"{name}_reasons"] = ["; ".join(f"{f} {'+' if v > 0 else '−'}{abs(v):.2f}"
+                                            for f, v in r.dropna().reindex(r.dropna().abs()
+                                                                           .sort_values(ascending=False).index)[:3].items())
+                                  for _, r in fam.iterrows()]
     out["landed_cost"] = np.exp(cost).round(2)
     return out
+
+
+def estimates_csv(items: pd.DataFrame, final: pd.DataFrame) -> pd.DataFrame:
+    """One readable row per product: what it is, the estimates with an 80% range, the similar past products behind
+    the analogue reference, and the three biggest reasons. Same values as `forecast.parquet`."""
+    info = items[[KEY, "PROD_DES_BASE", "SEA_COD", "CAT_DES_EN", "GFA_DES_EN", "GFS_DES_EN", "CLR_DES",
+                  "PRICE_BASE_W_VAT", "SALES_QTY"]].rename(columns={
+        "PROD_DES_BASE": "description", "SEA_COD": "season", "CAT_DES_EN": "category", "GFA_DES_EN": "family",
+        "GFS_DES_EN": "sub_family", "CLR_DES": "colour", "PRICE_BASE_W_VAT": "list_price", "SALES_QTY": "units_sold"})
+    cols = [KEY, "sales_estimate", "sales_low", "sales_high", "sales_estimate_kind", "sales_analogue",
+            "sales_analogue_keys", "sales_reasons", "price_estimate", "price_point_estimate", "price_low", "price_high",
+            "price_estimate_kind", "landed_cost", "price_analogue", "price_analogue_keys", "price_reasons"]
+    return info.merge(final[cols], on=KEY, how="left", validate="one_to_one")
 
 
 FEATURE_SETS = {  # simplest first: the column prefixes each set leaves out
@@ -640,7 +672,8 @@ def _md(df: pd.DataFrame, pct: set[str] = frozenset(), digits: int = 3) -> str:
     for idx, r in df.iterrows():
         cells = [f"{v:.1%}" if c in pct and pd.notna(v) else (f"{v:.{digits}f}" if isinstance(v, float) else str(v))
                  for c, v in r.items()]
-        lines.append("| " + " | ".join([str(idx)] + cells) + " |")
+        label = " · ".join(map(str, idx)) if isinstance(idx, tuple) else str(idx)
+        lines.append("| " + " | ".join([label] + cells) + " |")
     return "\n".join(lines)
 
 
@@ -648,7 +681,7 @@ def bias_tables(items, test) -> dict:
     """Mean error by category of the chosen models on the test splits (as a ratio, > 0 = too high), and the
     level of the seasons the sales model learns from and is tested on."""
     out = {}
-    for t, target in [("sales", "log_sales"), ("price", "log_price")]:
+    for t in ("sales", "price"):
         r = test[t]
         ev = r["eval_rows"] & np.isfinite(r["y"])
         res = pd.Series((r["preds"][r["chosen"]] - r["y"])[ev], index=items.index[ev])
@@ -672,6 +705,9 @@ def write_report(checks: dict, val: dict, test: dict, rank242: dict, decisions: 
     pp = {"mape", "exact_price_point", "within_1_point", "bias"}
     ci_s = "\n".join(f"- {n}: {lo:+.3f} to {hi:+.3f}" for n, (lo, hi) in test["sales"]["ci_same_month"].items())
     ci_p = "\n".join(f"- {n}: {lo:+.2f} to {hi:+.2f} €" for n, (lo, hi) in test["price"]["ci_vs_subfamily"].items())
+    ci_a = "\n".join(f"- {t} ({test[t]['chosen']}): " + "; ".join(
+        f"{m} {lo:+.3f} to {hi:+.3f}" for m, (lo, hi) in test[t]["ci_vs_analogue"][test[t]["chosen"]].items())
+        for t in ("sales", "price"))
     cut = checks["units_by_launch_month"].reset_index()
     cut = cut[cut["SEA_COD"].astype(str).isin(["241", TEST_SEASON])].set_index(["SEA_COD", "month"])
     lines = [
@@ -768,6 +804,14 @@ def write_report(checks: dict, val: dict, test: dict, rank242: dict, decisions: 
         "",
         ci_p,
         "",
+        "## The chosen model against the similar past products (test splits, paired, 95% CI)",
+        "",
+        "The similar past products (the engine's analogues) are the method closest to *find similar items, then their "
+        "sales and price*. Gain of the chosen gradient boosting over them on the same products (> 0 = the model is "
+        "better):",
+        "",
+        ci_a,
+        "",
         "## Biases: where they come from (test splits, by category)",
         "",
         "Mean error as a ratio (geometric; > 0 = estimate too high):",
@@ -815,6 +859,12 @@ def write_report(checks: dict, val: dict, test: dict, rank242: dict, decisions: 
         f"sales × {typical['sales']:.2f} either way (exp of the mean absolute log error; "
         f"{typical['sales_within_2x']:.0%} of the products within a factor 2), price ± {typical['price']:.2f} €. "
         "Units per product only: the data has no store or week breakdown.",
+        "",
+        f"**80% range** per product (`sales_low`/`sales_high`, `price_low`/`price_high`): the estimate times the 10th "
+        f"and 90th percentiles of real / estimate on the test split (sales ×{np.exp(typical['sales_range_log'][0]):.2f}"
+        f" to ×{np.exp(typical['sales_range_log'][1]):.2f}, price ×{np.exp(typical['price_range_log'][0]):.2f} to "
+        f"×{np.exp(typical['price_range_log'][1]):.2f}). A readable copy for every product, with the description, "
+        "is `outputs/phase5b/estimates.csv`.",
         "",
         "## How the explanations are computed",
         "",
@@ -890,9 +940,14 @@ def main() -> None:
                               test["price"]["eval_rows"] & np.isfinite(items["log_cost"].to_numpy(float)))
     ts, tp = test["sales"]["table"][test["sales"]["chosen"]], test["price"]["table"][test["price"]["chosen"]]
     typical = {"sales": float(np.exp(ts["mae_log"])), "sales_within_2x": ts["within_2x"], "price": tp["mae_eur"]}
+    for t in ("sales", "price"):                       # 80% range: 10th-90th percentile of real / estimate on the test
+        r = test[t]["eval_rows"]
+        res = (test[t]["y"] - test[t]["preds"][test[t]["chosen"]])[r]
+        typical[f"{t}_range_log"] = [float(np.quantile(res, 0.1)), float(np.quantile(res, 0.9))]
     write_report(checks, val, test, rank242, decisions, leak, shift, imp_s, imp_p, typical, bias_tables(items, test))
     final = final_models(items, blocks, weights, typical, use_analogue)
     final.to_parquet(PROCESSED_DIR / OUT_FILE, index=False)
+    estimates_csv(items, final).to_csv(REPORT_DIR / "estimates.csv", index=False, encoding="utf-8")
     meta = {"created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "sales_validation": SALES_VALIDATION, "sales_test": SALES_TEST, "price_validation": VALIDATION,
             "price_test": TEST, "complete_seasons": COMPLETE_SEASONS,

@@ -6,6 +6,15 @@ Case study for the MADSAD Master's (FEP, University of Porto). The goal is to fi
 
 **Where we are and what's next:** [docs/roadmap.md](docs/roadmap.md) (the only place with the project status).
 
+## Start here
+
+1. **[docs/final_report.md](docs/final_report.md)**: the problem, the method, the results and the limitations on one page.
+2. The notebooks, in reading order: [Sprint 1, preprocessing](notebooks/phase1_preprocessing.ipynb) →
+   [Sprint 2, features and engine](notebooks/phase2_features.ipynb) →
+   [Sprint 3, explanations and estimates](notebooks/phase3_explanations_estimates.ipynb).
+3. The outputs: `outputs/phase5/similar_products.csv` (5 similar products and why, for every product),
+   `outputs/phase5b/estimates.csv` (expected units and price per product), `outputs/phase6/report.html` (a buyer's view).
+
 ---
 
 ## Quick start (about 5 minutes)
@@ -104,6 +113,7 @@ the app replaces them.
 
 | Read this | When you want to know |
 |---|---|
+| [docs/final_report.md](docs/final_report.md) | **The final report**: method, results, limitations, open questions |
 | [docs/roadmap.md](docs/roadmap.md) | **Status**, the plan by phase, the open checklist, architecture decisions |
 | [docs/progress.md](docs/progress.md) | What has been done, with numbers and examples |
 | [docs/review_guide.md](docs/review_guide.md) | How to review your batch (who reviews what, the buttons, the flags) |
@@ -139,7 +149,7 @@ the app replaces them.
 │   ├── phase4_feedback.py     interactive feedback app + weights learned from it (pool | app | fit)
 │   ├── phase5_explain.py      explanation of every match (build | show)
 │   ├── phase5b_forecast.py    sales and price estimates with SHAP (run)
-│   ├── phase6_deliver.py      command line and HTML report (query | report)
+│   ├── phase6_deliver.py      command line, HTML report and the brief's example (query | report | brief)
 │   └── review_app.py          browser review app
 ├── tests/                     pytest suite
 ├── data/

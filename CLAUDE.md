@@ -73,11 +73,11 @@ Current scripts in `src/`:
 | `phase4_feedback.py` | Interactive human feedback: fixed candidate pools (`pool` → `outputs/phase4/feedback_pool.json`, committed; never depends on the learned weights), the sorting app (`app --id N`, standard library + pandas; each member appends to `feedback_<n>.jsonl` only), and Bradley-Terry fitting of the block weights with held-out check (`fit`, `--apply` writes `phase3_weights.json` only if the check passes) |
 | `phase2b_palettes.py` | Dominant colours per trusted photo (k-means in LAB on the product pixels) → `data/embeddings/palettes.parquet` + `.json`. Light environment, ~2.5 min |
 | `phase2b_image_encoders.py` | Photos with a person: suggested re-crops (`persons` → `data/embeddings/person_crops.parquet`; only the suggestions accepted in the hand-edited `person_crops_reviewed.json` are applied, never overwritten) and image embeddings from other encoders (`embed --model fashionsiglip` → `data/embeddings/image_<model>.npy` + `.json`). Heavy; vision machine only (+ `open_clip_torch`) |
-| `phase4_compare.py` | The current engine (`image_embedding` and weights of `phase3_weights.json`) against the Sprint 2 baseline (CLIP) on the team's preferences (fixed and cross-validated, bootstrap CI), photo-only label agreement, guards and the brief's example → `outputs/phase4/compare_report.md` |
+| `phase4_compare.py` | The current engine (`image_embedding` and weights of `phase3_weights.json`) against the Sprint 2 baseline (CLIP) on the team's preferences (fixed and cross-validated, bootstrap CI), photo-only label agreement, guards and the brief's example → `outputs/phase4/compare_report.md`; `salescheck`: is `sales_corr` biased by the cut 242 sales → `outputs/phase4/sales_corr_check.md` |
 | `phase5_explain.py` | Explanation of every match, an exact decomposition of the engine score (block shares, shared attributes/materials, differences, close colours) → `data/processed/explanations.parquet`, `outputs/phase5/` (brief's format, checks). CLI: `build`, `show KEY` |
-| `phase5b_forecast.py` | Sales and price estimates for new products (temporal test, baselines, LightGBM + exact TreeSHAP) → `data/processed/forecast.parquet`, `outputs/phase5b/forecast_report.md` |
+| `phase5b_forecast.py` | Whole-life sales (232 → new 241 models) and price (landed cost × markup, 232 + 241 → 242) for new products: baselines, LightGBM + exact TreeSHAP against the similar past products, 80% ranges → `data/processed/forecast.parquet`, `outputs/phase5b/forecast_report.md`, `outputs/phase5b/estimates.csv` |
 | `phase5b_buyer.py` | Benchmark of the sales model against the buyer's own decisions (`PUR_BET`, `TYPOLOGY`: alone, against the model, combined, pairs where they disagree) and ablation of the planning classes → `outputs/phase5b/buyer_report.md` + `buyer_benchmark.csv` |
-| `phase6_deliver.py` | Delivery: `query KEY` (similar products, why, estimates) and `report` → `outputs/phase6/report.html` |
+| `phase6_deliver.py` | Delivery: `query KEY` (similar products, why, estimates), `report` → `outputs/phase6/report.html`, `brief` → `outputs/phase6/brief_example.md` + `.jpg` |
 
 New code goes into `src/phase<N>_<topic>.py`, one module per roadmap phase (move to a package
 only when a phase outgrows one file). Import paths and constants from `config.py` instead of
@@ -143,6 +143,7 @@ python -m venv .venv
 .venv/Scripts/python src/phase4_feedback.py app --id 4           # sorting app on http://localhost:8766 (pool built once with `pool`)
 .venv/Scripts/python src/phase4_feedback.py fit --apply          # learn the weights from everybody's feedback_<n>.jsonl
 .venv/Scripts/python src/phase4_compare.py run                   # current engine vs the Sprint 2 baseline -> outputs/phase4/compare_report.md, ~4 min
+.venv/Scripts/python src/phase4_compare.py salescheck            # sales_corr with and without the cut 242 sales -> outputs/phase4/sales_corr_check.md, ~1 min
 
 # Phase 5, 5b, 6 (rerun after Phase 3)
 .venv/Scripts/python src/phase5_explain.py build                 # -> data/processed/explanations.parquet + outputs/phase5/, ~3 min
@@ -152,6 +153,7 @@ python -m venv .venv
 .venv/Scripts/python src/phase5b_buyer.py run                    # model vs buyer decisions -> outputs/phase5b/buyer_report.md, ~10 min
 .venv/Scripts/python src/phase6_deliver.py query 167718_BU       # similar products, why, sales and price estimates
 .venv/Scripts/python src/phase6_deliver.py report                # -> outputs/phase6/report.html
+.venv/Scripts/python src/phase6_deliver.py brief                 # the brief's example -> outputs/phase6/brief_example.md + .jpg
 
 # Phase 1b (vision environment only)
 .venv/Scripts/python src/phase1b_image_audit.py --limit 300   # quick trial

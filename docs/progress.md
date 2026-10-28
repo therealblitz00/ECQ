@@ -538,86 +538,80 @@ every product in `similar_products.csv`, the brief's example in `brief_example.j
 ### 25.5 Price and sales estimates (Phase 5b, new)
 
 `src/phase5b_forecast.py run` → `data/processed/forecast.parquet`, `outputs/phase5b/forecast_report.md`,
-`outputs/phase5b/leakage_checks.csv`. (Rewritten after the independent review, §25.9: planned dates, choices on a
-validation split, estimates never in-sample.)
+`leakage_checks.csv`, `estimates.csv` (one readable row per product); `select` → `feature_selection.md`;
+`src/phase5b_buyer.py run` → `buyer_report.md`. The first version (test on 242, a "time on sale" feature, price without
+the landed cost: sales off by a factor of about 3, price 3.41 €) is **superseded by `4f694ad`**, because 242 sales are
+cut by the extraction.
 
-- **Prices checked:** no list price is missing, 0 € or negative (3.99 € to 250 €, 40 price points). Missing instead:
-  sales for 370 colourways (no sales row) and 0 units for 9 (one with a positive amount), landed cost for 168 colourways.
-  Products without sales are unknown, not zero: out of training and evaluation, but they get an estimate.
-- **Time on sale:** sales are accumulated until the extraction, so season 242 sold a median of 1,336 units against
-  3,377 / 3,637 for 232 / 241. The launch month and the days on sale come from the **planned** store date
-  (`STORE_DATE_PLANNED`, known when ordering; the final date is revised for 56% of the products). The seasons overlap and
-  the training sales run into the test period: a limit of the data (no dated sales), stated, not corrected.
-- **Protocol:** every choice (which model, whether to add the similar products as a feature) is made on a **validation
-  split, 232 → 241**; the **test split, 232 + 241 → 242**, is reported once. Both use only models never sold in the
-  training seasons. The choice is a rule in the code: gradient boosting beats every baseline on validation (same-month
-  ranking 0.454 vs 0.316; price error 2.23 € vs 2.82 €), and the similar products enter as a feature only if the 95%
-  interval of their validation gain excludes 0. It does not (sales −0.004 to +0.030 same month, price −0.10 to +0.02 €),
-  so the simpler model is kept for both. On the test season they would have helped a little (sales 0.43 vs 0.41 same
-  month, price 3.30 vs 3.41 €): reported, not used to choose.
-- **Left out:** `PUR_BET` (purchase depth) and `TYPOLOGY` (store tiers) encode the buyer's own expectation (with them,
-  same-month ranking 0.41 → 0.53: reference only); the landed cost from the price model (with it 3.41 € → 2.74 €).
+- **Data checks:** no list price missing, at 0 € or negative (3.99 € to 250 €, 40 price points). Missing: sales for 370
+  colourways (no sales row) and 0 units for 9; landed cost for 175. Products without sales are unknown, not zero: out of
+  training and evaluation, but they get an estimate.
+- **Sales are whole-life units.** Sales are accumulated until the extraction (about January 2025). Seasons 232 and 241
+  had finished selling (98% of 241 went to the outlet); 242 had not (median units by launch month fall from 3,341 in
+  May 2024 to 143 in October). So the units are learned and scored on whole lives only: **train 232 → the new models of
+  241**, split at random by model into two halves, one for the choices (validation), one reported once (test). 242
+  only checks the ranking among products of a category launched in the same month (equally cut), with a model trained
+  on 232 + 241. No "time on sale" feature: the days to the extraction describe the extraction, not the product.
+- **Price = landed cost × markup.** The model learns log(price / landed cost); the cost carries the rise of prices
+  between seasons, which trees cannot extrapolate. Products without a cost use the model without it. Validation
+  232 → 241, test 232 + 241 → 242 (list prices are not cut). Snapped to the nearest list price (`price_point_estimate`).
+- **Features, by a rule declared before the choice:** a block leaves only if it helps in neither check (the 241 test
+  and the 242 ranking). Sales: attributes + photo components (the photo is neutral on 241, +0.005 to +0.052 same-month
+  ranking on 242); price: attributes only. The description components, the materials and the launch month help in
+  neither. The similar products enter as a feature only if the 95% interval of their validation gain excludes 0: not for
+  sales (−0.026 to +0.026), yes for price (+0.06 to +0.16 €).
+- **Left out:** `PUR_BET` (purchase depth) and `TYPOLOGY` (store tiers), the buyer's own expectation; they are the
+  benchmark instead.
 
-| Sales, test season 242, new models (3,393 products) | Within category | Same launch month | Top-20% precision |
-|---|---|---|---|
-| Category median | 0.00 | 0.00 | 21% (random) |
-| Time on sale + category only | 0.00 | 0.04 | 30% |
-| Family + price band median | 0.22 | 0.18 | 34% |
-| Similar past products (engine, 10 nearest) | 0.31 | 0.28 | 37% |
-| **Gradient boosting (chosen on validation)** | **0.54** | **0.41** | 39% |
+| Sales, test: the other half of the new 241 models (1,436 products) | Same launch month | Error factor | Within ×2 | Top-20% |
+|---|---|---|---|---|
+| Category median | 0.00 | ×2.09 | 67% | 22% |
+| Family + price band median | 0.29 | ×2.05 | 70% | 29% |
+| Similar past products (engine, 10 nearest) | 0.33 | ×2.03 | 66% | 32% |
+| **Gradient boosting (chosen)** | **0.50** | **×1.69** | **76%** | **37%** |
+| Reference: + buyer decisions (not used) | 0.61 | ×1.63 | 79% | 51% |
 
-Same-month gain over the time-on-sale model (95% CI, bootstrap over models): similar products +0.19 to +0.29, gradient
-boosting +0.33 to +0.42.
+Ranking check on 242 (3,393 products, cut sales, same launch month): similar products 0.28, gradient boosting 0.41.
 
-| Price, test season 242, new models (3,728 products) | Mean error | Exact list price | Right or next list price |
-|---|---|---|---|
-| Category median | 5.76 € | 23% | 45% |
-| Sub-family median | 4.16 € | 33% | 60% |
-| Similar past products (engine, no price block) | 3.77 € | 31% | 68% |
-| **Gradient boosting (chosen)** | **3.41 €** | 33% | **72%** |
+| Price, test: new models of 242 (3,728 products) | Mean error | Exact list price | Right or next | Bias |
+|---|---|---|---|---|
+| Category median | 5.76 € | 23% | 45% | −6.1% |
+| Sub-family median | 4.16 € | 33% | 60% | −6.5% |
+| Similar past products (engine, no price block) | 3.77 € | 31% | 68% | −5.6% |
+| Gradient boosting without the cost (the first version) | 3.39 € | 34% | 72% | −4.0% |
+| **Gradient boosting, cost × markup (chosen)** | **2.68 €** | **38%** | **78%** | −4.5% |
 
-Error reduction over the sub-family median: gradient boosting 0.57 to 0.94 €.
+**Gradient boosting against the similar past products** (paired, same products, 95% CI by model): same-month ranking **+0.10 to +0.22**, units error saved **+0.14 to +0.23** log units (sales, 241 test half); price error saved **+0.90 to +1.33 €** (242). Both intervals exclude 0, so the evidence that it errs less is strong; the similar products stay as the explanation a buyer can check, listed with every estimate.
 
-**Leakage checks and what each part adds** (sales, test split, `outputs/phase5b/leakage_checks.csv`):
+- **No leakage found:** with the training target shuffled at random (20 runs) the ranking falls to zero (0.004 ± 0.040
+  same month).
+- **The planning classes carry the sales:** without fashion type and collection type the error grows from 0.52 to 0.73
+  log units (within ×2: 76% → 62%). Their shares shift between seasons ("Commercial Online" 1.9% / 2.5% / 7.1% in
+  232 / 241 / 242, collection "Online" 0% / 0.6% / 3.3%); when Parfois assigns them is a question for Parfois.
+- **Biases** (`forecast_report.md` § Biases): sales −6%, mostly jewellery (−15%) while apparel is over-estimated (+7%):
+  not one season growth, and with one whole-season transition no correction can be tested, so none is applied. Price
+  −4.5%: markups rise between seasons (jewellery 8.5 → 12.1 from 232 to 241); a season index and more weight on 241
+  were tried on half of the new 242 models, none gains, none applied.
+- **Against the buyer** (`buyer_report.md`, test half): the model ranks like the buyer (same month −0.03 to +0.12) and
+  errs less in units (+0.07 to +0.18 log saved); model + buyer beats both (0.61); when they disagree the buyer is right in
+  55–63% of the pairs; on the 26% of pairs the buyer ties, the model orders 65% right.
+- **What drives the estimates** (mean |SHAP|, log units): sales — fashion type 0.49, collection type 0.20, the photo 0.18,
+  planning category 0.16, supplier 0.13; price (the markup) — the landed cost 0.65, the similar products 0.11, weight
+  0.05.
 
-| Check | Within category | Same launch month |
-|---|---|---|
-| Chosen model | 0.538 | 0.413 |
-| Target shuffled in training, 20 runs (must be ~0) | 0.04 ± 0.06 | 0.01 ± 0.03 |
-| Without time on sale and launch month | 0.514 | 0.417 |
-| Without fashion type and collection type | 0.454 | 0.342 |
-| Without the photo components | 0.383 | 0.382 |
-| Without the photo and description components | 0.376 | 0.374 |
-| Attributes + price only | 0.376 | 0.378 |
-
-- **No leakage found in the pipeline:** with the training target shuffled at random (20 runs), the ranking falls to zero.
-- **The photo matters within a category** (−0.16 without it) but little among products launched in the same month
-  (−0.03): it mostly tells which kind of product sells, less which of two similar launches sells more.
-- **Fashion type and collection type** carry real signal and **their shares shift between seasons**: "Commercial Online"
-  1.9% / 2.5% / 7.1% of the colourways in 232 / 241 / 242, collection "Online" 0% / 0.6% / 3.3%, "Limited Edition" 2.0% /
-  1.0% / 0%. They mostly capture the channel (online-only products sell less). A risk for new seasons, and a question for
-  Parfois: are they assigned before launch?
-- **A known leak in the reference estimate only:** the engine's weights were tuned in Phase 4 with an objective that
-  includes the sales correlation (half of the models, all seasons), so the "similar past products" estimate is slightly
-  optimistic. The chosen model does not use the engine.
-- **Absolute quality is modest:** the units are typically off by a factor of about 3 (mean absolute log error 1.13) and
-  39% of the estimated top 20% really are (random 21%). With accumulated sales only (no stores, no weeks), this is a
-  ranking aid for comparing new products, not an order-quantity forecast.
-
-**What drives the estimates** (mean |SHAP| of each family's total effect per product, test season, log units):
-sales — fashion type 0.36, the photo 0.30, collection type 0.22, planning category 0.15, supplier 0.11, colour 0.10;
-price — planning category 0.29, weight 0.16, category 0.12, sub-family 0.05.
-
-**Delivered estimates are never in-sample:** products with a known target get a cross-validated estimate (5 folds grouped
-by model, PROD_REF and PROD_REF_EQUIV joined so that re-coded items count as one model), the 379 without sales a
-forecast from all known products. On the known products the cross-validated error is
-0.56 log units (it was 0.33 when the model predicted its own training rows), still lower than a new season (1.13) because
-the folds mix seasons, so each estimate carries the **new-season typical error** (sales ×3.1, price ±3.41 €).
+**Delivered estimates are never in-sample:** products with a known target get a cross-validated estimate (5 folds
+grouped by model, PROD_REF and PROD_REF_EQUIV joined); 242 products (cut sales) and products never sold get a forecast.
+Each carries an **80% range** from the test residuals (sales ×0.50 to ×2.33 of the estimate, price ×0.89 to ×1.23). **Stock for a sales period is not delivered
+yet:** the data has whole-life units, no dates and no stores; `ITEM_LIFE_CYCLE_WEEK` (4–12 weeks, median 8) is not the
+selling time (241 stayed a median of 48 weeks at full price, Spearman −0.15 with it; the outlet dates are 6 season-wide
+dates). The definition is a question to the professor.
 
 ### 25.6 Delivery (Phase 6)
 
-`src/phase6_deliver.py query KEY` (similar products, why, sales and price estimates) and `report` →
-`outputs/phase6/report.html` (self-contained: the brief's example, 2 products per category and one without a photo).
+`src/phase6_deliver.py query KEY` (similar products, why, sales and price estimates with their 80% range), `report` →
+`outputs/phase6/report.html` (self-contained: the brief's example, 2 products per category and one without a photo) and
+`brief` → `outputs/phase6/brief_example.md` (§25.10). The final report for the repository-only delivery:
+`docs/final_report.md`.
 
 ### 25.7 Photos of a person wearing the item: 6 re-cropped after a check by eye
 
@@ -689,3 +683,49 @@ all fixed:
 | Notebook explained the baseline | Sections 2–4 on the Sprint 3 engine, with the baseline beside it |
 | Second review (same day): sufficiency confounded by the block weights; the notebook's Cohen's d on CLIP similarities; the model choice written in prose, not computed; stale notebook cells; answer counts; roadmap without Phase 5b and contracts; folds grouped by PROD_REF only; one shuffled run | Largest-weights control and the rows where the explanation differs from it; Cohen's d on FashionSigLIP; the choice is a rule in the code (validation interval); notebook cells fixed; 138 answers / 99 queries; roadmap Phase 5b + output contracts + contract tests; folds and bootstrap by joined model codes; 20 shuffled runs; provenance notes in hand-written sidecars |
 | Minor: `open_clip_torch` missing from `requirements-vision.txt`, no library versions in the sidecar, excluded products listed as analogues, inconsistent weighting of the rank metrics, ties counted in the match's favour | Fixed (regression tests for the analogue keys and the re-crop rule) |
+
+### 25.10 Team review (Pedro, 2026-10-27): what was checked and done (2026-10-28)
+
+Every claim of the review was checked against the PDF, the data and the branch. Most held; three did not, and they are
+corrected here before anything goes to the professor:
+
+| Review claim | Checked |
+|---|---|
+| The engine's top 5 for `167718_BU` are "of the same theme" | **No:** 1 of 5 is STARRY NIGHT, 2 are DEGRADÊ (the brief's theme). What they share with the query is the type (beaded dangle), the golden finish and the price |
+| The brief's 4 answers all have finish *Other* | **No:** 3 *Other*, 1 Golden (`177781_LB`, a stud) |
+| Stock per week = whole-life units / `WEEKS_TARGET` | **Not supported:** `WEEKS_TARGET` = `ITEM_LIFE_CYCLE_WEEK` (4–12), but 241 stayed a median of 48 weeks at full price, unrelated to it; the rate would be about 6× too high |
+| The PDF has 6 slides | 7 (title, 5 content slides, closing); the quotes are right |
+| Sales and price are required (D1) | Not in the PDF: from the professor in class, to confirm in writing |
+
+**The brief's example** (`python src/phase6_deliver.py brief` → `outputs/phase6/brief_example.md` + `.jpg`):
+
+| Matches the query | Brief's 4 answers | Engine's top 5 |
+|---|---|---|
+| Same sub-family (Dangle) | 3 | 5 |
+| Same theme (STARRY NIGHT) | 0 | 1 |
+| Same finish (Golden) | 1 | 5 |
+| Distinct models | 3 | 3 |
+
+Both lists are beaded earrings; the engine ranks the brief's answers 30, 56, 269 and 575 of 4,638 candidates. A
+difference of criterion, not an error; one example cannot evaluate the engine. `117781_LB` does not exist; `177781_LB`
+(its photo is the one on the slide) is used.
+
+**Is `sales_corr` biased by the cut 242 sales?** (`python src/phase4_compare.py salescheck` →
+`outputs/phase4/sales_corr_check.md`; report only, no weight changed)
+
+| | (a) as now: within category | (b) within category × season | (c) whole lives only |
+|---|---|---|---|
+| Baseline (Sprint 2, CLIP) | 0.618 | 0.561 | 0.552 |
+| Current (FashionSigLIP) | 0.614 | 0.561 | 0.541 |
+| Current, numeric block off (diagnostic) | 0.532 | 0.506 | 0.508 |
+| Control: random, same category | −0.001 | −0.009 | −0.016 |
+| Control: random, same category and launch month | 0.363 | 0.236 | 0.144 |
+
+Yes, by about 0.07: with all seasons pooled, the launch month alone is worth 0.363, because products launched together
+share the cut. Most of the engine's correlation survives on whole lives (0.541), and the two engines stay within 0.011 of
+each other in every column, so the Phase 4 guard decision does not depend on it. A future tuning should use (c).
+
+**Also done:** the documents agree with the code (this section, the roadmap, the notebook's section 4); a readable file
+per product (`outputs/phase5b/estimates.csv`, with an 80% range and a contract test against `forecast.parquet`); the
+model against the similar past products as a paired interval; `docs/final_report.md` and a "Start here" in the README.
+Waiting: the professor's answers (the brief's criterion, whether sales and price are required, the sales period).

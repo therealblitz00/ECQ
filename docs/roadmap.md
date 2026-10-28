@@ -33,12 +33,14 @@ This is the only place that tracks the status. The evidence for each item is in 
 | 4. Evaluation | ✅ | Fixed evaluation script (`phase4_eval.py`): proxy hit rate, attribute agreement, sales check, ablations, weights tuned on half of the models; interactive feedback (`phase4_feedback.py`): 138 of 140 queries sorted, weights applied as a 25% blend | Optional: André's last 2 queries (refit only) |
 | 2b+. Visual features, Sprint 3 | ✅ | Encoders compared (CLIP, FashionCLIP, DINOv2, FashionSigLIP): FashionSigLIP adopted; photos of a person checked (OWLv2), 6 re-cropped after a check by eye (`phase2b_image_encoders.py`) | – |
 | 5. Explainability and output | ✅ | Exact decomposition of every match (`phase5_explain.py`): block shares, shared attributes/materials, differences, close colours; completeness, faithfulness and team-agreement checks; brief's format (`outputs/phase5/similar_products.csv`) | Optional: LLM one-line summary of the computed facts |
-| 5b. Price and sales estimates | ✅ | `phase5b_forecast.py`: temporal test on season 242, baselines, gradient boosting + TreeSHAP, analogue estimate from similar products, leakage checks | – |
-| 6. Delivery and interface | 🟡 | `phase6_deliver.py query` / `report` (static HTML), Sprint 3 notebook | Final report or slides; optional buyer assistant |
+| 5b. Price and sales estimates | ✅ | `phase5b_forecast.py`: whole-life sales (train 232 → new 241 models; 242 cut by the extraction, ranking check only), price = landed cost × markup (test 242), baselines, gradient boosting + TreeSHAP against the similar past products, 80% ranges, leakage checks, buyer benchmark; `outputs/phase5b/estimates.csv` per product | Stock for a sales period: definition waits for the professor |
+| 6. Delivery and interface | 🟡 | `phase6_deliver.py query` / `report` (static HTML) / `brief` (the brief's example), Sprint 3 notebook, `docs/final_report.md` | Team review; optional buyer assistant |
 
 **Next:**
-1. **Phase 5** (explanations): they read `sim_<block>` / `contrib_<block>` from `neighbours.parquet`, rebuilt with the new weights.
-2. **Now possible:** decide on the optional Phase 2b items (DINOv2, CLIP tags), tested on the team's answers. See Phase 2b.
+1. **Questions to the professor:** the criterion behind the brief's example, whether sales quantities and price are part of
+   the deliverable, and what "stock for a sales period" means (the data has whole-life units only). Then define the
+   period and deliver the stock per product.
+2. **Team review** of `s3/andre` (the diff of `src/`), then a pull request to `parfois`.
 
 ---
 
@@ -296,18 +298,25 @@ There is no labelled ground truth, so combine several signals:
   season index and recency weights tried on half of the new 242 models, none gains: not applied).
 - [x] Buyer benchmark (`src/phase5b_buyer.py` → `outputs/phase5b/buyer_report.md`): the model against the buyer's
   purchase depth and store tiers, alone and combined, with the pairs where they disagree.
+- [x] Per product, readable (2026-10-28): `outputs/phase5b/estimates.csv` (description, estimates, 80% range from the
+  test residuals, similar past products, reasons); the model against the similar past products as a paired interval.
+- [ ] Stock for a sales period: the data has whole-life units and no dates; `ITEM_LIFE_CYCLE_WEEK` (4–12 weeks) is not
+  the selling time (241 stayed about 48 weeks at full price, no correlation). Definition asked to the professor.
 
 **Output contract** (`data/processed/forecast.parquet`, one row per colourway): `PROD_CLR_EQUIV`; for `sales` and `price`:
 `<t>_estimate`, `<t>_estimate_kind` (cross-validated / forecast; sales of season 242 are forecast because they were cut;
 price without a landed cost says so), `<t>_typical_error`, `<t>_analogue`, `<t>_analogue_keys` (up to 4, `|`-separated),
-`<t>_reasons` (three biggest SHAP effects); `price_point_estimate` (nearest list price), `landed_cost`.
+`<t>_reasons` (three biggest SHAP effects), `<t>_low` / `<t>_high` (80% range from the test residuals);
+`price_point_estimate` (nearest list price), `landed_cost`. `outputs/phase5b/estimates.csv` carries the same values with
+the description, category and units sold (contract test).
 
 ## Phase 6: Delivery and interface
 
 - [x] Batch CLI *(`src/phase6_deliver.py query KEY`; the build steps are the phase scripts)*.
 - [x] Demo UI as a static HTML report *(`src/phase6_deliver.py report` → `outputs/phase6/report.html`: query photo next to
-  its matches, block-share bars, shared attributes, differences, sales and price estimates with their typical error)*.
-- [ ] Final report or slides: method, evaluation, limitations, business use cases (finding substitutes, overstock risk, trends).
+  its matches, block-share bars, shared attributes, differences, sales and price estimates with their 80% range)*.
+- [x] The brief's example written up *(`src/phase6_deliver.py brief` → `outputs/phase6/brief_example.md` + `.jpg`)*.
+- [x] Final report for a repo-only delivery *(`docs/final_report.md`; README "Start here")*.
 - [ ] *(Stretch)* **Buyer assistant agent:** a single LLM agent with tools wrapping the engine (`find_similar`, `filter`, `explain`, `sales_summary`), plus a few test conversations.
 - [ ] *(Stretch)* Trend clustering: cluster the embeddings per season and track which clusters grow.
 

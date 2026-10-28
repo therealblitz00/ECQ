@@ -729,3 +729,29 @@ each other in every column, so the Phase 4 guard decision does not depend on it.
 per product (`outputs/phase5b/estimates.csv`, with an 80% range and a contract test against `forecast.parquet`); the
 model against the similar past products as a paired interval; `docs/final_report.md` and a "Start here" in the README.
 Waiting: the professor's answers (the brief's criterion, whether sales and price are required, the sales period).
+
+### 25.11 External audit: two-stage retrieval and the other proposals tested — rejected (2026-10-28)
+
+An external audit (`phase3_audit_and_improvements.md`, not in the repo) proposed a cap of one colour per model, lower
+colour / finish / theme weights, and a two-stage retrieval (the N nearest photos of the same sub-family first, then
+re-ranked). The first two had been rejected already (§25.2, §25.3b). Its result table came from a script that is not in
+the repo, and two of its numbers are impossible (the cap leaves the brief's ranks unchanged; a sub-family first stage
+brings the stud `177781_LB` to 137). All variants re-measured on the usual signals with `python src/phase4_twostage.py`
+→ `outputs/phase4/twostage_check.md` + `.csv` (the baseline row reproduces §25.8 exactly):
+
+| Variant | Team pairs right (Δ, 95% CI) | hit@4 | Sub-family | Colour | Finish | Material | Sales corr. | Brief ranks |
+|---|---|---|---|---|---|---|---|---|
+| Baseline (current engine) | 72.1% | 91.0% | 89.7% | 58.4% | 83.0% | 74.5% | 0.614 | 269 / 30 / 56 / 575 |
+| Cap 1 colour per model | −1.5 (−2.5 to −0.5) | 91.1% | 88.8% | 60.4% | 82.6% | 71.5% | 0.613 | 269 / 25 / 180 / 575 |
+| Soft colour/finish/theme + cap | −2.1 (−3.5 to −0.5) | 80.5% | 93.4% | 45.5% | 74.8% | 76.2% | 0.584 | 293 / 28 / 187 / 722 |
+| Two-stage 50, re-rank without the photo | −2.5 (−4.9 to −0.1) | 88.0% | 96.0% | 53.9% | 79.4% | 70.2% | 0.583 | 48 / 20 / 19 / 575 |
+| Two-stage 50, re-rank with the full score | +0.7 (−1.4 to +2.9) | 88.1% | 96.0% | 53.4% | 78.6% | 67.8% | 0.570 | 43 / 15 / 21 / 575 |
+| Two-stage 20, re-rank without the photo | −0.3 (−2.4 to +1.9) | 82.6% | 96.0% | 51.7% | 76.2% | 64.0% | 0.550 | 19 / 10 / 66 / 575 |
+| Two-stage 50 + soft + cap (the audit's best) | −3.2 (−5.6 to −1.1) | 79.3% | 96.1% | 43.8% | 72.5% | 72.1% | 0.569 | 184 / 177 / 15 / 722 |
+
+The best variant (two-stage 50 with the full score) brings three of the brief's answers forward and raises same
+sub-family to 96%, but the team's preferences do not move (inside the noise) and five guards fall by more than 1 point
+(colour −5.0, finish −4.4, material −6.8, sales −0.044). The team's pools come from the current engine, so the variants'
+top 5 are less covered by the team's judgements (72–83% against 88%). **Not adopted.** The audit's sales proposals were
+done already (242 out of the units model) or do not apply (`PUR_BET` is the buyer's decision, the benchmark; classes
+instead of units hide the uncertainty, the top-20% precision is reported).

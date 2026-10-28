@@ -74,6 +74,7 @@ Current scripts in `src/`:
 | `phase2b_palettes.py` | Dominant colours per trusted photo (k-means in LAB on the product pixels) → `data/embeddings/palettes.parquet` + `.json`. Light environment, ~2.5 min |
 | `phase2b_image_encoders.py` | Photos with a person: suggested re-crops (`persons` → `data/embeddings/person_crops.parquet`; only the suggestions accepted in the hand-edited `person_crops_reviewed.json` are applied, never overwritten) and image embeddings from other encoders (`embed --model fashionsiglip` → `data/embeddings/image_<model>.npy` + `.json`). Heavy; vision machine only (+ `open_clip_torch`) |
 | `phase4_compare.py` | The current engine (`image_embedding` and weights of `phase3_weights.json`) against the Sprint 2 baseline (CLIP) on the team's preferences (fixed and cross-validated, bootstrap CI), photo-only label agreement, guards and the brief's example → `outputs/phase4/compare_report.md`; `salescheck`: is `sales_corr` biased by the cut 242 sales → `outputs/phase4/sales_corr_check.md` |
+| `phase4_twostage.py` | The external audit's proposals (two-stage retrieval, a cap of one colour per model, lower colour/finish/theme weights) on the team's preferences, guards and the brief's example → `outputs/phase4/twostage_check.md` + `.csv` (read-only) |
 | `phase5_explain.py` | Explanation of every match, an exact decomposition of the engine score (block shares, shared attributes/materials, differences, close colours) → `data/processed/explanations.parquet`, `outputs/phase5/` (brief's format, checks). CLI: `build`, `show KEY` |
 | `phase5b_forecast.py` | Whole-life sales (232 → new 241 models) and price (landed cost × markup, 232 + 241 → 242) for new products: baselines, LightGBM + exact TreeSHAP against the similar past products, 80% ranges → `data/processed/forecast.parquet`, `outputs/phase5b/forecast_report.md`, `outputs/phase5b/estimates.csv` |
 | `phase5b_buyer.py` | Benchmark of the sales model against the buyer's own decisions (`PUR_BET`, `TYPOLOGY`: alone, against the model, combined, pairs where they disagree) and ablation of the planning classes → `outputs/phase5b/buyer_report.md` + `buyer_benchmark.csv` |
@@ -144,6 +145,7 @@ python -m venv .venv
 .venv/Scripts/python src/phase4_feedback.py fit --apply          # learn the weights from everybody's feedback_<n>.jsonl
 .venv/Scripts/python src/phase4_compare.py run                   # current engine vs the Sprint 2 baseline -> outputs/phase4/compare_report.md, ~4 min
 .venv/Scripts/python src/phase4_compare.py salescheck            # sales_corr with and without the cut 242 sales -> outputs/phase4/sales_corr_check.md, ~1 min
+.venv/Scripts/python src/phase4_twostage.py                    # audit's proposals vs the current engine -> outputs/phase4/twostage_check.md, ~5 min
 
 # Phase 5, 5b, 6 (rerun after Phase 3)
 .venv/Scripts/python src/phase5_explain.py build                 # -> data/processed/explanations.parquet + outputs/phase5/, ~3 min

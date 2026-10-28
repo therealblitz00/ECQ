@@ -138,23 +138,102 @@ def excluded(items: pd.DataFrame, q: np.ndarray, c: np.ndarray, include_siblings
 
 
 def neighbours(items: pd.DataFrame, blocks: dict, weights: dict, k: int = 10, scope: str = "category",
-               include_siblings: bool = False, queries: list[str] | None = None) -> pd.DataFrame:
-    """Top-k candidates of every query (or only of `queries`): one row per (query, rank)."""
+               include_siblings: bool = False, queries: list[str] | None = None,
+               two_stage: bool = True, stage1_pool: int = 50, max_per_model: int = 1) -> pd.DataFrame:
+    """Top-k candidates of every query (or only of `queries`): one row per (query, rank).
+
+    When two_stage is True and the query has a trusted photo, Stage 1 selects the most visually
+    similar candidates (top stage1_pool), and Stage 2 re-ranks them by composite score.
+    When max_per_model is >= 1, at most max_per_model colourways of the same PROD_REF are returned.
+    """
     has = has_block(blocks)
     wanted = None if queries is None else items[KEY].isin(queries).to_numpy()
+    models = items["PROD_REF"].astype("string").fillna("").to_numpy(dtype=object)
+    has_image = "image" in blocks and np.any(has["image"] > 0)
     frames = []
+
     for pool in groups(items, scope):
         qs = pool if wanted is None else pool[wanted[pool]]
+        if len(qs) == 0:
+            continue
+        pool_has_img = (has["image"][pool] > 0) if has_image else np.zeros(len(pool), bool)
+        pool_models = models[pool]
+
         for start in range(0, len(qs), CHUNK):
             q = qs[start:start + CHUNK]
             s = np.round(score_matrix(blocks, has, weights, q, pool).astype(np.float64), DECIMALS)
-            s[excluded(items, q, pool, include_siblings)] = -np.inf
-            order = np.argsort(-s, axis=1, kind="stable")[:, :k]  # pool is in key order: ties go to the lower key
-            rows, cols = np.nonzero(np.isfinite(np.take_along_axis(s, order, axis=1)))
-            qi, ci = q[rows], pool[order[rows, cols]]
-            frames.append(pd.DataFrame({"query": items[KEY].to_numpy()[qi], "rank": cols + 1,
-                                        "candidate": items[KEY].to_numpy()[ci],
-                                        "score": s[rows, order[rows, cols]], "_q": qi, "_c": ci}))
+            ex = excluded(items, q, pool, include_siblings)
+            s[ex] = -np.inf
+
+            # Stage 1 filter: for queries with a trusted photo, restrict to top stage1_pool visual candidates
+            if two_stage and has_image:
+                q_has_img = has["image"][q] > 0
+                if np.any(q_has_img):
+                    vis = blocks["image"][q] @ blocks["image"][pool].T
+                    vis_masked = np.where(pool_has_img[None, :] & ~ex, vis, -np.inf)
+                    for row_i in np.flatnonzero(q_has_img):
+                        finite_vis = np.flatnonzero(np.isfinite(vis_masked[row_i]))
+                        if len(finite_vis) > stage1_pool:
+                            top_vis_local = finite_vis[np.argsort(-vis_masked[row_i, finite_vis])[:stage1_pool]]
+                            mask = np.ones(len(pool), bool)
+                            mask[top_vis_local] = False
+                            s[row_i, mask] = -np.inf
+
+            # Selection with diversity
+            order = np.argsort(-s, axis=1, kind="stable")
+            q_out, rank_out, c_out, score_out = [], [], [], []
+
+            for row_i in range(len(q)):
+                row_q = q[row_i]
+                row_order = order[row_i]
+                seen_models: dict[str, int] = {}
+                count = 0
+                for col_j in row_order:
+                    val = s[row_i, col_j]
+                    if not np.isfinite(val):
+                        break
+                    cand_idx = pool[col_j]
+                    m = pool_models[col_j]
+                    if max_per_model and max_per_model > 0 and m != "":
+                        c_count = seen_models.get(m, 0)
+                        if c_count >= max_per_model:
+                            continue
+                        seen_models[m] = c_count + 1
+                    count += 1
+                    q_out.append(row_q)
+                    rank_out.append(count)
+                    c_out.append(cand_idx)
+                    score_out.append(val)
+                    if count >= k:
+                        break
+
+                # Fallback pass if diversity was too restrictive to reach MIN_K
+                if count < min(k, len(pool) - 1):
+                    for col_j in row_order:
+                        val = s[row_i, col_j]
+                        if not np.isfinite(val):
+                            break
+                        cand_idx = pool[col_j]
+                        if count > 0 and cand_idx in set(c_out[-count:]):
+                            continue
+                        count += 1
+                        q_out.append(row_q)
+                        rank_out.append(count)
+                        c_out.append(cand_idx)
+                        score_out.append(val)
+                        if count >= k:
+                            break
+
+            if q_out:
+                frames.append(pd.DataFrame({
+                    "query": items[KEY].to_numpy()[q_out],
+                    "rank": rank_out,
+                    "candidate": items[KEY].to_numpy()[c_out],
+                    "score": score_out,
+                    "_q": q_out,
+                    "_c": c_out
+                }))
+
     out = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame(columns=["query", "rank", "candidate",
                                                                                     "score", "_q", "_c"])
     parts = pair_breakdown(blocks, has, weights, out["_q"].to_numpy(int), out["_c"].to_numpy(int))
@@ -331,8 +410,16 @@ def run(args: argparse.Namespace, queries: list[str] | None = None) -> tuple[pd.
     unknown = set(weights) - set(blocks)
     if unknown:
         raise SystemExit(f"weights for unknown blocks: {sorted(unknown)} (available: {sorted(blocks)})")
-    settings = {"k": args.k, "scope": args.scope, "include_siblings": args.include_siblings, "weights": weights}
-    nb = neighbours(items, blocks, weights, args.k, args.scope, args.include_siblings, queries)
+    two_stage = getattr(args, "two_stage", True)
+    stage1_pool = getattr(args, "stage1_pool", 50)
+    max_per_model = getattr(args, "max_per_model", 1)
+    settings = {
+        "k": args.k, "scope": args.scope, "include_siblings": args.include_siblings,
+        "two_stage": bool(two_stage), "stage1_pool": int(stage1_pool), "max_per_model": int(max_per_model),
+        "weights": weights
+    }
+    nb = neighbours(items, blocks, weights, args.k, args.scope, args.include_siblings, queries,
+                    two_stage=two_stage, stage1_pool=stage1_pool, max_per_model=max_per_model)
     return items, nb, blocks, settings
 
 
@@ -369,6 +456,12 @@ def main() -> None:
     common.add_argument("--scope", choices=list(SCOPES), default="category", help="candidate pool")
     common.add_argument("--include-siblings", action="store_true", help="allow other colours of the same model")
     common.add_argument("--weights", default=str(WEIGHTS_FILE), help="JSON file with the block weights")
+    common.add_argument("--two-stage", action=argparse.BooleanOptionalAction, default=True,
+                        help="two-stage retrieval with visual candidate filtering (default: True)")
+    common.add_argument("--stage1-pool", type=int, default=50,
+                        help="stage 1 pool size for visual candidate filtering (default: 50)")
+    common.add_argument("--max-per-model", type=int, default=1,
+                        help="maximum colours of one model in top-k (default: 1; 0 for unlimited)")
     sub = p.add_subparsers(dest="cmd", required=True)
     b = sub.add_parser("build", parents=[common], help="top-k for every colourway")
     b.add_argument("--k", type=int, default=10)

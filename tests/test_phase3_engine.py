@@ -89,3 +89,18 @@ def test_the_committed_weights_cover_known_blocks():
     w = eng.load_weights()
     assert set(w) <= set(eng.TABULAR) | {"image", "palette"}
     assert all(v >= 0 for v in w.values()) and sum(w.values()) > 0
+
+
+def test_diversity_filter_limits_colours_per_model():
+    items = pd.DataFrame({
+        KEY: ["Q_1", "M1_A", "M1_B", "M1_C", "M2_A"],
+        "PROD_REF": ["Q", "M1", "M1", "M1", "M2"],
+        "PROD_REF_EQUIV": ["Q", "M1", "M1", "M1", "M2"],
+        "CAT_DES_EN": ["Jewellery"] * 5,
+        "GFA_DES_EN": ["Rings"] * 5,
+    })
+    blocks = {"categorical": np.tile(unit([1, 0]), (5, 1))}
+    nb = eng.neighbours(items, blocks, {"categorical": 1.0}, k=2, queries=["Q_1"], max_per_model=1)
+    assert nb["candidate"].tolist() == ["M1_A", "M2_A"]
+    nb_unlim = eng.neighbours(items, blocks, {"categorical": 1.0}, k=2, queries=["Q_1"], max_per_model=0)
+    assert nb_unlim["candidate"].tolist() == ["M1_A", "M1_B"]

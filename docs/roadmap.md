@@ -300,14 +300,18 @@ There is no labelled ground truth, so combine several signals:
   purchase depth and store tiers, alone and combined, with the pairs where they disagree.
 - [x] Per product, readable (2026-10-28): `outputs/phase5b/estimates.csv` (description, estimates, 80% range from the
   test residuals, similar past products, reasons); the model against the similar past products as a paired interval.
+- [x] Improvements from the literature (2026-10-28, progress.md §25.12): sales ranges per product (conformalised
+  quantile regression) and a second-opinion estimate with the buyer's plan.
 - [ ] Stock for a sales period: the data has whole-life units and no dates; `ITEM_LIFE_CYCLE_WEEK` (4–12 weeks) is not
   the selling time (241 stayed about 48 weeks at full price, no correlation). Definition asked to the professor.
 
 **Output contract** (`data/processed/forecast.parquet`, one row per colourway): `PROD_CLR_EQUIV`; for `sales` and `price`:
 `<t>_estimate`, `<t>_estimate_kind` (cross-validated / forecast; sales of season 242 are forecast because they were cut;
 price without a landed cost says so), `<t>_typical_error`, `<t>_analogue`, `<t>_analogue_keys` (up to 4, `|`-separated),
-`<t>_reasons` (three biggest SHAP effects), `<t>_low` / `<t>_high` (80% range from the test residuals);
-`price_point_estimate` (nearest list price), `landed_cost`. `outputs/phase5b/estimates.csv` carries the same values with
+`<t>_reasons` (three biggest SHAP effects), `<t>_low` / `<t>_high` (80% range: sales per product from conformalised
+quantiles, price from the test residuals); `sales_with_buyer_estimate` / `_low` / `_high` / `_typical_error` (the same
+sales model with `PUR_BET` and `TYPOLOGY`: a second opinion once the buyer has planned); `price_point_estimate`
+(nearest list price), `landed_cost`. `outputs/phase5b/estimates.csv` carries the same values with
 the description, category and units sold (contract test).
 
 ## Phase 6: Delivery and interface

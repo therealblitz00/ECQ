@@ -237,9 +237,11 @@ def feature_family(col: str) -> str:
 
 # --------------------------------------------------------------------------- models and metrics
 def fit_predict(X: pd.DataFrame, y: np.ndarray, train: np.ndarray, fit_rows: np.ndarray,
-                weight: np.ndarray | None = None):
+                weight: np.ndarray | None = None, alpha: float | None = None):
+    """`alpha`: fit that quantile of the target (pinball loss) instead of the mean."""
     import lightgbm as lgb
-    model = lgb.LGBMRegressor(**LGB_PARAMS)
+    params = LGB_PARAMS if alpha is None else {**LGB_PARAMS, "objective": "quantile", "alpha": alpha}
+    model = lgb.LGBMRegressor(**params)
     model.fit(X[fit_rows], y[fit_rows], sample_weight=None if weight is None else weight[fit_rows])
     return model, model.predict(X)
 
@@ -424,17 +426,19 @@ def explain_one(model, X: pd.DataFrame, i: int, n: int = 5) -> list[tuple[str, f
 
 def out_of_fold(items, blocks, target: str, usable: np.ndarray, use_analogue: bool = False,
                 analogue_est: np.ndarray | None = None, offset: np.ndarray | None = None,
-                folds: int = 5) -> tuple[np.ndarray, np.ndarray, pd.DataFrame]:
+                folds: int = 5, extra: list[str] = (), alpha: float | None = None,
+                ) -> tuple[np.ndarray, np.ndarray, pd.DataFrame]:
     """Estimates that never saw the product's own target: for products with a known, usable target, 5-fold
     cross-fitting grouped by model (colourways of a model stay in the same fold); for the others (new, never sold, or
     a target that cannot be used), the model fitted on every known product. With `offset` (the log cost) the model
-    learns target - offset (the markup) and adds it back. Returns (estimate, kind, SHAP families per product)."""
+    learns target - offset (the markup) and adds it back. `extra`: more columns (the buyer's decisions); `alpha`: a
+    quantile instead of the mean (no SHAP then). Returns (estimate, kind, SHAP families per product)."""
     y = items[target].to_numpy(float)
     if offset is not None:
         y = y - offset
     known = np.isfinite(y) & usable
     allrows = np.ones(len(items), bool)
-    X = feature_table(items, blocks, allrows, target, analogue_est if use_analogue else None)
+    X = feature_table(items, blocks, allrows, target, analogue_est if use_analogue else None, extra=extra)
     if offset is not None:
         X = X.assign(log_cost=offset)
     est = np.full(len(items), np.nan)
@@ -447,8 +451,10 @@ def out_of_fold(items, blocks, target: str, usable: np.ndarray, use_analogue: bo
     for fit_rows, pred_rows in parts:
         if not pred_rows.any():
             continue
-        model, pred = fit_predict(X, y, allrows, fit_rows)
+        model, pred = fit_predict(X, y, allrows, fit_rows, alpha=alpha)
         est[pred_rows] = pred[pred_rows]
+        if alpha is not None:
+            continue
         sv = shap_values(model, X[pred_rows]).drop(columns="expected_value")
         f_ = sv.T.groupby(lambda c: feature_family(c)).sum().T
         fam = f_ if fam.empty else pd.concat([fam, f_])
@@ -458,7 +464,53 @@ def out_of_fold(items, blocks, target: str, usable: np.ndarray, use_analogue: bo
     return est, kind, fam.reindex(items.index)
 
 
-def final_models(items, blocks, weights, typical_error: dict, use_analogue: dict) -> pd.DataFrame:
+RANGE_Q = (0.1, 0.9)    # the 80% range
+
+
+def conformal_sales(items, blocks, extra: list[str] = ()) -> dict:
+    """Per-product 80% sales range, conformalised quantile regression (Romano, Patterson & Candès 2019): LightGBM
+    fitted on the 10th and 90th percentiles (232), widened by one constant Q so that 80% of the validation half of the
+    new 241 models fall inside; checked once on the test half, against the global range (the residual percentiles of
+    the validation half, the same for every product). Returns Q, the check table and the variant's test error."""
+    y = items["log_sales"].to_numpy(float)
+    known = np.isfinite(y)
+    train, cal = split(items, *SALES_VALIDATION)
+    _, chk = split(items, *SALES_TEST)
+    cal, chk, fit_rows = cal & known, chk & known, train & known
+    X = feature_table(items, blocks, train, "log_sales", None, extra=extra)
+    _, point = fit_predict(X, y, train, fit_rows)
+    _, lo = fit_predict(X, y, train, fit_rows, alpha=RANGE_Q[0])
+    _, hi = fit_predict(X, y, train, fit_rows, alpha=RANGE_Q[1])
+    e = np.maximum(lo - y, y - hi)[cal]
+    q = float(np.quantile(e, min(1.0, (RANGE_Q[1] - RANGE_Q[0]) * (1 + 1 / len(e)))))
+    r = (y - point)[cal]
+    ranges = {"global (same factor for every product)": (point + np.quantile(r, RANGE_Q[0]),
+                                                          point + np.quantile(r, RANGE_Q[1])),
+              "quantile models, not calibrated": (lo, hi),
+              "conformalised quantiles (delivered)": (np.minimum(lo - q, point), np.maximum(hi + q, point))}
+    cats = items["CAT_DES_EN"].astype(str).to_numpy()[chk]
+    table = {}
+    for name, (a, b) in ranges.items():
+        inside = ((y >= a) & (y <= b))[chk]
+        width = np.exp(b - a)[chk]
+        by_cat = pd.Series(inside).groupby(cats).mean()
+        table[name] = {"coverage": float(inside.mean()), "median width (high / low)": float(np.median(width)),
+                       "mean log width": float(np.mean((b - a)[chk])),
+                       "coverage, worst category": float(by_cat.min()), "coverage, best category": float(by_cat.max()),
+                       "width, 90th / 10th percentile": float(np.quantile(width, 0.9) / np.quantile(width, 0.1))}
+    m = sales_metrics(y[chk], point[chk], month_groups(items)[chk])
+    return {"q": q, "table": table, "n_cal": int(cal.sum()), "n_check": int(chk.sum()),
+            "typical": float(np.exp(m["mae_log"])), "within_2x": m["within_2x"],
+            "same_month": m["spearman_same_month"], "top20": m["top20_precision"]}
+
+
+def month_groups(items: pd.DataFrame) -> np.ndarray:
+    """Category × launch month × season: the groups of the same-month ranking."""
+    return (items["CAT_DES_EN"].astype(str) + "|" + items["launch_month"].astype(int).astype(str)
+            + "|" + items["SEA_COD"].astype(str)).to_numpy()
+
+
+def final_models(items, blocks, weights, typical_error: dict, use_analogue: dict, conformal: dict) -> pd.DataFrame:
     """Per product: the estimate (never in-sample), its kind, the honest typical error measured on the test split,
     the three biggest SHAP effects, and the analogue estimate with its products (the buyer's reference).
 
@@ -473,6 +525,14 @@ def final_models(items, blocks, weights, typical_error: dict, use_analogue: dict
     kind = np.where(np.isfinite(y) & ~life, f"forecast (season {TEST_SEASON} was still selling)", kind)
     parts = {"sales": (np.expm1(est).round(0), kind, fam, np.expm1(ana).round(0), keys)}
     est_s = est
+    # the same model with the buyer's plan (purchase depth, store tiers): a second opinion once the buyer has decided
+    est_b, _, _ = out_of_fold(items, blocks, "log_sales", life, extra=BUYER_DECISIONS)
+    ranges = {}
+    for name, ex, centre in [("sales", (), est_s), ("sales_with_buyer", BUYER_DECISIONS, est_b)]:
+        lo = out_of_fold(items, blocks, "log_sales", life, extra=ex, alpha=RANGE_Q[0])[0] - conformal[name]["q"]
+        hi = out_of_fold(items, blocks, "log_sales", life, extra=ex, alpha=RANGE_Q[1])[0] + conformal[name]["q"]
+        ranges[name] = (np.expm1(np.maximum(np.minimum(lo, centre), 0)).round(0),
+                        np.expm1(np.maximum(hi, centre)).round(0))
 
     no_price = {**weights, "numeric": 0.0}
     ana, keys = analogues(items, blocks, no_price, "log_price", np.isfinite(items["log_price"].to_numpy(float)))
@@ -491,10 +551,10 @@ def final_models(items, blocks, weights, typical_error: dict, use_analogue: dict
         out[f"{name}_estimate"] = value
         if name == "price":
             out["price_point_estimate"] = points[np.abs(value[:, None] - points[None, :]).argmin(axis=1)]
-        lo, hi = typical_error[f"{name}_range_log"]
-        if name == "sales":
-            out["sales_low"], out["sales_high"] = np.expm1(np.maximum(est_s + lo, 0)).round(0), np.expm1(est_s + hi).round(0)
-        else:
+        if name == "sales":                      # per product: conformalised quantiles (conformal_sales)
+            out["sales_low"], out["sales_high"] = ranges["sales"]
+        else:                                    # the same factor for every product: residual percentiles of the test
+            lo, hi = typical_error["price_range_log"]
             out["price_low"], out["price_high"] = np.exp(est + lo).round(2), np.exp(est + hi).round(2)
         out[f"{name}_estimate_kind"] = kind
         out[f"{name}_typical_error"] = typical_error[name]
@@ -505,6 +565,9 @@ def final_models(items, blocks, weights, typical_error: dict, use_analogue: dict
                                             for f, v in r.dropna().reindex(r.dropna().abs()
                                                                            .sort_values(ascending=False).index)[:3].items())
                                   for _, r in fam.iterrows()]
+    out["sales_with_buyer_estimate"] = np.expm1(est_b).round(0)
+    out["sales_with_buyer_low"], out["sales_with_buyer_high"] = ranges["sales_with_buyer"]
+    out["sales_with_buyer_typical_error"] = conformal["sales_with_buyer"]["typical"]
     out["landed_cost"] = np.exp(cost).round(2)
     return out
 
@@ -517,7 +580,8 @@ def estimates_csv(items: pd.DataFrame, final: pd.DataFrame) -> pd.DataFrame:
         "PROD_DES_BASE": "description", "SEA_COD": "season", "CAT_DES_EN": "category", "GFA_DES_EN": "family",
         "GFS_DES_EN": "sub_family", "CLR_DES": "colour", "PRICE_BASE_W_VAT": "list_price", "SALES_QTY": "units_sold"})
     cols = [KEY, "sales_estimate", "sales_low", "sales_high", "sales_estimate_kind", "sales_analogue",
-            "sales_analogue_keys", "sales_reasons", "price_estimate", "price_point_estimate", "price_low", "price_high",
+            "sales_analogue_keys", "sales_reasons", "sales_with_buyer_estimate", "sales_with_buyer_low",
+            "sales_with_buyer_high", "price_estimate", "price_point_estimate", "price_low", "price_high",
             "price_estimate_kind", "landed_cost", "price_analogue", "price_analogue_keys", "price_reasons"]
     return info.merge(final[cols], on=KEY, how="left", validate="one_to_one")
 
@@ -860,11 +924,12 @@ def write_report(checks: dict, val: dict, test: dict, rank242: dict, decisions: 
         f"{typical['sales_within_2x']:.0%} of the products within a factor 2), price ± {typical['price']:.2f} €. "
         "Units per product only: the data has no store or week breakdown.",
         "",
-        f"**80% range** per product (`sales_low`/`sales_high`, `price_low`/`price_high`): the estimate times the 10th "
-        f"and 90th percentiles of real / estimate on the test split (sales ×{np.exp(typical['sales_range_log'][0]):.2f}"
-        f" to ×{np.exp(typical['sales_range_log'][1]):.2f}, price ×{np.exp(typical['price_range_log'][0]):.2f} to "
-        f"×{np.exp(typical['price_range_log'][1]):.2f}). A readable copy for every product, with the description, "
-        "is `outputs/phase5b/estimates.csv`.",
+        "**80% range** per product: sales (`sales_low`/`sales_high`) from conformalised quantile models, so each "
+        "product has its own width (§ The sales ranges below); price (`price_low`/`price_high`) the estimate times the "
+        f"10th and 90th percentiles of real / estimate on the test split (×{np.exp(typical['price_range_log'][0]):.2f} "
+        f"to ×{np.exp(typical['price_range_log'][1]):.2f}; per-product quantiles were not narrower for the price). "
+        "`sales_with_buyer_*`: the same sales model with the buyer's purchase depth and store tiers (§ below). A "
+        "readable copy for every product, with the description, is `outputs/phase5b/estimates.csv`.",
         "",
         "## How the explanations are computed",
         "",
@@ -876,6 +941,33 @@ def write_report(checks: dict, val: dict, test: dict, rank242: dict, decisions: 
         "",
     ]
     (REPORT_DIR / "forecast_report.md").write_text("\n".join(lines), encoding="utf-8")
+
+
+def conformal_section(conf: dict) -> str:
+    s, b = conf["sales"], conf["sales_with_buyer"]
+    lines = [
+        "## The sales ranges: one width per product (conformalised quantiles)", "",
+        f"LightGBM fitted on the 10th and 90th percentiles of the whole-life units (232), widened by one constant so "
+        f"that 80% of the validation half of the new 241 models fall inside (Romano, Patterson & Candès 2019; "
+        f"{s['n_cal']:,} products), checked once on the test half ({s['n_check']:,}). The global range is the same "
+        "factor for every product (residual percentiles of the validation half).", "",
+    ]
+    for name, c in [("Sales model (delivered)", s), ("Sales model + buyer decisions", b)]:
+        lines += [f"**{name}** (widening {c['q']:+.3f} log units)", "",
+                  _md(pd.DataFrame(c["table"]).T, pct={"coverage", "coverage, worst category",
+                                                         "coverage, best category"}), ""]
+    lines += [
+        "## Second opinion: the sales model with the buyer's plan (`sales_with_buyer_*`)", "",
+        "The delivered estimate sees only the product. Once the buyer has set the purchase depth (`PUR_BET`) and the "
+        "store tiers (`TYPOLOGY`), the same model with these two columns is more accurate (test half of the new 241 "
+        "models; the paired intervals are in `buyer_report.md`):", "",
+        "| | Same-month ranking | Error factor | Within ×2 | Top-20% precision |", "|---|---|---|---|---|",
+        *[f"| {n} | {c['same_month']:.2f} | ×{c['typical']:.2f} | {c['within_2x']:.0%} | {c['top20']:.0%} |"
+          for n, c in [("product only (delivered estimate)", s), ("+ buyer's plan (second opinion)", b)]], "",
+        "Caveat: more stock and more stores also *cause* sales, so part of the gain is the plan coming true; it is a "
+        "check of the plan, not a forecast made before it. Not available for a product the buyer has not planned.", "",
+    ]
+    return "\n".join(lines)
 
 
 def main() -> None:
@@ -945,7 +1037,11 @@ def main() -> None:
         res = (test[t]["y"] - test[t]["preds"][test[t]["chosen"]])[r]
         typical[f"{t}_range_log"] = [float(np.quantile(res, 0.1)), float(np.quantile(res, 0.9))]
     write_report(checks, val, test, rank242, decisions, leak, shift, imp_s, imp_p, typical, bias_tables(items, test))
-    final = final_models(items, blocks, weights, typical, use_analogue)
+    conformal = {"sales": conformal_sales(items, blocks), "sales_with_buyer": conformal_sales(items, blocks,
+                                                                                              BUYER_DECISIONS)}
+    with open(REPORT_DIR / "forecast_report.md", "a", encoding="utf-8") as f:
+        f.write(conformal_section(conformal))
+    final = final_models(items, blocks, weights, typical, use_analogue, conformal)
     final.to_parquet(PROCESSED_DIR / OUT_FILE, index=False)
     estimates_csv(items, final).to_csv(REPORT_DIR / "estimates.csv", index=False, encoding="utf-8")
     meta = {"created": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -953,7 +1049,7 @@ def main() -> None:
             "price_test": TEST, "complete_seasons": COMPLETE_SEASONS,
             "k_analogues": K_ANALOGUES, "pcs": PCS, "lgb_params": LGB_PARAMS, "weights": weights,
             "image_embedding": engine.image_embedding(), "decisions": decisions, "use_analogue": use_analogue,
-            "typical_error": typical,
+            "typical_error": typical, "conformal": conformal,
             "sales_test_table": test["sales"]["table"], "price_test_table": test["price"]["table"],
             "sales_rank_242": rank242["table"]}
     (PROCESSED_DIR / "forecast.json").write_text(json.dumps(meta, indent=1, default=float), encoding="utf-8")

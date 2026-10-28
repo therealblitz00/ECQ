@@ -601,7 +601,8 @@ Ranking check on 242 (3,393 products, cut sales, same launch month): similar pro
 
 **Delivered estimates are never in-sample:** products with a known target get a cross-validated estimate (5 folds
 grouped by model, PROD_REF and PROD_REF_EQUIV joined); 242 products (cut sales) and products never sold get a forecast.
-Each carries an **80% range** from the test residuals (sales ×0.50 to ×2.33 of the estimate, price ×0.89 to ×1.23). **Stock for a sales period is not delivered
+Each carries an **80% range** (first version: one factor from the test residuals, sales ×0.50 to ×2.33, price ×0.89 to
+×1.23; sales per product since §25.12). **Stock for a sales period is not delivered
 yet:** the data has whole-life units, no dates and no stores; `ITEM_LIFE_CYCLE_WEEK` (4–12 weeks, median 8) is not the
 selling time (241 stayed a median of 48 weeks at full price, Spearman −0.15 with it; the outlet dates are 6 season-wide
 dates). The definition is a question to the professor.
@@ -755,3 +756,27 @@ sub-family to 96%, but the team's preferences do not move (inside the noise) and
 top 5 are less covered by the team's judgements (72–83% against 88%). **Not adopted.** The audit's sales proposals were
 done already (242 out of the units model) or do not apply (`PUR_BET` is the buyer's decision, the benchmark; classes
 instead of units hide the uncertainty, the top-20% precision is reported).
+
+### 25.12 Sales: ranges per product and a second opinion with the buyer's plan (2026-10-28)
+
+From a literature search on new-product forecasting in fashion (VISUELLE / GTM-Transformer, the Myntra new-items model,
+censored-demand corrections): images + attributes for products without history, analogues and whole-life targets were
+already done; stock-out corrections and sell-through need stock units and weekly sales, which the data does not have.
+Two changes applied in `src/phase5b_forecast.py run` (`forecast_report.md`, last two sections):
+
+- **Sales ranges per product: conformalised quantile regression** (Romano, Patterson & Candès 2019). LightGBM fitted on
+  the 10th and 90th percentiles (232), widened by one constant fitted on the validation half of the new 241 models,
+  checked once on the test half. Uncalibrated quantile models cover only 67% (as the literature warns); calibrated:
+
+  | Range (test half, 1,436 products) | Coverage | Median width | Coverage, worst / best category |
+  |---|---|---|---|
+  | One factor for every product (before) | 81.8% | ×5.0 | 77.0% / 95.2% |
+  | Conformalised quantiles (delivered) | 80.4% | ×4.2 | 77.6% / 81.3% |
+
+  Narrower on average and the same coverage in every category. For the price the per-product ranges were not narrower
+  (mean log width 0.339 against 0.307): the price keeps one factor (×0.89 to ×1.23).
+- **Second opinion with the buyer's plan** (`sales_with_buyer_*`): the same sales model with `PUR_BET` and `TYPOLOGY`,
+  out of fold like the delivered estimate, with its own conformal range. Test half: same-month ranking 0.61 against
+  0.50, error ×1.63 against ×1.69, top-20% precision 51% against 37% (paired intervals exclude 0 on both halves,
+  `buyer_report.md`). Caveat: more stock and more stores also cause sales, so it checks a plan and is not a forecast made
+  before it. The delivered estimate (product only) is unchanged.

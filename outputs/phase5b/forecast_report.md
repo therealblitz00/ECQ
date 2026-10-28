@@ -226,9 +226,39 @@ For the price, SHAP explains the markup over the landed cost (the cost itself en
 
 Never in-sample: products with a known whole-life sales or price get a **cross-validated** estimate (5 folds grouped by model, so neither the product nor its other colours were seen); the others (new products, 242 products whose sales were cut, products never sold) a forecast from all usable products. Sales are **whole-life units** (median-type estimate: exp of the mean log); price is landed cost × markup, also snapped to the nearest list price (`price_point_estimate`). **Typical error measured on the test split:** sales × 1.69 either way (exp of the mean absolute log error; 76% of the products within a factor 2), price ± 2.67 €. Units per product only: the data has no store or week breakdown.
 
-**80% range** per product (`sales_low`/`sales_high`, `price_low`/`price_high`): the estimate times the 10th and 90th percentiles of real / estimate on the test split (sales ×0.50 to ×2.33, price ×0.89 to ×1.23). A readable copy for every product, with the description, is `outputs/phase5b/estimates.csv`.
+**80% range** per product: sales (`sales_low`/`sales_high`) from conformalised quantile models, so each product has its own width (§ The sales ranges below); price (`price_low`/`price_high`) the estimate times the 10th and 90th percentiles of real / estimate on the test split (×0.89 to ×1.23; per-product quantiles were not narrower for the price). `sales_with_buyer_*`: the same sales model with the buyer's purchase depth and store tiers (§ below). A readable copy for every product, with the description, is `outputs/phase5b/estimates.csv`.
 
 ## How the explanations are computed
 
 - **Gradient boosting** (LightGBM): exact TreeSHAP values (`pred_contrib`), adding up to the estimate, milliseconds per product; grouped into business families because single principal components mean nothing.
 - **Similar past products**: their similarity-weighted mean, so the products themselves are the explanation. Caveat: the engine's weights were tuned in Phase 4 with an objective that includes the sales correlation, so this reference is slightly optimistic. The delivered sales reference averages whole-life products only.
+## The sales ranges: one width per product (conformalised quantiles)
+
+LightGBM fitted on the 10th and 90th percentiles of the whole-life units (232), widened by one constant so that 80% of the validation half of the new 241 models fall inside (Romano, Patterson & Candès 2019; 1,469 products), checked once on the test half (1,436). The global range is the same factor for every product (residual percentiles of the validation half).
+
+**Sales model (delivered)** (widening +0.147 log units)
+
+|  | coverage | median width (high / low) | mean log width | coverage, worst category | coverage, best category | width, 90th / 10th percentile |
+|---|---|---|---|---|---|---|
+| global (same factor for every product) | 81.8% | 5.010 | 1.611 | 77.0% | 95.2% | 1.000 |
+| quantile models, not calibrated | 67.2% | 3.134 | 1.231 | 58.6% | 71.9% | 3.826 |
+| conformalised quantiles (delivered) | 80.4% | 4.223 | 1.530 | 77.6% | 81.3% | 3.852 |
+
+**Sales model + buyer decisions** (widening +0.146 log units)
+
+|  | coverage | median width (high / low) | mean log width | coverage, worst category | coverage, best category | width, 90th / 10th percentile |
+|---|---|---|---|---|---|---|
+| global (same factor for every product) | 79.1% | 4.047 | 1.398 | 73.6% | 94.2% | 1.000 |
+| quantile models, not calibrated | 64.8% | 2.585 | 1.078 | 60.5% | 74.1% | 3.968 |
+| conformalised quantiles (delivered) | 81.3% | 3.476 | 1.376 | 77.4% | 84.9% | 3.959 |
+
+## Second opinion: the sales model with the buyer's plan (`sales_with_buyer_*`)
+
+The delivered estimate sees only the product. Once the buyer has set the purchase depth (`PUR_BET`) and the store tiers (`TYPOLOGY`), the same model with these two columns is more accurate (test half of the new 241 models; the paired intervals are in `buyer_report.md`):
+
+| | Same-month ranking | Error factor | Within ×2 | Top-20% precision |
+|---|---|---|---|---|
+| product only (delivered estimate) | 0.50 | ×1.69 | 76% | 37% |
+| + buyer's plan (second opinion) | 0.61 | ×1.63 | 79% | 51% |
+
+Caveat: more stock and more stores also *cause* sales, so part of the gain is the plan coming true; it is a check of the plan, not a forecast made before it. Not available for a product the buyer has not planned.

@@ -71,6 +71,9 @@ def cmd_query(args: argparse.Namespace) -> None:
         print(f"  sales: estimate {f['sales_estimate']:,.0f} whole-life units (80% range {f['sales_low']:,.0f} to "
               f"{f['sales_high']:,.0f}; {f['sales_estimate_kind']}); sold {sold}; similar past products sold "
               f"~{f['sales_analogue']:,.0f} ({f['sales_analogue_keys']}); {f['sales_reasons']}")
+        if "sales_with_buyer_estimate" in f:
+            print(f"  sales with the buyer's plan ({r['PUR_BET']}, {r['TYPOLOGY']}): {f['sales_with_buyer_estimate']:,.0f} "
+                  f"(80% range {f['sales_with_buyer_low']:,.0f} to {f['sales_with_buyer_high']:,.0f})")
         print(f"  price: estimate {f['price_estimate']:.2f} € (nearest list price {f['price_point_estimate']:.2f} €, 80% range "
               f"{f['price_low']:.2f} to {f['price_high']:.2f} €; {f['price_estimate_kind']}); list "
               f"{r['PRICE_BASE_W_VAT']:.2f} €; {f['price_reasons']}")
@@ -124,7 +127,10 @@ def query_block(d: dict, q: str) -> str:
         fc = (f'<p class="fc"><b>Sales estimate</b> {f["sales_estimate"]:,.0f} whole-life units (80% range '
               f'{f["sales_low"]:,.0f} to {f["sales_high"]:,.0f}), {html.escape(f["sales_estimate_kind"])} ({sold}; '
               f'similar past products sold about {f["sales_analogue"]:,.0f}). Main effects: '
-              f'{html.escape(f["sales_reasons"])}.<br>'
+              f'{html.escape(f["sales_reasons"])}.'
+              + (f' With the buyer\'s plan: {f["sales_with_buyer_estimate"]:,.0f} (80% range '
+                 f'{f["sales_with_buyer_low"]:,.0f} to {f["sales_with_buyer_high"]:,.0f}).'
+                 if "sales_with_buyer_estimate" in f else "") + '<br>'
               f'<b>Price estimate</b> {f["price_estimate"]:.2f} €, nearest list price {f["price_point_estimate"]:.2f} € '
               f'(80% range {f["price_low"]:.2f} to {f["price_high"]:.2f} €; {html.escape(f["price_estimate_kind"])}; '
               f'list {r["PRICE_BASE_W_VAT"]:.2f} €). Main effects: {html.escape(f["price_reasons"])}.</p>')

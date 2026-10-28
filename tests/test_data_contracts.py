@@ -270,6 +270,10 @@ def test_forecast_follows_its_contract():
         sizes = fc[f"{t}_reasons"].map(lambda s: [float(p.rsplit(" ", 1)[1].replace("−", "").replace("+", ""))
                                                   for p in s.split("; ") if p])
         assert sizes.map(lambda v: len(v) <= 3 and v == sorted(v, reverse=True)).all()   # biggest effect first
+    b = "sales_with_buyer"                                             # the second opinion, same contract
+    assert fc[f"{b}_estimate"].notna().all() and (fc[f"{b}_low"] <= fc[f"{b}_estimate"]).all()
+    assert (fc[f"{b}_estimate"] <= fc[f"{b}_high"]).all() and fc[f"{b}_typical_error"].nunique() == 1
+    assert (fc["sales_high"] / fc["sales_low"].clip(lower=1)).nunique() > 1   # one width per product, not one factor
 
 
 def test_estimates_csv_matches_forecast():
@@ -279,7 +283,7 @@ def test_estimates_csv_matches_forecast():
     est = pd.read_csv(path, dtype={config.KEY: str})
     fc = pd.read_parquet(fpath).set_index(config.KEY)
     assert est[config.KEY].is_unique and len(est) == len(fc)            # every product, once
-    cols = ["sales_estimate", "sales_low", "sales_high", "price_estimate", "price_point_estimate", "price_low",
-            "price_high"]
+    cols = ["sales_estimate", "sales_low", "sales_high", "sales_with_buyer_estimate", "sales_with_buyer_low",
+            "sales_with_buyer_high", "price_estimate", "price_point_estimate", "price_low", "price_high"]
     assert np.allclose(est.set_index(config.KEY).loc[fc.index, cols].to_numpy(float), fc[cols].to_numpy(float),
                        equal_nan=True)                                 # the same values the query prints

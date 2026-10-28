@@ -103,7 +103,14 @@ accurate on the same products (paired bootstrap over models, 95% CI): same-month
   log units; their shares shift between seasons), the landed cost for price.
 - **Biases:** sales −6% (mostly jewellery, not a single season growth, no correction testable with one whole-season
   transition); price −4.5% (markups rise between seasons; three corrections tried, none gains).
-- **Range:** each estimate carries an 80% range from the test residuals (sales ×0.50 to ×2.33 of the estimate, price ×0.89 to ×1.23).
+- **Range:** each estimate carries an 80% range. Sales: one width per product (conformalised quantile regression,
+  Romano et al. 2019), 80.4% coverage on the test half, a median width ×4.2 against ×5.0 for one factor for all, and
+  77.6–81.3% in every category (one factor: 77–95%). Price: ×0.89 to ×1.23 of the estimate (per-product ranges were not
+  narrower).
+- **Second opinion with the buyer's plan** (`sales_with_buyer_*`): the same model with the purchase depth and store
+  tiers ranks 0.61 instead of 0.50 in the same month and finds 51% of the top 20% instead of 37% (paired intervals in
+  `buyer_report.md`). Part of the gain is the plan coming true (more stock sells more), so it checks a plan; it is not a
+  forecast made before one.
 - **Stock for a sales period: not delivered yet.** The data has whole-life units only, no dates and no stores.
   `ITEM_LIFE_CYCLE_WEEK` (4–12 weeks) is not the selling time: season 241 stayed about 48 weeks at full price, with no
   correlation to it. The definition is a question to the professor (§9).

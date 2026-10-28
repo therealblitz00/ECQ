@@ -77,6 +77,7 @@ Current scripts in `src/`:
 | `phase4_twostage.py` | The external audit's and branch `s3/PM`'s proposals (two-stage retrieval in the sub-family or the category, a cap of one colour per model, lower colour/finish/theme weights) on the team's preferences, guards and the brief's example → `outputs/phase4/twostage_check.md` + `.csv` (read-only) |
 | `phase5_explain.py` | Explanation of every match, an exact decomposition of the engine score (block shares, shared attributes/materials, differences, close colours) → `data/processed/explanations.parquet`, `outputs/phase5/` (brief's format, checks). CLI: `build`, `show KEY` |
 | `phase5b_forecast.py` | Whole-life sales (232 → new 241 models) and price (landed cost × markup, 232 + 241 → 242) for new products: baselines, LightGBM + exact TreeSHAP against the similar past products, 80% ranges (sales: conformalised quantiles per product), a second-opinion sales estimate with the buyer's plan (`sales_with_buyer_*`) → `data/processed/forecast.parquet`, `outputs/phase5b/forecast_report.md`, `outputs/phase5b/estimates.csv` |
+| `phase5b_extraction.py` | The extraction date (early November 2024, from the launches without a sale) and the 232 → 241 sales result by time on sale and outlet status → `outputs/phase5b/extraction_check.md` (read-only) |
 | `phase5b_buyer.py` | Benchmark of the sales model against the buyer's own decisions (`PUR_BET`, `TYPOLOGY`: alone, against the model, combined, pairs where they disagree) and ablation of the planning classes → `outputs/phase5b/buyer_report.md` + `buyer_benchmark.csv` |
 | `phase6_deliver.py` | Delivery: `query KEY` (similar products, why, estimates), `report` → `outputs/phase6/report.html`, `brief` → `outputs/phase6/brief_example.md` + `.jpg` |
 
@@ -152,6 +153,7 @@ python -m venv .venv
 .venv/Scripts/python src/phase5_explain.py show 167718_BU        # explained top 5 of one product
 .venv/Scripts/python src/phase5b_forecast.py run                 # -> data/processed/forecast.parquet + outputs/phase5b/, ~30 min
 .venv/Scripts/python src/phase5b_forecast.py select              # fast feature selection -> outputs/phase5b/feature_selection.md, ~2 min
+.venv/Scripts/python src/phase5b_extraction.py                # extraction date + 241 by time on sale -> outputs/phase5b/extraction_check.md, ~2 min
 .venv/Scripts/python src/phase5b_buyer.py run                    # model vs buyer decisions -> outputs/phase5b/buyer_report.md, ~10 min
 .venv/Scripts/python src/phase6_deliver.py query 167718_BU       # similar products, why, sales and price estimates
 .venv/Scripts/python src/phase6_deliver.py report                # -> outputs/phase6/report.html

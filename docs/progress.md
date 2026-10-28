@@ -546,8 +546,8 @@ cut by the extraction.
 - **Data checks:** no list price missing, at 0 € or negative (3.99 € to 250 €, 40 price points). Missing: sales for 370
   colourways (no sales row) and 0 units for 9; landed cost for 175. Products without sales are unknown, not zero: out of
   training and evaluation, but they get an estimate.
-- **Sales are whole-life units.** Sales are accumulated until the extraction (about January 2025). Seasons 232 and 241
-  had finished selling (98% of 241 went to the outlet); 242 had not (median units by launch month fall from 3,341 in
+- **Sales are whole-life units.** Sales are accumulated until the extraction (early November 2024; first written as
+  "about January 2025", corrected in §25.13). Seasons 232 and 241 had (nearly) finished selling; 242 had not (median units by launch month fall from 3,341 in
   May 2024 to 143 in October). So the units are learned and scored on whole lives only: **train 232 → the new models of
   241**, split at random by model into two halves, one for the choices (validation), one reported once (test). 242
   only checks the ranking among products of a category launched in the same month (equally cut), with a model trained
@@ -604,8 +604,8 @@ grouped by model, PROD_REF and PROD_REF_EQUIV joined); 242 products (cut sales) 
 Each carries an **80% range** (first version: one factor from the test residuals, sales ×0.50 to ×2.33, price ×0.89 to
 ×1.23; sales per product since §25.12). **Stock for a sales period is not delivered
 yet:** the data has whole-life units, no dates and no stores; `ITEM_LIFE_CYCLE_WEEK` (4–12 weeks, median 8) is not the
-selling time (241 stayed a median of 48 weeks at full price, Spearman −0.15 with it; the outlet dates are 6 season-wide
-dates). The definition is a question to the professor.
+selling time (the 241 products already in the outlet at the extraction stayed a median of 46 weeks at full price,
+Spearman −0.19 with it; §25.13). The definition is a question to the professor.
 
 ### 25.6 Delivery (Phase 6)
 
@@ -694,7 +694,7 @@ corrected here before anything goes to the professor:
 |---|---|
 | The engine's top 5 for `167718_BU` are "of the same theme" | **No:** 1 of 5 is STARRY NIGHT, 2 are DEGRADÊ (the brief's theme). What they share with the query is the type (beaded dangle), the golden finish and the price |
 | The brief's 4 answers all have finish *Other* | **No:** 3 *Other*, 1 Golden (`177781_LB`, a stud) |
-| Stock per week = whole-life units / `WEEKS_TARGET` | **Not supported:** `WEEKS_TARGET` = `ITEM_LIFE_CYCLE_WEEK` (4–12), but 241 stayed a median of 48 weeks at full price, unrelated to it; the rate would be about 6× too high |
+| Stock per week = whole-life units / `WEEKS_TARGET` | **Not supported:** `WEEKS_TARGET` = `ITEM_LIFE_CYCLE_WEEK` (4–12), but the 241 products already in the outlet stayed a median of 46 weeks at full price, unrelated to it (§25.13); the rate would be about 6× too high |
 | The PDF has 6 slides | 7 (title, 5 content slides, closing); the quotes are right |
 | Sales and price are required (D1) | Not in the PDF: from the professor in class, to confirm in writing |
 
@@ -794,3 +794,29 @@ Two changes applied in `src/phase5b_forecast.py run` (`forecast_report.md`, last
   0.50, error ×1.63 against ×1.69, top-20% precision 51% against 37% (paired intervals exclude 0 on both halves,
   `buyer_report.md`). Caveat: more stock and more stores also cause sales, so it checks a plan and is not a forecast made
   before it. The delivered estimate (product only) is unchanged.
+
+### 25.13 The extraction date corrected: early November 2024, not January 2025 (2026-10-28)
+
+The sales are accumulated until the extraction, whose date is not given. It had been taken as "about January 2025" (the
+last store date) and season 241 as finished because 98% of it has an outlet date. Both were wrong: from the launch week
+of 4 November 2024 almost no product has a sale (share without a sale by launch week: 10% on 14 October, 42–48% on the
+next two weeks, 88% on 4 November, then 54–100% in the few later weeks), so the extraction is in early November 2024 and every later store date
+is planned. Only 28% of 241 had gone to the outlet by then (all on 1 November 2024, after a median of 46 weeks at full
+price); the later outlet dates are planned. Season 241 had sold for 3 to 12 months, 232 for more than a year.
+
+Does the 232 → 241 sales result hold? `python src/phase5b_extraction.py` → `outputs/phase5b/extraction_check.md`
+(the delivered model, trained on 232, both halves of the new 241 models):
+
+| 241 subset | Products | Same-month ranking | Similar products | Gain (95% CI) | Error factor | Bias |
+|---|---|---|---|---|---|---|
+| All | 2,905 | 0.487 | 0.316 | +0.13 to +0.21 | ×1.68 | −6.8% |
+| Launched Nov 2023 – Jan 2024 (≥ 9 months on sale) | 1,240 | 0.496 | 0.304 | +0.13 to +0.25 | ×1.72 | −18.4% |
+| Launched Feb – Jul 2024 (< 9 months) | 1,665 | 0.493 | 0.323 | +0.11 to +0.23 | ×1.65 | +2.9% |
+| Already in the outlet | 811 | 0.435 | 0.315 | +0.04 to +0.20 | ×1.58 | −9.7% |
+
+A cut truth would show as a positive bias on the late launches: it is +3% (+2% to +4% by month from February to May),
+so the 241 totals are close to whole lives. The ranking and the gain over the similar products hold in every subset.
+The overall −6% bias comes from the earliest launches (November–December 2023, −25% to −28%), not from a cut. The
+numbers and conclusions of §25.5–§25.12 stand; the text was corrected in the notebook (section 4), `final_report.md`,
+the roadmap and `phase5b_forecast.py`. `ITEM_LIFE_CYCLE_WEEK` (4–12 weeks) is still not the selling time: the 241
+products already in the outlet stayed 46 weeks at full price (Spearman −0.19 with it).

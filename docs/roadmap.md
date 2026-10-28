@@ -303,7 +303,7 @@ There is no labelled ground truth, so combine several signals:
 - [x] Improvements from the literature (2026-10-28, progress.md §25.12): sales ranges per product (conformalised
   quantile regression) and a second-opinion estimate with the buyer's plan.
 - [ ] Stock for a sales period: the data has whole-life units and no dates; `ITEM_LIFE_CYCLE_WEEK` (4–12 weeks) is not
-  the selling time (241 stayed about 48 weeks at full price, no correlation). Definition asked to the professor.
+  the selling time (241 products in the outlet: a median of 46 weeks at full price, no correlation). Definition asked to the professor.
 
 **Output contract** (`data/processed/forecast.parquet`, one row per colourway): `PROD_CLR_EQUIV`; for `sales` and `price`:
 `<t>_estimate`, `<t>_estimate_kind` (cross-validated / forecast; sales of season 242 are forecast because they were cut;

@@ -9,8 +9,9 @@ Data decisions (each measured in the report):
 - Unit: the colourway. Sales targets: log(1 + units). Products without a sales row (370) or with 0 units (9) are
   unknown, not zero: they are left out of training and evaluation, and still get an estimate.
 - Price: every colourway has a list price (no 0 and no missing value: checked in the report), so all are used.
-- Time: SALES_QTY is accumulated until the extraction (about January 2025). Seasons 232 and 241 had finished selling
-  (98% of 241 already went to the outlet); season 242 had not (products launched in October 2024 show a median of 143
+- Time: SALES_QTY is accumulated until the extraction (early November 2024, `phase5b_extraction.py`). Season 232 had
+  sold for more than a year and 241 for 3 to 12 months (28% already in the outlet; the late launches show no cut,
+  `extraction_check.md`); season 242 had not finished (products launched in October 2024 show a median of 143
   units against ~3,300 for a whole life). The sales target is therefore the **whole-life units of seasons 232 and
   241 only**: trained on 232, tested on the new models of 241 (half of them for the choices, the other half reported
   once). 242 sales never train or score the units; they only check the ranking among products launched in the same
@@ -783,8 +784,9 @@ def write_report(checks: dict, val: dict, test: dict, rank242: dict, decisions: 
         "",
         "## Protocol",
         "",
-        "- **Sales = whole-life units.** Sales are accumulated until the extraction (about January 2025): seasons "
-        f"{' and '.join(COMPLETE_SEASONS)} had finished selling, {TEST_SEASON} had not (table below). So the units are "
+        "- **Sales = whole-life units.** Sales are accumulated until the extraction (early November 2024, "
+        "`extraction_check.md`): seasons "
+        f"{' and '.join(COMPLETE_SEASONS)} had (nearly) finished selling, {TEST_SEASON} had not (table below). So the units are "
         "learned and scored only on whole lives: **train 232 → the new models of 241**, split at random by model into "
         "two halves: one for the choices (validation), one reported once (test).",
         f"- **{TEST_SEASON} for sales: ranking only.** Its sales are cut by the extraction, so they never score the "

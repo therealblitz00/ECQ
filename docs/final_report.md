@@ -74,8 +74,9 @@ separates what the team calls similar (Cohen's d 0.96). Details: `outputs/phase5
 
 ## 6. Sales and price estimates
 
-**Sales are whole-life units.** Sales are accumulated until the extraction (about January 2025). Seasons 232 and 241 had
-finished selling; 242 had not (October launches: a median of 143 units against about 3,300). So the model is trained on
+**Sales are whole-life units.** Sales are accumulated until the extraction (early November 2024, read from the launches
+without a sale). Season 232 had sold for more than a year, 241 for 3 to 12 months (its late launches show no cut,
+`outputs/phase5b/extraction_check.md`); 242 had not (October launches: a median of 143 units against about 3,300). So the model is trained on
 232 and tested on the new models of 241 (one random half for the choices, the other half reported once); 242 only checks
 the ranking among products launched in the same month. **Price = landed cost × markup**, tested on 242 (list prices are
 not cut). Buyer decisions (`PUR_BET`, `TYPOLOGY`) are never features.
@@ -112,8 +113,8 @@ accurate on the same products (paired bootstrap over models, 95% CI): same-month
   `buyer_report.md`). Part of the gain is the plan coming true (more stock sells more), so it checks a plan; it is not a
   forecast made before one.
 - **Stock for a sales period: not delivered yet.** The data has whole-life units only, no dates and no stores.
-  `ITEM_LIFE_CYCLE_WEEK` (4–12 weeks) is not the selling time: season 241 stayed about 48 weeks at full price, with no
-  correlation to it. The definition is a question to the professor (§9).
+  `ITEM_LIFE_CYCLE_WEEK` (4–12 weeks) is not the selling time: the 241 products already in the outlet at the
+  extraction had stayed a median of 46 weeks at full price, with no correlation to it. The definition is a question to the professor (§9).
 
 ## 7. The brief's example
 

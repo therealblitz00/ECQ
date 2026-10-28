@@ -731,7 +731,7 @@ per product (`outputs/phase5b/estimates.csv`, with an 80% range and a contract t
 model against the similar past products as a paired interval; `docs/final_report.md` and a "Start here" in the README.
 Waiting: the professor's answers (the brief's criterion, whether sales and price are required, the sales period).
 
-### 25.11 External audit: two-stage retrieval and the other proposals tested — rejected (2026-10-28)
+### 25.11 External audit and branch `s3/PM`: two-stage retrieval and the other proposals tested — not adopted, one open trade-off (2026-10-28)
 
 An external audit (`phase3_audit_and_improvements.md`, not in the repo) proposed a cap of one colour per model, lower
 colour / finish / theme weights, and a two-stage retrieval (the N nearest photos of the same sub-family first, then
@@ -749,6 +749,8 @@ brings the stud `177781_LB` to 137). All variants re-measured on the usual signa
 | Two-stage 50, re-rank with the full score | +0.7 (−1.4 to +2.9) | 88.1% | 96.0% | 53.4% | 78.6% | 67.8% | 0.570 | 43 / 15 / 21 / 575 |
 | Two-stage 20, re-rank without the photo | −0.3 (−2.4 to +1.9) | 82.6% | 96.0% | 51.7% | 76.2% | 64.0% | 0.550 | 19 / 10 / 66 / 575 |
 | Two-stage 50 + soft + cap (the audit's best) | −3.2 (−5.6 to −1.1) | 79.3% | 96.1% | 43.8% | 72.5% | 72.1% | 0.569 | 184 / 177 / 15 / 722 |
+| Two-stage 50 in the category, full score (`s3/PM`, no cap) | **+2.2 (+0.5 to +4.1)** | 82.5% | 86.0% | 55.6% | 79.4% | 66.4% | 0.584 | 37 / 14 / 20 / 578 |
+| The same + cap (`s3/PM` default) | +0.8 (−0.8 to +2.2) | 82.6% | 84.9% | 57.6% | 79.1% | 63.6% | 0.584 | 182 / 11 / 177 / 578 |
 
 The best variant (two-stage 50 with the full score) brings three of the brief's answers forward and raises same
 sub-family to 96%, but the team's preferences do not move (inside the noise) and five guards fall by more than 1 point
@@ -756,6 +758,18 @@ sub-family to 96%, but the team's preferences do not move (inside the noise) and
 top 5 are less covered by the team's judgements (72–83% against 88%). **Not adopted.** The audit's sales proposals were
 done already (242 out of the units model) or do not apply (`PUR_BET` is the buyer's decision, the benchmark; classes
 instead of units hide the uncertainty, the top-20% precision is reported).
+
+**Correction (same day): branch `s3/PM`.** It made a two-stage retrieval the engine's default with a first stage over
+the whole category (not the sub-family) and the cap. A first measurement of it with its own `neighbours()` gave the
+team −3.1: wrong, because that function returns only the 50 candidates (the judged items outside them counted as lost)
+and its cap pushes the judged colours of one model to the end. Scored like the other rows (the whole catalogue ranked,
+the last two rows above), the category-level two-stage **without the cap is the only variant the team prefers** (+2.2
+points, the interval excludes 0; the visual@4 also rises, 63.6% → 75.0%), but it loses on the catalogue guards (hit@4
+−8.5, sub-family −3.7, material −8.1, finish −3.6, colour −2.8, sales −0.030) and the team's pools come from the
+current engine (75% of its top 5 judged against 88%). Nine variants against one baseline: an interval that just
+excludes 0 may be chance. The cap only costs (its own row and PM's default). **Open, for the team:** the team's
+preferences against the catalogue guards; by the Phase 4 rule (no guarded metric down by more than 1 point) it is not adopted,
+and the current engine stays.
 
 ### 25.12 Sales: ranges per product and a second opinion with the buyer's plan (2026-10-28)
 

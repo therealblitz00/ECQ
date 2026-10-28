@@ -14,6 +14,8 @@ queries, points). Guards: phase4_eval on the test half of the models. Brief rank
 | two-stage 50, re-rank with the full score | 72.7% (-1.4 to +2.9) | 88.1% | 96.0% | 53.4% | 78.6% | 67.8% | 62.4% | 0.570 | 4.53 | 79.6% | 43 / 15 / 21 / 575 |
 | two-stage 20, re-rank without the photo | 71.8% (-2.4 to +1.9) | 82.6% | 96.0% | 51.7% | 76.2% | 64.0% | 66.1% | 0.550 | 4.52 | 74.5% | 19 / 10 / 66 / 575 |
 | two-stage 50 + soft + cap (audit's best) | 68.9% (-5.6 to -1.1) | 79.3% | 96.1% | 43.8% | 72.5% | 72.1% | 45.7% | 0.569 | 5.00 | 72.5% | 184 / 177 / 15 / 722 |
+| two-stage 50 in the category, full score (PM) | 74.3% (+0.5 to +4.1) | 82.5% | 86.0% | 55.6% | 79.4% | 66.4% | 75.0% | 0.584 | 4.58 | 75.4% | 37 / 14 / 20 / 578 |
+| two-stage 50 in the category, full score + cap (PM default) | 72.9% (-0.8 to +2.2) | 82.6% | 84.9% | 57.6% | 79.1% | 63.6% | 74.2% | 0.584 | 5.00 | 70.9% | 182 / 11 / 177 / 578 |
 
 Guards down by more than 1 point:
 
@@ -23,8 +25,11 @@ Guards down by more than 1 point:
 - two-stage 50, re-rank with the full score: hit@4, same_colour, same_finishing, same_material, visual@4, sales_corr
 - two-stage 20, re-rank without the photo: hit@4, same_colour, same_finishing, same_material, sales_corr
 - two-stage 50 + soft + cap (audit's best): hit@4, same_colour, same_finishing, same_material, visual@4, sales_corr
+- two-stage 50 in the category, full score (PM): hit@4, same_subfamily, same_colour, same_finishing, same_material, sales_corr
+- two-stage 50 in the category, full score + cap (PM default): hit@4, same_subfamily, same_finishing, same_material, sales_corr
 
 - The team's pools were built with the current engine, so the variants put unjudged items in their top 5 (the coverage
   column): the team signal sees less of them.
 - `177781_LB` is a stud and the query a dangle earring: a first stage restricted to the sub-family cannot bring it
   forward.
+- Eight variants are compared with the same baseline: an interval that barely excludes 0 may be chance.

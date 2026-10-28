@@ -8,7 +8,10 @@ Variants of the current engine (`src/phase3_weights.json`), nothing else changed
 - soft: the categorical weights of colour, finishing and theme lowered to 0.5 (from 2.0 / 1.5 / 1.5);
 - two-stage N: the N nearest photos of the same sub-family (other models) come first, ordered by a re-rank score
   (the engine without the image block, or the full engine score); everything else follows in the usual order. A query
-  without a trusted photo keeps the usual engine.
+  without a trusted photo keeps the usual engine;
+- two-stage N in the category (branch `s3/PM`): the same, with the N nearest photos taken from the whole category
+  instead of the sub-family. The team is scored on the whole catalogue ranked, without the cap: a ranking truncated to
+  N leaves judged items out and the cap pushes the judged colours of one model down.
 
 Signals, as in phase4_compare: the team's preferences with the current weights (share of the sorted pairs ordered right,
 paired bootstrap over queries against the baseline), the guarded metrics of phase4_eval on the test half of the models,
@@ -43,6 +46,9 @@ VARIANTS = {
     "two-stage 50, re-rank with the full score": {"two_stage": 50, "rerank": "full"},
     "two-stage 20, re-rank without the photo": {"two_stage": 20},
     "two-stage 50 + soft + cap (audit's best)": {"two_stage": 50, "soft": True, "cap": 1},
+    "two-stage 50 in the category, full score (PM)": {"two_stage": 50, "rerank": "full", "stage1": "category"},
+    "two-stage 50 in the category, full score + cap (PM default)": {"two_stage": 50, "rerank": "full",
+                                                                     "stage1": "category", "cap": 1},
 }
 
 
@@ -58,7 +64,7 @@ def soft_categorical(blocks: dict, scale: dict[str, float]) -> np.ndarray:
 
 
 def ranked(items: pd.DataFrame, blocks: dict, weights: dict, queries: list[str], k: int = 10, two_stage: int = 0,
-           rerank: str = "no_image", soft: bool = False, cap: int = 0) -> pd.DataFrame:
+           rerank: str = "no_image", soft: bool = False, cap: int = 0, stage1: str = "subfamily") -> pd.DataFrame:
     """Top-k of every query under one variant: one row per (query, rank, candidate)."""
     bl = dict(blocks)
     if soft:
@@ -78,7 +84,9 @@ def ranked(items: pd.DataFrame, blocks: dict, weights: dict, queries: list[str],
             s = np.round(engine.score_matrix(bl, has, weights, q, pool).astype(np.float64), engine.DECIMALS)
             excl = engine.excluded(items, q, pool, include_siblings=False)
             if two_stage:
-                ok = (gfs[q][:, None] == gfs[pool][None, :]) & ~excl & photo[pool][None, :] & photo[q][:, None]
+                ok = ~excl & photo[pool][None, :] & photo[q][:, None]
+                if stage1 == "subfamily":
+                    ok &= gfs[q][:, None] == gfs[pool][None, :]
                 im = np.where(ok, bl["image"][q] @ bl["image"][pool].T, -np.inf)
                 stage = np.zeros_like(ok)
                 np.put_along_axis(stage, np.argsort(-im, axis=1, kind="stable")[:, :two_stage], True, axis=1)
@@ -188,6 +196,7 @@ Guards down by more than {100 * ev.TOLERANCE:.0f} point:
   column): the team signal sees less of them.
 - `177781_LB` is a stud and the query a dangle earring: a first stage restricted to the sub-family cannot bring it
   forward.
+- Eight variants are compared with the same baseline: an interval that barely excludes 0 may be chance.
 """
     (REPORT_DIR / "twostage_check.md").write_text(text, encoding="utf-8")
 

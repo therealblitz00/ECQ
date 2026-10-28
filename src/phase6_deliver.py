@@ -2,6 +2,7 @@
 
     python src/phase6_deliver.py query 167718_BU     # similar products, why, and the sales / price estimates
     python src/phase6_deliver.py report              # -> outputs/phase6/report.html (self-contained, images inline)
+    python src/phase6_deliver.py brief               # -> outputs/phase6/brief_example.md + .jpg: the brief's example
 
 Reads only the outputs of the earlier phases (Phase 3 neighbours, Phase 5 explanations, Phase 5b estimates); it
 computes nothing new, so what the report shows is exactly what the batch files contain.
@@ -67,11 +68,12 @@ def cmd_query(args: argparse.Namespace) -> None:
     if d["fc"] is not None:
         f = d["fc"].set_index(KEY).loc[args.key]
         sold = "unknown" if pd.isna(r["SALES_QTY"]) else f"{int(r['SALES_QTY']):,}"
-        print(f"  sales: estimate {f['sales_estimate']:,.0f} units ({f['sales_estimate_kind']}; typically off by a factor "
-              f"of {f['sales_typical_error']:.1f}); sold {sold}; similar past products sold ~{f['sales_analogue']:,.0f}; "
-              f"{f['sales_reasons']}")
-        print(f"  price: estimate {f['price_estimate']:.2f} € ({f['price_estimate_kind']}; typical error ± "
-              f"{f['price_typical_error']:.2f} €); list {r['PRICE_BASE_W_VAT']:.2f} €; {f['price_reasons']}")
+        print(f"  sales: estimate {f['sales_estimate']:,.0f} whole-life units (80% range {f['sales_low']:,.0f} to "
+              f"{f['sales_high']:,.0f}; {f['sales_estimate_kind']}); sold {sold}; similar past products sold "
+              f"~{f['sales_analogue']:,.0f} ({f['sales_analogue_keys']}); {f['sales_reasons']}")
+        print(f"  price: estimate {f['price_estimate']:.2f} € (nearest list price {f['price_point_estimate']:.2f} €, 80% range "
+              f"{f['price_low']:.2f} to {f['price_high']:.2f} €; {f['price_estimate_kind']}); list "
+              f"{r['PRICE_BASE_W_VAT']:.2f} €; {f['price_reasons']}")
 
 
 # --------------------------------------------------------------------------- HTML report
@@ -119,12 +121,13 @@ def query_block(d: dict, q: str) -> str:
         f = d["fc"].set_index(KEY).loc[q]
         r = d["items"].loc[q]
         sold = "no sales data" if pd.isna(r["SALES_QTY"]) else f"sold {int(r['SALES_QTY']):,}"
-        fc = (f'<p class="fc"><b>Sales estimate</b> {f["sales_estimate"]:,.0f} units, {html.escape(f["sales_estimate_kind"])}; '
-              f'typically off by a factor of {f["sales_typical_error"]:.1f}, so read it as a ranking aid ({sold}; similar '
-              f'past products sold about {f["sales_analogue"]:,.0f}). Main effects: {html.escape(f["sales_reasons"])}.<br>'
-              f'<b>Price estimate</b> {f["price_estimate"]:.2f} € ({html.escape(f["price_estimate_kind"])}, typical error '
-              f'± {f["price_typical_error"]:.2f} €; list {r["PRICE_BASE_W_VAT"]:.2f} €). '
-              f'Main effects: {html.escape(f["price_reasons"])}.</p>')
+        fc = (f'<p class="fc"><b>Sales estimate</b> {f["sales_estimate"]:,.0f} whole-life units (80% range '
+              f'{f["sales_low"]:,.0f} to {f["sales_high"]:,.0f}), {html.escape(f["sales_estimate_kind"])} ({sold}; '
+              f'similar past products sold about {f["sales_analogue"]:,.0f}). Main effects: '
+              f'{html.escape(f["sales_reasons"])}.<br>'
+              f'<b>Price estimate</b> {f["price_estimate"]:.2f} €, nearest list price {f["price_point_estimate"]:.2f} € '
+              f'(80% range {f["price_low"]:.2f} to {f["price_high"]:.2f} €; {html.escape(f["price_estimate_kind"])}; '
+              f'list {r["PRICE_BASE_W_VAT"]:.2f} €). Main effects: {html.escape(f["price_reasons"])}.</p>')
     return (f'<section><h3>{html.escape(q)}</h3><div class="row">{card(d, q, "<em>query</em>")}'
             f'<div class="arrow">→</div>{"".join(cards)}</div>{fc}</section>')
 
@@ -164,7 +167,7 @@ display:flex;flex-direction:column;gap:3px}} .card img,.noimg{{width:150px;heigh
 <h1>Parfois: similar products, explained</h1>
 <p class="lede">For each product: its 5 most similar products in the same category (never another colour of the same
 model), the share of the score that comes from each kind of information (bar), what they share and how they differ,
-and the sales and price estimates of Phase 5b (never fitted on the product itself) with their typical error and main effects. Generated {datetime.now(timezone.utc):%Y-%m-%d}
+and the sales and price estimates of Phase 5b (never fitted on the product itself) with an 80% range and main effects. Generated {datetime.now(timezone.utc):%Y-%m-%d}
 by <code>src/phase6_deliver.py report</code> from the batch files.</p>
 <h2>The brief's example</h2><p>The brief gives four similar products for {BRIEF_QUERY}. Their rank in our engine
 (out of all candidates of the category):</p><table><tr><th>brief answer</th><th>engine rank</th><th>out of</th></tr>{rows}</table>
@@ -177,6 +180,72 @@ by <code>src/phase6_deliver.py report</code> from the batch files.</p>
     print(f"-> {REPORT_DIR / 'report.html'} ({len(picks)} products)")
 
 
+BRIEF_COLS = {"GFS_DES_EN": "sub-family", "THEME": "theme", "FINISHING": "finish", "CLR_DES": "colour",
+              "PRICE_BASE_W_VAT": "price €", "SEA_COD": "season"}
+
+
+def cmd_brief(args: argparse.Namespace) -> None:
+    """The brief's example next to the engine's answer: photos side by side and the attributes that differ."""
+    from PIL import Image, ImageDraw
+    d = load()
+    it, ex = d["items"], d["ex"]
+    if ex is None:
+        raise SystemExit("Run the explanations first: python src/phase5_explain.py build")
+    engine_top = ex[ex["query"] == BRIEF_QUERY].sort_values("rank")["candidate"].tolist()
+    bc = brief_check(d).set_index("brief answer")
+    rows = [("query", BRIEF_QUERY)] + [("brief", k) for k in BRIEF_ANSWER] + [("engine", k) for k in engine_top]
+    size, pad = 220, 30
+    strip = Image.new("RGB", (size * len(rows), size + pad), "white")
+    draw = ImageDraw.Draw(strip)
+    for n, (who, k) in enumerate(rows):
+        file = it.at[k, "img_file"]
+        if isinstance(file, str):
+            im = Image.open(IMG_DIR / file).convert("RGB")
+            im.thumbnail((size - 10, size - 10))
+            strip.paste(im, (n * size + (size - im.width) // 2, (size - im.height) // 2))
+        else:
+            draw.text((n * size + 60, size // 2), "no trusted photo", fill="grey")
+        draw.text((n * size + 8, size + 6), f"{who}: {k}", fill="black")
+    REPORT_DIR.mkdir(parents=True, exist_ok=True)
+    strip.save(REPORT_DIR / "brief_example.jpg", quality=85)
+    t = it.loc[[k for _, k in rows], list(BRIEF_COLS)].rename(columns=BRIEF_COLS)
+    t.insert(0, "in", [w for w, _ in rows])
+    t["model"] = it.loc[t.index, "PROD_REF"].astype(str)
+    t["engine rank"] = ["–"] + [str(bc.at[k, "engine rank"]) for k in BRIEF_ANSWER] + [str(r) for r in
+                                                                                       range(1, len(engine_top) + 1)]
+    q = it.loc[BRIEF_QUERY]
+
+    def count(w, c):
+        return int((it.loc[[k for who, k in rows if who == w], c] == q[c]).sum())
+    md = ["# The brief's example: 167718_BU", "",
+          f"Generated by `src/phase6_deliver.py brief` ({datetime.now(timezone.utc):%Y-%m-%d}) from the Phase 3 "
+          "neighbours and Phase 5 explanations. Photos: `brief_example.jpg` (query, the brief's four answers, the "
+          "engine's top 5).", "",
+          "![The brief's example and the engine's answer](brief_example.jpg)", "",
+          "| | " + " | ".join(t.columns) + " |", "|---|" + "---|" * len(t.columns)]
+    md += [f"| {k} | " + " | ".join(f"{v:.2f}" if isinstance(v, float) else str(v) for v in r) + " |"
+           for k, r in t.iterrows()]
+    md += ["", "What matches the query (out of 4 brief answers / 5 engine answers):", "",
+           "| | brief | engine |", "|---|---|---|"]
+    md += [f"| same {lab} | {count('brief', c)} / 4 | {count('engine', c)} / {len(engine_top)} |"
+           for c, lab in [("GFS_DES_EN", "sub-family"), ("THEME", "theme"), ("FINISHING", "finish")]]
+    n_models = {w: len({it.at[k, 'PROD_REF'] for who, k in rows if who == w}) for w in ("brief", "engine")}
+    md += [f"| different models | {n_models['brief']} | {n_models['engine']} |", "",
+           "- The brief lists `117781_LB`, which is not in the data; `177781_LB` is (one digit differs), and its "
+           "photo is the one on the slide, so it is used here.",
+           f"- The engine ranks the brief's answers {' / '.join(str(bc.at[k, 'engine rank']) for k in BRIEF_ANSWER)} "
+           f"of {int(bc['out of'].iloc[0]):,} candidates of the category.",
+           "- Both lists are beaded earrings (see the photos). The engine's are dangle earrings with the query's "
+           "golden finish and price; the brief's are mostly another theme (DEGRADÊ), finish *Other*, and one is a "
+           "stud. The difference is one of criterion, not an error of either list.",
+           "- Both lists repeat a model in several colours (the brief 169607 twice, the engine 210347 three times); "
+           "whether colours of one model should count as one suggestion is open (a question for the professor).",
+           "- One example cannot evaluate an engine: it is a sanity check of the format. The evaluation is the "
+           "team's sorted answers on 99 queries (Phase 4).", ""]
+    (REPORT_DIR / "brief_example.md").write_text("\n".join(md), encoding="utf-8")
+    print("\n".join(md))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -184,8 +253,9 @@ def main() -> None:
     q.add_argument("key")
     q.add_argument("--k", type=int, default=5)
     sub.add_parser("report")
+    sub.add_parser("brief")
     args = ap.parse_args()
-    {"query": cmd_query, "report": cmd_report}[args.cmd](args)
+    {"query": cmd_query, "report": cmd_report, "brief": cmd_brief}[args.cmd](args)
 
 
 if __name__ == "__main__":

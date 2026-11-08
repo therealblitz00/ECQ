@@ -316,6 +316,9 @@ There is no labelled ground truth, so combine several signals:
 - [x] Largest price errors on the official test 232 + 241 → 242 (2026-11-08, progress.md §25.15; `phase5b_price_errors.py` → `price_errors.md`):
   worst 10% in € and in % by category, family, collection, fashion type, price band, markup and cost flag; products
   without a cost (fallback against the analogue estimate); list price against the realised average price (descriptive).
+- [ ] Products without a landed cost (2026-11-08, `phase5b_nocost_rule.py` → `nocost_rule.md`): the similar-products
+  estimate against the model without cost. Seen on the 242 test; decided on the validation split 232 → 241 with a rule
+  fixed before the run (95% interval in euros above 0). Change `phase5b_forecast.py` only if the rule passes.
 - [x] Palette (2026-11-08): 292 photos with another item or no packshot no longer feed the palette
   (`data/embeddings/palette_excluded.csv`, `phase2b_palette_audit.py`); `forecast.parquet` not regenerated.
 - [ ] Photos with several pieces or a model: crop suggestions only (`phase2b_multi_item.py`,

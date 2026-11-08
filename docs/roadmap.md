@@ -20,7 +20,7 @@ This is the only place that tracks the status. The evidence for each item is in 
 |---|---|---|
 | **Sprint 1: data cleaning and validation** | 0, 1, 1b | ✅ **Done**: setup, automatic checks, image pre-screen, review app, cleaning, manual review by the 5 members, every photo checked, merge (`items_clean.parquet`) |
 | **Sprint 2: features and modelling** | 1 (rest), 2a, 2b, 3, 4 | ✅ **Done**: Phase 2a (4 tabular/text blocks, missing attributes filled where reliable), Phase 2b (image embeddings, colour palettes), Phase 3 (`neighbours.parquet`) and Phase 4 (evaluation, tuning, weights learned from the team's 138 sorted answers on 99 distinct queries, applied as a 25% blend). Notebook: `notebooks/phase2_features.ipynb` |
-| Sprint 3: explanations, estimates and delivery | 2b (improvements), 5, 5b, 6 | 🟡 **Done on branch `s3/andre`, awaiting the team's review**: baseline frozen and compared (`phase4_compare.py`); explanations for every match (Phase 5); price and sales estimates with SHAP (Phase 5b); CLI + HTML report (Phase 6); FashionSigLIP image encoder and 6 re-cropped photos of a model adopted; rejected with evidence: fusion standardisation, lower colour/theme weights, DINOv2, diversity cap, blind automatic re-cropping, two-stage retrieval (§25.11). Notebook: `notebooks/phase3_explanations_estimates.ipynb` (progress.md §25) |
+| Sprint 3: explanations, estimates and delivery | 2b (improvements), 5, 5b, 6 | 🟡 **Done on branch `s3/andre`, awaiting the team's review**: baseline frozen and compared (`phase4_compare.py`); explanations for every match (Phase 5); price and sales estimates with SHAP (Phase 5b); CLI + HTML report (Phase 6); FashionSigLIP image encoder and 6 re-cropped photos of a model adopted; rejected with evidence: fusion standardisation, lower colour/theme weights, DINOv2, diversity cap, blind automatic re-cropping, two-stage retrieval (§25.11). Professor's feedback applied (§25.14): sales estimate = LightGBM + CatBoost average, 292 photos out of the palette, landed-cost flags. Notebook: `notebooks/phase3_explanations_estimates.ipynb` (progress.md §25) |
 
 | Phase | Status | Done | Still to do |
 |---|---|---|---|
@@ -305,12 +305,17 @@ There is no labelled ground truth, so combine several signals:
 - [x] Professor's feedback (2026-11-08, progress.md §25.14): CatBoost tested (`phase5b_catboost.py`); metrics beyond the
   median (`phase5b_metrics.py`, headline WAPE); upstream audit (`phase5b_upstream_audit.py`); weeks on sale and the
   LightGBM + CatBoost average out of fold (`phase5b_exposure.py`); landed-cost check (`phase5b_cost_check.py`).
+- [x] Delivered sales model (2026-11-08, `src/phase5b_average.py` → `outputs/phase5b/average_report.md`): mean of
+  LightGBM and CatBoost, trained with the weeks on sale and estimated at 64 weeks; range and typical error out of fold
+  on 241 (×1.49, not comparable with the earlier ×1.71 of a single split). Previous estimate kept in
+  `sales_estimate_lightgbm`. Run `phase5b_forecast.py run`, then `phase5b_average.py run`.
+- [x] Questions for Parfois (costs in `cost_check.md`; are the planning classes revised after the first sales?): cannot be
+  asked. Treated as limitations, written in the final report: the 38 `certain` landed costs are flagged and not
+  corrected (the CSV is never changed; ignoring them gave no measurable gain), and whether `FASHIONTYPE` /
+  `CATEGORY_MATRIX` are revised after the first sales stays untested.
 - [x] Largest price errors on the official test 232 + 241 → 242 (2026-11-08, progress.md §25.15; `phase5b_price_errors.py` → `price_errors.md`):
   worst 10% in € and in % by category, family, collection, fashion type, price band, markup and cost flag; products
   without a cost (fallback against the analogue estimate); list price against the realised average price (descriptive).
-- [ ] Decide the delivered sales model: LightGBM + CatBoost average trained with the weeks on sale of 241 included
-  (needs `phase5b_forecast.py run` again, ~30 min). Questions for Parfois: costs in `cost_check.md`; are the planning
-  classes revised after the first sales?
 - [x] Palette (2026-11-08): 292 photos with another item or no packshot no longer feed the palette
   (`data/embeddings/palette_excluded.csv`, `phase2b_palette_audit.py`); `forecast.parquet` not regenerated.
 - [ ] Photos with several pieces or a model: crop suggestions only (`phase2b_multi_item.py`,

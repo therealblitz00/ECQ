@@ -287,3 +287,36 @@ def test_estimates_csv_matches_forecast():
             "sales_with_buyer_high", "price_estimate", "price_point_estimate", "price_low", "price_high"]
     assert np.allclose(est.set_index(config.KEY).loc[fc.index, cols].to_numpy(float), fc[cols].to_numpy(float),
                        equal_nan=True)                                 # the same values the query prints
+
+
+def test_palette_exclusion_list_is_valid():
+    """data/embeddings/palette_excluded.csv: unique keys of known colourways, with a reason."""
+    path = config.EMB_DIR / "palette_excluded.csv"
+    require(path)
+    ex = pd.read_csv(path, encoding="utf-8-sig")
+    assert list(ex.columns) == [config.KEY, "reason"] and ex[config.KEY].is_unique
+    assert set(ex["reason"]) <= {"other item in frame", "not a packshot"}
+    masks = pd.read_parquet(config.EMB_DIR / "masks.parquet")
+    assert set(ex[config.KEY].astype(str)) <= set(masks[config.KEY].astype(str))
+    assert config.palette_excluded() == set(ex[config.KEY].astype(str))
+
+
+def test_multi_item_crops_are_suggestions_until_a_human_accepts_them():
+    cr = pd.read_parquet(config.EMB_DIR / "multi_item_crops.parquet")
+    review = json.loads((config.EMB_DIR / "multi_item_reviewed.json").read_text(encoding="utf-8"))
+    assert cr[config.KEY].is_unique
+    person = json.loads((config.EMB_DIR / "person_crops_reviewed.json").read_text(encoding="utf-8"))
+    # `accepted` = the person re-crops already accepted in Phase 2b, plus what the team accepts in multi_item_reviewed.json
+    assert set(cr.loc[cr["accepted"], config.KEY]) <= set(person["accepted"]) | set(review["accepted"])
+    assert set(review["accepted"]) <= set(cr[config.KEY]) and set(review["accepted"]).isdisjoint(review["rejected"])
+    boxes = cr["suggested_box"].dropna()
+    assert all(len(b) == 4 and 0 <= b[0] < b[2] <= 1 and 0 <= b[1] < b[3] <= 1 for b in boxes)
+
+
+def test_forecast_keeps_the_previous_lightgbm_sales_estimate():
+    path = config.PROCESSED_DIR / "forecast.parquet"
+    if not path.exists():
+        pytest.skip("run src/phase5b_forecast.py run, then src/phase5b_average.py run")
+    fc = pd.read_parquet(path)
+    assert "sales_estimate_lightgbm" in fc and fc["sales_estimate_lightgbm"].notna().all()
+    assert not (fc["sales_estimate"] == fc["sales_estimate_lightgbm"]).all()      # the average replaced the estimate

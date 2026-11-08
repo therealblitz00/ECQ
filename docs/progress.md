@@ -835,7 +835,15 @@ All numbers are in the reports named below; nothing here changes the delivered `
 | Photos with several pieces or a model | 317 photos with a person, 720 with several pieces. Crop suggestions only; the embeddings of the crops need the vision machine. | `outputs/phase2b/multi_item_report.md` |
 | Landed-cost check (team review of the largest errors) | 38 certain and 248 suspect costs. Ignoring the certain ones is safe (test −0.040 to +0.051 EUR per product); ignoring the suspect ones is not confirmed (validation +0.19 to +0.34, test −0.10 to +0.01). | `cost_check.md` |
 
-Open: which sales model is delivered, the questions to Parfois, and the review of the crops.
+Delivered afterwards (same day): the sales estimate is the LightGBM + CatBoost average with the weeks on sale (`phase5b_average.py`,
+`average_report.md`; typical error ×1.49 out of fold on 241, not comparable with the earlier ×1.71).
+Not possible: asking Parfois about the costs and the planning classes; both are limitations. Not done: nobody reviews
+the crop suggestions, so no crop is applied.
+
+Control embedding (same day, `outputs/phase2b/multi_item_report.md` § 6): `open_clip_torch` installed;
+`image_fashionsiglip_nopersoncrops.npy` computed. Only the 6 accepted re-crops differ from it and every aggregate signal is
+equal to three decimals, so the effect of the person re-crops on the engine is nil in aggregate; they stay for the single
+wrong photos. `outputs/phase2b/image_encoders.csv` regenerated for the five embeddings with the current engine.
 
 ### 25.15 Largest price errors on the official test 232 + 241 → 242 (2026-11-08)
 
@@ -861,9 +869,8 @@ Decisions: the official split instead of `estimates.csv` (cross-validated across
 | Example `216630_BK` (validation 232 → 241) | Real-fur shopper, 120 € list price, 30.94 € cost (markup 3.88x). Estimated at 72.40 €: the cost lowers the estimated markup by a factor of 0.34 (SHAP), so a high cost is read as a lower markup. No product of its sub-family has a cost in 232. |
 | List price against realised average price | Median realised / list price: 0.77 (232), 0.83 (241), 0.91 (242). Descriptive only: whether `SALES_AMT_FX_RATE` includes VAT, and in which currencies the sales were made, is not documented. |
 
-Questions this raises (not acted on): use the similar-products estimate for products without a cost (a change to
-`phase5b_forecast.py`, to be decided by the team); ask Parfois whether the bridal capsule costs (25.00 €) and the
-realised-price gap are as recorded.
+Not acted on: the similar-products estimate for products without a cost (decided on the validation split, §25.16).
+Parfois cannot be asked, so the bridal capsule costs (25.00 €) and the realised-price gap stay as limitations.
 
 Note on the environment: `phase5b_forecast.py` needs `scikit-learn` (LightGBM's scikit-learn interface) and
 `tests/test_phase5b_catboost.py` needs `catboost`; neither is in `requirements.txt`, so a fresh clone fails both until

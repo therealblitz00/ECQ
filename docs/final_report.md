@@ -97,6 +97,15 @@ not cut). Buyer decisions (`PUR_BET`, `TYPOLOGY`) are never features.
 description (find similar items, then their sales and price), and every estimate lists them. Gradient boosting is more
 accurate on the same products (paired bootstrap over models, 95% CI): same-month ranking **+0.10 to +0.22**, units error saved **+0.14 to +0.23** log units (sales, 241 test half); price error saved **+0.90 to +1.33 €** (242). Both intervals exclude 0, so the evidence that it errs less is strong; the similar products stay as the explanation a buyer can check, listed with every estimate.
 
+- **The delivered sales estimate is the mean of LightGBM and CatBoost** (`outputs/phase5b/average_report.md`), after the
+  professor's feedback. Season 241 had only 15 to 53 weeks on sale at the extraction (232: 39 to 83), so the model learns
+  with the weeks on sale (`weeks_on_sale`) and the estimate is made at a reference of 64 weeks: units over a standard
+  whole life, also for the season 242 forecasts. Out of fold the average ranks better than LightGBM (same-month ranking
+  +0.010 to +0.023; CatBoost alone is worse) and has the same error. Typical error ×1.49 (out of fold on 241, 86% within
+  ×2; the ×1.69 above is a single split trained on 232 only, a different experiment); the 80% range covers 80.2% on 241
+  (its calibration season) and 77.3% on 232, 70.5% to 72.7% in the worst category. The price is unchanged.
+- **Metric:** the median stays as the baseline; the headline error metric is the WAPE (units missed over real units:
+  38.2% for sales, 11.8% for price); the MAPE is unusable (`outputs/phase5b/metrics_report.md`).
 - **Against the buyer** (`outputs/phase5b/buyer_report.md`): the model ranks the products as well as the buyer's own
   purchase depth and store tiers and errs less in units; model + buyer is better than either; when they disagree, the
   buyer is right in 55–63% of the pairs.
@@ -105,7 +114,7 @@ accurate on the same products (paired bootstrap over models, 95% CI): same-month
 - **Biases:** sales −6% (mostly jewellery, not a single season growth, no correction testable with one whole-season
   transition); price −4.5% (markups rise between seasons; three corrections tried, none gains).
 - **Range:** each estimate carries an 80% range. Sales: one width per product (conformalised quantile regression,
-  Romano et al. 2019), 80.4% coverage on the test half, a median width ×4.2 against ×5.0 for one factor for all, and
+  Romano et al. 2019); in the experiment above (single split, LightGBM) it covered 80.4% of the test half, a median width ×4.2 against ×5.0 for one factor for all, and
   77.6–81.3% in every category (one factor: 77–95%). Price: ×0.89 to ×1.23 of the estimate (per-product ranges were not
   narrower).
 - **Second opinion with the buyer's plan** (`sales_with_buyer_*`): the same model with the purchase depth and store
@@ -133,6 +142,13 @@ exist; `177781_LB` is used (its photo is the one on the slide).
   them is unknown.
 - The engine's weights were tuned with the sales correlation in the objective, so the similar-products sales estimate
   is slightly optimistic.
+- The sales target is what the order and the allocation allowed to sell, not demand (no stock or sell-through data), and
+  season 241 is not a whole life (15-53 weeks on sale at the extraction): the estimate is made at 64 weeks on sale
+  (`outputs/phase5b/upstream_audit.md`, `average_report.md`).
+- Landed costs: 38 are almost certainly wrong and 248 are suspect (`outputs/phase5b/cost_check.md`). They are flagged,
+  never corrected, and nobody could confirm them with Parfois. Ignoring the certain ones gave no measurable gain.
+- Photos with several pieces or a model: crop suggestions exist (`outputs/phase2b/multi_item_report.md`) but nobody
+  reviewed them, so none is applied. 292 photos no longer feed the palette.
 
 ## 9. Open questions for the professor
 
@@ -148,6 +164,8 @@ Setup and the light pipeline: `README.md`. Sprint 3 outputs (light environment, 
 ```bash
 python src/phase5_explain.py build          # explanations of every match
 python src/phase5b_forecast.py run          # sales and price estimates (~30 min) -> outputs/phase5b/
+python src/phase5b_average.py run          # the delivered sales estimate (LightGBM + CatBoost average), always after the line above
+python src/phase5b_cost_check.py run       # landed-cost flags -> outputs/phase5b/cost_check.md
 python src/phase5b_buyer.py run             # the buyer benchmark (~10 min)
 python src/phase4_compare.py salescheck     # the sales-correlation check
 python src/phase6_deliver.py report         # outputs/phase6/report.html

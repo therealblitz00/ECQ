@@ -1,0 +1,29 @@
+{
+ "created": "2026-11-08T10:26:52+00:00",
+ "rows": 1310,
+ "thresholds": {
+  "person_min": 0.1,
+  "item_min": 0.1,
+  "max_share_strict": 0.7,
+  "max_share_relaxed": 0.85
+ },
+ "sources": [
+  "masks.parquet",
+  "person_crops.parquet",
+  "person_crops_reviewed.json",
+  "NUMBER_OF_UNITS",
+  "OUTFIT"
+ ],
+ "note": "Suggestions only. Applied only for keys in multi_item_reviewed.json (accepted).",
+ "actions": {
+  "keep": 8156,
+  "flag_multi_piece": 638,
+  "check_possible_person": 359,
+  "keep_lifestyle": 139,
+  "keep_person_whole_item": 115,
+  "exclude_image": 44,
+  "keep_rejected": 7,
+  "crop_applied": 5,
+  "crop_suggested_heuristic": 3
+ }
+}

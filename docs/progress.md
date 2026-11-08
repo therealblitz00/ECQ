@@ -875,10 +875,11 @@ Parfois cannot be asked, so the bridal capsule costs (25.00 €) and the realise
 Note on the environment: `phase5b_forecast.py` needs `scikit-learn` (LightGBM's scikit-learn interface) and
 `tests/test_phase5b_catboost.py` needs `catboost`; neither is in `requirements.txt`, so a fresh clone fails both until
 they are installed by hand.
+
 ### 25.16 Products without a landed cost: similar-products estimate not adopted (2026-11-08)
 
 On the official test (232 + 241 → 242) the similar-products estimate had a smaller error than the model without cost on
-the 129 products without a cost (branch `s3/price-errors`, `price_errors.md`). That came from the test, so the change was
+the 129 products without a cost (§25.15, `price_errors.md`). That came from the test, so the change was
 decided on the validation split 232 → 241 with a rule fixed before the run: adopt it only if the 95% interval of the
 paired difference in euros is above 0. Script: `src/phase5b_nocost_rule.py`; report: `outputs/phase5b/nocost_rule.md`.
 

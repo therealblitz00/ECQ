@@ -89,6 +89,7 @@ Current scripts in `src/`:
 | `phase5b_average.py` | Delivered sales estimate: mean of LightGBM and CatBoost, trained with the weeks on sale, made at 64 weeks; replaces the sales columns of `forecast.parquet` (run after `phase5b_forecast.py run`) → `outputs/phase5b/average_report.md` |
 | `phase5b_price_errors.py` | Where the largest price errors are on the official test (232 + 241 → 242): worst 10% in € and in % by group, products without a cost, landed-cost flags, an example with SHAP, list vs realised price → `outputs/phase5b/price_errors.md` + `.csv` (read-only) |
 | `phase5b_nocost_rule.py` | Products without a landed cost: the similar-products estimate against the model without cost, decided on the validation split (232 → 241) with a rule fixed before the run, test 242 reported → `outputs/phase5b/nocost_rule.md` + `.csv` (read-only) |
+| `phase5b_error_diagnosis.py` | Why the estimates miss, without test products: errors and 80% range coverage by similarity to the training season (price: validation 232 → 241; sales: validation half of 241), a cross-fitted "new product" range, and the price variation left by identical attributes in 232 + 241 → `outputs/phase5b/error_diagnosis.md` + `error_novelty.csv`, `error_noise.csv` (read-only) |
 | `phase6_deliver.py` | Delivery: `query KEY` (similar products, why, estimates), `report` → `outputs/phase6/report.html`, `brief` → `outputs/phase6/brief_example.md` + `.jpg` |
 
 New code goes into `src/phase<N>_<topic>.py`, one module per roadmap phase (move to a package
@@ -168,6 +169,7 @@ python -m venv .venv
 .venv/Scripts/python src/phase5b_buyer.py run                    # model vs buyer decisions -> outputs/phase5b/buyer_report.md, ~10 min
 .venv/Scripts/python src/phase5b_price_errors.py run          # largest price errors on the 242 test -> outputs/phase5b/price_errors.md, ~15 min
 .venv/Scripts/python src/phase5b_nocost_rule.py run           # products without a cost: similar products vs model without cost -> outputs/phase5b/nocost_rule.md, ~10 min
+.venv/Scripts/python src/phase5b_error_diagnosis.py run       # novelty and noise floor, no test products -> outputs/phase5b/error_diagnosis.md, ~10 min
 .venv/Scripts/python src/phase6_deliver.py query 167718_BU       # similar products, why, sales and price estimates
 .venv/Scripts/python src/phase6_deliver.py report                # -> outputs/phase6/report.html
 .venv/Scripts/python src/phase6_deliver.py brief                 # the brief's example -> outputs/phase6/brief_example.md + .jpg

@@ -305,7 +305,7 @@ There is no labelled ground truth, so combine several signals:
 - [x] Professor's feedback (2026-11-08, progress.md §25.14): CatBoost tested (`phase5b_catboost.py`); metrics beyond the
   median (`phase5b_metrics.py`, headline WAPE); upstream audit (`phase5b_upstream_audit.py`); weeks on sale and the
   LightGBM + CatBoost average out of fold (`phase5b_exposure.py`); landed-cost check (`phase5b_cost_check.py`).
-- [ ] Largest price errors on the official test 232 + 241 → 242 (`phase5b_price_errors.py` → `price_errors.md`):
+- [x] Largest price errors on the official test 232 + 241 → 242 (2026-11-08, progress.md §25.15; `phase5b_price_errors.py` → `price_errors.md`):
   worst 10% in € and in % by category, family, collection, fashion type, price band, markup and cost flag; products
   without a cost (fallback against the analogue estimate); list price against the realised average price (descriptive).
 - [ ] Decide the delivered sales model: LightGBM + CatBoost average trained with the weeks on sale of 241 included

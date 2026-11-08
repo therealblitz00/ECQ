@@ -201,12 +201,19 @@ def example(items, blocks, weights, key: str = EXAMPLE) -> dict | None:
     cost = float(np.exp(items["log_cost"].iloc[i]))
     price = float(items["PRICE_BASE_W_VAT"].iloc[i])
     sub = ["CAT_DES_EN", "GFA_DES_EN", "GFS_DES_EN"]
-    same = (items[sub].astype(str) == items.loc[i, sub].astype(str)).all(axis=1).to_numpy() & train
-    sub_markup = float(np.exp(np.nanmedian(r["y"][same] - items["log_cost"].to_numpy()[same])))
+    log_markup = r["y"] - items["log_cost"].to_numpy()
+
+    def median_markup(cols: list[str]) -> tuple[float, int]:
+        same = (items[cols].astype(str) == items.loc[i, cols].astype(str)).all(axis=1).to_numpy() & train
+        m = log_markup[same & np.isfinite(log_markup)]
+        return (float(np.exp(np.median(m))) if len(m) else np.nan), int(len(m))
+    sub_markup, n_sub = median_markup(sub)
+    cat_markup, n_cat = median_markup(["CAT_DES_EN"])
     return {"key": key, "in_test": True, "description": items["PROD_DES_BASE"].iloc[i],
-            "material": items["MATERIAL"].iloc[i], "list_price": price, "cost": cost, "markup": price / cost,
+            "sub_family": items["GFS_DES_EN"].iloc[i], "list_price": price, "cost": cost, "markup": price / cost,
             "estimate": float(np.exp(r["preds"][CHOSEN][i])), "analogue": float(np.exp(r["preds"][ANALOGUE][i])),
-            "analogue_keys": r["analogue_keys"][i][:5], "sub_family_markup": sub_markup,
+            "analogue_keys": r["analogue_keys"][i][:5], "sub_family_markup": sub_markup, "n_sub": n_sub,
+            "category_markup": cat_markup, "n_cat": n_cat,
             "base_markup": float(np.exp(base)), "estimated_markup": float(np.exp(base + sv.sum())),
             "contributions": fam.head(6)}
 
@@ -219,12 +226,15 @@ def _md(df: pd.DataFrame, pct: set[str] = frozenset(), digits: int = 2) -> str:
 
 
 def _share_line(s: pd.DataFrame, label: str, top: int = 3) -> str:
-    """Plain sentences for the groups with the largest share of the worst, against their share of the test."""
-    s = s.drop(index=OTHER, errors="ignore").sort_values(f"share of worst {label}", ascending=False).head(top)
-    if s.empty:
-        return f"no group has {MIN_GROUP} test products or more"
-    return "; ".join(f"{g}: {r[f'share of worst {label}']:.0%} of the worst against {r['share of test']:.0%} of the test"
-                     for g, r in s.iterrows())
+    """Plain sentences for the groups most over-represented among the worst (share of the worst above the share of
+    the test), largest difference first."""
+    s = s.drop(index=OTHER, errors="ignore")
+    gap = (s[f"share of worst {label}"] - s["share of test"]).sort_values(ascending=False, kind="stable")
+    keep = gap[gap > 0].head(top).index
+    if not len(keep):
+        return f"no group of {MIN_GROUP} test products or more is over-represented"
+    return "; ".join(f"{g}: {s.loc[g, f'share of worst {label}']:.0%} of the worst against "
+                     f"{s.loc[g, 'share of test']:.0%} of the test" for g in keep)
 
 
 def worst_list(t: pd.DataFrame, flag: str, sort: str, n: int = 10) -> pd.DataFrame:
@@ -243,8 +253,8 @@ def write_report(t: pd.DataFrame, summaries: dict, direction: pd.DataFrame, noco
     sec = []
     for name, s in summaries.items():
         sec.append(f"### By {name}\n\n{md(s, pct=PCT_COLS, digits=2)}\n\n"
-                   f"Largest shares of the worst in €: {_share_line(s, '€')}.  \n"
-                   f"Largest shares of the worst in %: {_share_line(s, '%')}.")
+                   f"Over-represented among the worst in €: {_share_line(s, '€')}.  \n"
+                   f"Over-represented among the worst in %: {_share_line(s, '%')}.")
     ci = nocost["ci"]
     ci_line = ("not computed (fewer than 2 products)" if ci is None else
                f"{ci[0]:+.2f} to {ci[1]:+.2f} € per product (95% interval, resampling models; positive = the analogue "
@@ -254,15 +264,18 @@ def write_report(t: pd.DataFrame, summaries: dict, direction: pd.DataFrame, noco
     elif not ex["in_test"]:
         ex_text = f"`{EXAMPLE}` is not a new model of 241 on the validation split; no example shown."
     else:
+        sub_line = ("no product of this sub-family with a cost in 232" if not ex["n_sub"] else
+                    f"{ex['sub_family_markup']:.2f}x ({ex['n_sub']} products)")
         contrib = pd.DataFrame({"log points": ex["contributions"], "x markup": np.exp(ex["contributions"])})
-        ex_text = f"""`{ex['key']}` {ex['description']} ({ex['material']}), validation split 232 -> 241 (it is a new model of 241).
+        ex_text = f"""`{ex['key']}` {ex['description']} (sub-family {ex['sub_family']}), validation split 232 -> 241 (it is a new model of 241).
 
 | | value |
 |---|---|
 | list price | {ex['list_price']:.2f} € |
 | landed cost | {ex['cost']:.2f} € |
 | actual markup (price / cost) | {ex['markup']:.2f}x |
-| median markup of its sub-family (232) | {ex['sub_family_markup']:.2f}x |
+| median markup of its sub-family in 232 | {sub_line} |
+| median markup of its category in 232 | {ex['category_markup']:.2f}x ({ex['n_cat']} products) |
 | markup estimated by the model | {ex['estimated_markup']:.2f}x (starting value {ex['base_markup']:.2f}x) |
 | estimated price (chosen model) | {ex['estimate']:.2f} € |
 | analogue estimate | {ex['analogue']:.2f} € (first analogues: {', '.join(ex['analogue_keys'])}) |
@@ -271,7 +284,7 @@ Largest SHAP contributions to the estimated markup, summed by feature family (ne
 
 {md(contrib, digits=2)}
 
-Reading: the model starts from the average markup and each family multiplies it by `x markup`. A large negative
+Reading: the model starts from the average markup of its training rows and each family multiplies it by `x markup`. A large negative
 contribution of `landed cost` means the model learned that products with a high cost tend to have a lower markup."""
     r_season = realised.xs("All", level="category")
     text = f"""# Largest price errors on the official price test

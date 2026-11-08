@@ -305,9 +305,11 @@ There is no labelled ground truth, so combine several signals:
 - [x] Professor's feedback (2026-11-08, progress.md §25.14): CatBoost tested (`phase5b_catboost.py`); metrics beyond the
   median (`phase5b_metrics.py`, headline WAPE); upstream audit (`phase5b_upstream_audit.py`); weeks on sale and the
   LightGBM + CatBoost average out of fold (`phase5b_exposure.py`); landed-cost check (`phase5b_cost_check.py`).
-- [ ] Decide the delivered sales model: LightGBM + CatBoost average trained with the weeks on sale of 241 included
-  (needs `phase5b_forecast.py run` again, ~30 min). Questions for Parfois: costs in `cost_check.md`; are the planning
-  classes revised after the first sales?
+- [x] Delivered sales model (2026-11-08, `src/phase5b_average.py` → `outputs/phase5b/average_report.md`): mean of
+  LightGBM and CatBoost, trained with the weeks on sale and estimated at 64 weeks; range and typical error out of fold
+  on 241 (×1.49, not comparable with the earlier ×1.71 of a single split). Previous estimate kept in
+  `sales_estimate_lightgbm`. Run `phase5b_forecast.py run`, then `phase5b_average.py run`.
+- [ ] Questions for Parfois: costs in `cost_check.md`; are the planning classes revised after the first sales?
 - [x] Palette (2026-11-08): 292 photos with another item or no packshot no longer feed the palette
   (`data/embeddings/palette_excluded.csv`, `phase2b_palette_audit.py`); `forecast.parquet` not regenerated.
 - [ ] Photos with several pieces or a model: crop suggestions only (`phase2b_multi_item.py`,

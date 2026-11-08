@@ -11,10 +11,21 @@ CSV_DIR = ROOT / "data" / "csv"
 IMG_DIR = ROOT / "data" / "images"
 PROCESSED_DIR = ROOT / "data" / "processed"
 EMB_DIR = ROOT / "data" / "embeddings"  # masks and embeddings (committed, computed on one machine)
+PALETTE_EXCLUDED_FILE = EMB_DIR / "palette_excluded.csv"  # photos whose palette must not be used (phase2b_palette_audit.py)
 OUT_DIR = ROOT / "outputs" / "phase1"  # reports and review batches of Phase 1
 BATCH_DIR = OUT_DIR / "batches"
 
 KEY = "PROD_CLR_EQUIV"
+
+
+def palette_excluded() -> set[str]:
+    """Colourways whose photo shows another item or is not a packshot: the image block keeps them, the palette does not."""
+    if not PALETTE_EXCLUDED_FILE.exists():
+        return set()
+    import pandas as pd  # local: config stays importable without pandas
+    return set(pd.read_csv(PALETTE_EXCLUDED_FILE, encoding="utf-8-sig")[KEY].astype(str))
+
+
 # Phase 1 review: batch number -> team member (used with --members 5).
 TEAM = {1: "André", 2: "Pedro Correia", 3: "Pedro Meireles", 4: "Manuel", 5: "Zé"}
 # Codes must stay strings (leading zeros, no float conversion).

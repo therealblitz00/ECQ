@@ -18,7 +18,7 @@ Output: `data/processed/neighbours.parquet` (105,550 rows: query, rank, candidat
 | `categorical` | 0.33 | 10,555 |
 | `text` | 0.08 | 10,555 |
 | `composition` | 0.07 | 10,554 |
-| `palette` | 0.03 | 9,445 |
+| `palette` | 0.03 | 9,153 |
 | `numeric` | 0.07 | 10,555 |
 
 The `image` block only uses photos with `img_trusted`, the `palette` block only photos with `img_colour_trusted`.
@@ -45,7 +45,7 @@ of the higher to the lower price (1.00 = same price). A first sanity check; Phas
 | CAT | score_rank1 | score_rank4 | same_family | same_subfamily | same_colour | median price ratio |
 |---|---|---|---|---|---|---|
 | Apparel | 0.82 | 0.77 | 98% | 96% | 43% | 1.08 |
-| Footwear | 0.84 | 0.78 | 99% | 93% | 49% | 1.09 |
+| Footwear | 0.84 | 0.78 | 99% | 93% | 49% | 1.08 |
 | Hand Bag | 0.83 | 0.77 | 94% | 82% | 57% | 1.00 |
 | Jewellery | 0.86 | 0.81 | 100% | 91% | 70% | 1.00 |
 | Wallet | 0.81 | 0.75 | 95% | 83% | 52% | 1.00 |
@@ -59,8 +59,8 @@ of the higher to the lower price (1.00 = same price). A first sanity check; Phas
 
 | CAT | image | categorical | text | composition | palette | numeric |
 |---|---|---|---|---|---|---|
-| Apparel | 32% | 41% | 10% | 8% | 2% | 7% |
-| Footwear | 41% | 34% | 9% | 8% | 3% | 6% |
+| Apparel | 32% | 41% | 10% | 8% | 1% | 7% |
+| Footwear | 41% | 34% | 9% | 8% | 2% | 6% |
 | Hand Bag | 36% | 37% | 10% | 8% | 2% | 6% |
 | Jewellery | 36% | 39% | 10% | 6% | 2% | 7% |
 | Wallet | 40% | 34% | 9% | 8% | 2% | 6% |

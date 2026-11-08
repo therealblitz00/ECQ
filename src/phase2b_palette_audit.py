@@ -36,7 +36,7 @@ import phase2a_colour as pc  # noqa: E402
 import phase2b_palettes as pal_mod  # noqa: E402
 import phase3_engine as engine  # noqa: E402
 import phase4_feedback as fb  # noqa: E402
-from config import EMB_DIR, IMG_DIR, KEY, PROCESSED_DIR, ROOT  # noqa: E402
+from config import EMB_DIR, IMG_DIR, KEY, PALETTE_EXCLUDED_FILE, PROCESSED_DIR, ROOT  # noqa: E402
 
 OUT_DIR = ROOT / "outputs" / "phase2b"
 SEED = 0
@@ -465,6 +465,9 @@ def run() -> None:
 
     # --- 2c. weights
     flagged = set(t.loc[t["ptype"].isin(["other item in frame", "not a packshot"]), KEY])
+    # the exclusion list the engine reads (config.palette_excluded): flag, never delete; the photo stays in the image block
+    (t.loc[t[KEY].isin(flagged), [KEY, "ptype"]].rename(columns={"ptype": "reason"}).sort_values(KEY)
+     .to_csv(PALETTE_EXCLUDED_FILE, index=False, encoding="utf-8-sig"))
     sweep, sinfo = pool_sweep(flagged)
     em = pd.read_csv(ROOT / "outputs" / "phase4" / "eval_metrics.csv", encoding="utf-8-sig").set_index("configuration")
     ab = em.loc[["current weights", "without palette", "only palette"],

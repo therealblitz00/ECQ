@@ -34,7 +34,7 @@ from PIL import Image, ImageDraw
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import phase1_clean  # noqa: E402
-from config import EMB_DIR, KEY, PROCESSED_DIR, ROOT  # noqa: E402
+from config import EMB_DIR, KEY, PROCESSED_DIR, ROOT, palette_excluded  # noqa: E402
 
 REPORT_DIR = ROOT / "outputs" / "phase2a"
 REFERENCE_FILE = PROCESSED_DIR / "colour_reference.parquet"
@@ -73,7 +73,8 @@ def reference_colours(items: pd.DataFrame, palettes: pd.DataFrame | None, min_ph
     ref = pd.DataFrame({"CLR_DES": names, "items": items["CLR_DES"].value_counts().reindex(names).to_numpy()})
     ref[["photos", "L", "a", "b"]] = np.nan
     if palettes is not None and len(palettes):
-        trusted = items.loc[items["img_colour_trusted"].fillna(False).astype(bool), [KEY, "CLR_DES"]]
+        ok = items["img_colour_trusted"].fillna(False).astype(bool) & ~items[KEY].isin(palette_excluded())
+        trusted = items.loc[ok, [KEY, "CLR_DES"]]
         pal = palettes[palettes["reliable"]].merge(trusted, on=KEY)
         # the dominant colour of each photo (largest share of the product pixels)
         dom = np.stack([np.stack(lab)[int(np.argmax(s))] for lab, s in zip(pal["lab"], pal["shares"])]) \

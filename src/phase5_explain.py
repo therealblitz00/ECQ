@@ -35,7 +35,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import phase1_clean  # noqa: E402
 import phase3_engine as engine  # noqa: E402
-from config import EMB_DIR, KEY, PROCESSED_DIR, ROOT  # noqa: E402
+from config import EMB_DIR, KEY, PROCESSED_DIR, ROOT, palette_excluded  # noqa: E402
 
 REPORT_DIR = ROOT / "outputs" / "phase5"
 OUT_FILE = "explanations.parquet"
@@ -97,7 +97,7 @@ class Context:
         if not path.exists():
             return {}
         pal = pd.read_parquet(path)
-        trusted = set(self.items.loc[self.items["img_colour_trusted"].fillna(False).astype(bool), KEY])
+        trusted = set(self.items.loc[self.items["img_colour_trusted"].fillna(False).astype(bool), KEY]) - palette_excluded()
         out = {}
         for k, names, shares in zip(pal[KEY], pal["names"], pal["shares"]):
             if k in trusted:

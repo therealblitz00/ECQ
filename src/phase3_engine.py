@@ -38,7 +38,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import phase1_clean  # noqa: E402
-from config import EMB_DIR, IMG_DIR, KEY, PROCESSED_DIR, ROOT  # noqa: E402
+from config import EMB_DIR, IMG_DIR, KEY, PROCESSED_DIR, ROOT, palette_excluded  # noqa: E402
 
 WEIGHTS_FILE = Path(__file__).resolve().parent / "phase3_weights.json"
 OUT_FILE = "neighbours.parquet"
@@ -86,7 +86,9 @@ def load_blocks(items: pd.DataFrame, image: str | None = None) -> dict[str, np.n
                               items["img_trusted"].fillna(False).to_numpy(bool))
     pal = pd.read_parquet(EMB_DIR / "palettes.parquet")
     blocks["palette"] = aligned(keys, np.stack(pal["palette_vector"].map(np.asarray)).astype(np.float32),
-                                pal[KEY].tolist(), items["img_colour_trusted"].fillna(False).to_numpy(bool))
+                                pal[KEY].tolist(),
+                                items["img_colour_trusted"].fillna(False).to_numpy(bool)
+                                & ~items[KEY].isin(palette_excluded()).to_numpy())
     return blocks
 
 

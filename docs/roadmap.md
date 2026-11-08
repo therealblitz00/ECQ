@@ -313,6 +313,9 @@ There is no labelled ground truth, so combine several signals:
   asked. Treated as limitations, written in the final report: the 38 `certain` landed costs are flagged and not
   corrected (the CSV is never changed; ignoring them gave no measurable gain), and whether `FASHIONTYPE` /
   `CATEGORY_MATRIX` are revised after the first sales stays untested.
+- [ ] Products without a landed cost (2026-11-08, `phase5b_nocost_rule.py` → `nocost_rule.md`): the similar-products
+  estimate against the model without cost. Seen on the 242 test; decided on the validation split 232 → 241 with a rule
+  fixed before the run (95% interval in euros above 0). Change `phase5b_forecast.py` only if the rule passes.
 - [x] Palette (2026-11-08): 292 photos with another item or no packshot no longer feed the palette
   (`data/embeddings/palette_excluded.csv`, `phase2b_palette_audit.py`); `forecast.parquet` not regenerated.
 - [ ] Photos with several pieces or a model: crop suggestions only (`phase2b_multi_item.py`,

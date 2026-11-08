@@ -109,7 +109,8 @@ def run_variants(items, blocks, weights, flags: pd.DataFrame, boot: int) -> dict
                        "bias": m["bias"]}
                 for sub in ("certain", "suspect"):
                     s = flag_ev == sub
-                    row[f"mae_eur on {sub} costs (n={int(s.sum())})"] = (
+                    row[f"n {sub}"] = int(s.sum())
+                    row[f"mae_eur {sub}"] = (
                         float(np.mean(np.abs(np.exp(y[ev][s]) - np.exp(p[ev][s])))) if s.any() else np.nan)
                 rows.append(row)
         metric = lambda yy, pp, _: -fc.price_metrics(yy, pp, np.sort(items["PRICE_BASE_W_VAT"].astype(float).unique()))["mae_eur"]  # noqa: E731
@@ -144,8 +145,10 @@ def write_report(items, flags: pd.DataFrame, res: dict) -> None:
     res["rows"].to_csv(fc.REPORT_DIR / "cost_check_results.csv", index=False, encoding="utf-8-sig")
     counts = flags.groupby(["cost_flag", "SEA_COD"]).size().unstack(fill_value=0)
     tests = flags[["test_cost_not_positive", "test_cost_above_price", "test_far_from_other_colours"]].sum()
-    clear = flags[flags["cost_flag"] == "certain"].assign(
-        severity=lambda d: np.maximum(d["cost"] / d["price"], 1 / (d["cost"].clip(lower=1e-6) / d["price"]))
+    # costs <= 0 are already treated as missing by the model: the cases to ask about are the others
+    clear = flags[(flags["cost_flag"] == "certain") & ~flags["test_cost_not_positive"]].assign(
+        severity=lambda d: np.maximum(d["cost"] / d["price"], d["cost_vs_other_colours"].fillna(1).clip(lower=1e-6)
+                                      .rpow(1).pipe(lambda r: np.maximum(r, 1 / r)))
     ).sort_values("severity", ascending=False).head(10)
     clear_t = clear[[KEY, "CAT_DES_EN", "cost", "price", "other_colours_median_cost"]].round(2)
     cat = error_by_category(items, res)
@@ -172,6 +175,8 @@ The ten clearest cases to ask Parfois about:
 ## Price error with and without the flagged costs
 
 {fc._md(tbl, pct={"mape", "within_1_point", "bias"}, digits=3)}
+
+`n certain` / `n suspect`: evaluation products with that flag (costs <= 0 are missing for the model in every variant).
 
 Paired change against the current model (95% interval, resampling models; positive = fewer euros of error):
 

@@ -839,3 +839,8 @@ Delivered afterwards (same day): the sales estimate is the LightGBM + CatBoost a
 `average_report.md`; typical error ×1.49 out of fold on 241, not comparable with the earlier ×1.71).
 Not possible: asking Parfois about the costs and the planning classes; both are limitations. Not done: nobody reviews
 the crop suggestions, so no crop is applied.
+
+Control embedding (same day, `outputs/phase2b/multi_item_report.md` § 6): `open_clip_torch` installed;
+`image_fashionsiglip_nopersoncrops.npy` computed. Only the 6 accepted re-crops differ from it and every aggregate signal is
+equal to three decimals, so the effect of the person re-crops on the engine is nil in aggregate; they stay for the single
+wrong photos. `outputs/phase2b/image_encoders.csv` regenerated for the five embeddings with the current engine.

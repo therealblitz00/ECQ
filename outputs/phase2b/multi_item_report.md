@@ -185,3 +185,17 @@ python src/phase2b_palettes.py        # palette on the same crops (light environ
 ```
 
 Compare the three FashionSigLIP files on the affected groups (section 3) and on the global team metric; adopt the crops only if the affected groups improve and the guards in `compare_report.md` hold. The control matters: it is the only way to isolate the effect of the person crops, which the saved files cannot show.
+
+## 6. Control embedding, run on 2026-11-08
+
+`python src/phase2b_image_encoders.py embed --model fashionsiglip --no-person-crops` (open_clip_torch 4.2.1, CPU, 1,018 s)
+wrote `data/embeddings/image_fashionsiglip_nopersoncrops.npy` (9,490 photos, the Phase 1b crops unchanged).
+
+- Only the 6 accepted person re-crops change the vector (cosine to the control 0.74 to 0.96: `211451_BM` 0.741,
+  `221878_BK` 0.901, `221878_WT` 0.904, `222924_BK` 0.919, `224206_IG` 0.948, `223997_NM` 0.955); the other 9,484 are identical.
+- On every signal of `phase4_compare.py encoders` the two FashionSigLIP rows are equal to three decimals (team preferences
+  0.721 fixed / 0.740 cross-validated; same sub-family 0.681; same material 0.391; same finish 0.619; brief ranks
+  `[269, 30, 58, 577]`). Six photos out of 9,490 cannot move an aggregate: the re-crops are kept because they fix single
+  wrong vectors (`211451_BM`, a swimsuit, no longer looks like trousers), not because they raise a metric.
+- No further crop is applied: nobody reviewed the new suggestions, so `multi_item_reviewed.json` stays empty.
+

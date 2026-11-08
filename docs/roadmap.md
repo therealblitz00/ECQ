@@ -313,6 +313,9 @@ There is no labelled ground truth, so combine several signals:
   asked. Treated as limitations, written in the final report: the 38 `certain` landed costs are flagged and not
   corrected (the CSV is never changed; ignoring them gave no measurable gain), and whether `FASHIONTYPE` /
   `CATEGORY_MATRIX` are revised after the first sales stays untested.
+- [x] Largest price errors on the official test 232 + 241 → 242 (2026-11-08, progress.md §25.15; `phase5b_price_errors.py` → `price_errors.md`):
+  worst 10% in € and in % by category, family, collection, fashion type, price band, markup and cost flag; products
+  without a cost (fallback against the analogue estimate); list price against the realised average price (descriptive).
 - [x] Palette (2026-11-08): 292 photos with another item or no packshot no longer feed the palette
   (`data/embeddings/palette_excluded.csv`, `phase2b_palette_audit.py`); `forecast.parquet` not regenerated.
 - [ ] Photos with several pieces or a model: crop suggestions only (`phase2b_multi_item.py`,

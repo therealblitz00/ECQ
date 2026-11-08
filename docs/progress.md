@@ -844,3 +844,35 @@ Control embedding (same day, `outputs/phase2b/multi_item_report.md` § 6): `open
 `image_fashionsiglip_nopersoncrops.npy` computed. Only the 6 accepted re-crops differ from it and every aggregate signal is
 equal to three decimals, so the effect of the person re-crops on the engine is nil in aggregate; they stay for the single
 wrong photos. `outputs/phase2b/image_encoders.csv` regenerated for the five embeddings with the current engine.
+
+### 25.15 Largest price errors on the official test 232 + 241 → 242 (2026-11-08)
+
+Follow-up of the professor's comment on the price error margins. `src/phase5b_price_errors.py` reruns the chosen price
+model on the official split (same numbers as `forecast_report.md`: 3,728 new 242 models, MAE 2.645 €, MAPE 10.0%) and
+describes the 10% largest errors in € and in % (373 products each, 170 in both). Nothing in the model or its outputs
+changes. Report: `outputs/phase5b/price_errors.md`; per product: `price_errors.csv`.
+
+Decisions: the official split instead of `estimates.csv` (cross-validated across seasons, lower errors); groups under
+25 test products pooled; "unusual markup" = price / cost outside 0.8–1.25x the category median of the training seasons
+(computed with the actual price, so it describes the error after the fact).
+
+| Question | Result |
+|---|---|
+| How concentrated is the error | The worst 10% in € carry 53% of all euros of error. |
+| Direction | 74% of the worst in € and 71% of the worst in % are estimated too low. Over all test products, 37% are estimated too high. |
+| Worst in € | Expensive apparel: products of 40 € or more are 7% of the test and 44% of the worst in €; 34 of the 46 coats are in the worst in €. Exclusive Online: 8% of the test, 26% of the worst in €. |
+| Worst in % | Cheap jewellery: earrings are 20% of the test and 32% of the worst in %; products of 10–20 € are 22% of the test and 35% of the worst in %. Capsule fashion type: 35% of its products are in the worst in %. |
+| One collection | 17 products of the bridal capsule (Exclusive Online) carry 13% of all euros of error; without them the MAE is 2.31 €. Seven of them are listed at 170–250 € with a landed cost of exactly 25.00 € and are estimated at about 50 €. |
+| Unusual markups | Markup below 0.8x the category: 10% of the test, 28% of the worst in €, estimated too high in 61% of the cases. Above 1.25x: 22% of the test, 31% of the worst in %. |
+| Cost flags | No `certain` flag among the test products. The 39 `suspect` ones (1%) are 5% of the worst (46–49% of them are in the worst). |
+| Products without a cost (129, mostly apparel and jewellery) | MAE 7.72 € with the fallback model against 6.03 € with the similar-products estimate; paired difference +0.73 to +2.72 € per product in favour of the similar products. With a cost, the model is ahead (2.46 € against 3.69 €). |
+| Example `216630_BK` (validation 232 → 241) | Real-fur shopper, 120 € list price, 30.94 € cost (markup 3.88x). Estimated at 72.40 €: the cost lowers the estimated markup by a factor of 0.34 (SHAP), so a high cost is read as a lower markup. No product of its sub-family has a cost in 232. |
+| List price against realised average price | Median realised / list price: 0.77 (232), 0.83 (241), 0.91 (242). Descriptive only: whether `SALES_AMT_FX_RATE` includes VAT, and in which currencies the sales were made, is not documented. |
+
+Questions this raises (not acted on): use the similar-products estimate for products without a cost (a change to
+`phase5b_forecast.py`, to be decided by the team); ask Parfois whether the bridal capsule costs (25.00 €) and the
+realised-price gap are as recorded.
+
+Note on the environment: `phase5b_forecast.py` needs `scikit-learn` (LightGBM's scikit-learn interface) and
+`tests/test_phase5b_catboost.py` needs `catboost`; neither is in `requirements.txt`, so a fresh clone fails both until
+they are installed by hand.

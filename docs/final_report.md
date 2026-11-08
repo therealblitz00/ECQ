@@ -133,6 +133,13 @@ exist; `177781_LB` is used (its photo is the one on the slide).
   them is unknown.
 - The engine's weights were tuned with the sales correlation in the objective, so the similar-products sales estimate
   is slightly optimistic.
+- The sales target is what the order and the allocation allowed to sell, not demand (no stock or sell-through data), and
+  season 241 is not a whole life (15-53 weeks on sale at the extraction): the estimate is made at 64 weeks on sale
+  (`outputs/phase5b/upstream_audit.md`, `average_report.md`).
+- Landed costs: 38 are almost certainly wrong and 248 are suspect (`outputs/phase5b/cost_check.md`). They are flagged,
+  never corrected, and nobody could confirm them with Parfois. Ignoring the certain ones gave no measurable gain.
+- Photos with several pieces or a model: crop suggestions exist (`outputs/phase2b/multi_item_report.md`) but nobody
+  reviewed them, so none is applied. 292 photos no longer feed the palette.
 
 ## 9. Open questions for the professor
 

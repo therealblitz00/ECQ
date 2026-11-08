@@ -309,7 +309,10 @@ There is no labelled ground truth, so combine several signals:
   LightGBM and CatBoost, trained with the weeks on sale and estimated at 64 weeks; range and typical error out of fold
   on 241 (×1.49, not comparable with the earlier ×1.71 of a single split). Previous estimate kept in
   `sales_estimate_lightgbm`. Run `phase5b_forecast.py run`, then `phase5b_average.py run`.
-- [ ] Questions for Parfois: costs in `cost_check.md`; are the planning classes revised after the first sales?
+- [x] Questions for Parfois (costs in `cost_check.md`; are the planning classes revised after the first sales?): cannot be
+  asked. Treated as limitations, written in the final report: the 38 `certain` landed costs are flagged and not
+  corrected (the CSV is never changed; ignoring them gave no measurable gain), and whether `FASHIONTYPE` /
+  `CATEGORY_MATRIX` are revised after the first sales stays untested.
 - [x] Palette (2026-11-08): 292 photos with another item or no packshot no longer feed the palette
   (`data/embeddings/palette_excluded.csv`, `phase2b_palette_audit.py`); `forecast.parquet` not regenerated.
 - [ ] Photos with several pieces or a model: crop suggestions only (`phase2b_multi_item.py`,

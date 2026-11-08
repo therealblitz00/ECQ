@@ -835,4 +835,7 @@ All numbers are in the reports named below; nothing here changes the delivered `
 | Photos with several pieces or a model | 317 photos with a person, 720 with several pieces. Crop suggestions only; the embeddings of the crops need the vision machine. | `outputs/phase2b/multi_item_report.md` |
 | Landed-cost check (team review of the largest errors) | 38 certain and 248 suspect costs. Ignoring the certain ones is safe (test −0.040 to +0.051 EUR per product); ignoring the suspect ones is not confirmed (validation +0.19 to +0.34, test −0.10 to +0.01). | `cost_check.md` |
 
-Open: which sales model is delivered, the questions to Parfois, and the review of the crops.
+Delivered afterwards (same day): the sales estimate is the LightGBM + CatBoost average with the weeks on sale (`phase5b_average.py`,
+`average_report.md`; typical error ×1.49 out of fold on 241, not comparable with the earlier ×1.71).
+Not possible: asking Parfois about the costs and the planning classes; both are limitations. Not done: nobody reviews
+the crop suggestions, so no crop is applied.

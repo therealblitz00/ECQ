@@ -158,7 +158,7 @@ the app replaces them.
 │   ├── csv/                   df_product.csv (17,125 SKUs), df_sales.csv (10,185 colourways)   READ-ONLY
 │   ├── images/                9,496 product photos                                              READ-ONLY
 │   ├── embeddings/            masks, image embeddings, image-check flags (computed once, in git)
-│   └── processed/             generated tables, not in git (items_clean, features_*, neighbours)
+│   └── processed/             generated tables, in git (items_clean, features_*, neighbours, forecast)
 └── outputs/
     ├── phase1/                check report, cleaning report, review_vocabulary.csv, review batches (batches/)
     ├── phase1b/               image-check report and contact sheets

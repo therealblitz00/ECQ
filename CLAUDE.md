@@ -40,7 +40,7 @@ docs and reports. Talking to the team in Portuguese is fine; the files stay in E
 ```
 data/csv/          original CSVs                     READ-ONLY
 data/images/       9,496 product photos              READ-ONLY
-data/processed/    parquet outputs of each phase     regenerated, not in git
+data/processed/    parquet outputs of each phase     in git since 2026-11-08 (110 MB); regenerate with the commands below, then commit
 data/embeddings/   masks + image/text embeddings     computed once, committed
 src/               pipeline scripts (see below)
 outputs/phase<N>/  reports, review batches, contact sheets of each phase
@@ -177,8 +177,9 @@ python -m venv .venv
 .venv/Scripts/python src/phase1b_precision.py                # flag precision from the merged review (light environment)
 ```
 
-`data/processed/` is not in git: run `check` and then `python src/phase1_clean.py` after cloning
-(the setup scripts do both).
+`data/processed/` is in git (since 2026-11-08), so a clone already has the tables, features, neighbours,
+explanations and `forecast.parquet`. If you change a phase, rerun it and commit its outputs together with the code; after
+cloning you only need `check` and `python src/phase1_clean.py` if you want to rebuild from the CSVs.
 
 **Input of Phase 2 onwards:** always `phase1_clean.load_items()`. It returns
 `items_clean.parquet` (after the human review is merged) or else `items_preview.parquet` (before

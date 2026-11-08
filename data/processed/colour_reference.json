@@ -1,0 +1,20 @@
+{
+ "method": "median CIELAB of the dominant palette colour of trusted packshots per CLR_DES",
+ "tau": 8.0,
+ "l_weight": 0.5,
+ "min_photos": 5,
+ "metallic": [
+  "Black Nickel",
+  "Bronze",
+  "Copper",
+  "Gold",
+  "Light Gold",
+  "Nickel",
+  "Old Gold",
+  "Old Silver",
+  "Rose Gold",
+  "Silver"
+ ],
+ "similarity": "exp(-d^2 / (2 tau^2)), d = LAB distance with L scaled by l_weight; no reference: 1 only with itself",
+ "source": "data/embeddings/palettes.parquet"
+}

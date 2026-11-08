@@ -1,0 +1,35 @@
+{
+ "k": 10,
+ "scope": "category",
+ "include_siblings": false,
+ "weights": {
+  "image": 0.4246,
+  "categorical": 0.3318,
+  "text": 0.0767,
+  "composition": 0.0671,
+  "palette": 0.034,
+  "numeric": 0.066
+ },
+ "source": "items_clean",
+ "rows": 105550,
+ "queries": 10555,
+ "columns": [
+  "query",
+  "rank",
+  "candidate",
+  "score",
+  "sim_image",
+  "contrib_image",
+  "sim_categorical",
+  "contrib_categorical",
+  "sim_text",
+  "contrib_text",
+  "sim_composition",
+  "contrib_composition",
+  "sim_palette",
+  "contrib_palette",
+  "sim_numeric",
+  "contrib_numeric"
+ ],
+ "created": "2026-11-08T12:36:38+00:00"
+}

@@ -1,0 +1,342 @@
+{
+ "created": "2026-11-08T13:10:08+00:00",
+ "sales_validation": [
+  [
+   "232"
+  ],
+  "241",
+  0
+ ],
+ "sales_test": [
+  [
+   "232"
+  ],
+  "241",
+  1
+ ],
+ "price_validation": [
+  [
+   "232"
+  ],
+  "241"
+ ],
+ "price_test": [
+  [
+   "232",
+   "241"
+  ],
+  "242"
+ ],
+ "complete_seasons": [
+  "232",
+  "241"
+ ],
+ "k_analogues": 10,
+ "pcs": 16,
+ "lgb_params": {
+  "objective": "regression_l2",
+  "learning_rate": 0.03,
+  "num_leaves": 31,
+  "min_child_samples": 20,
+  "feature_fraction": 0.8,
+  "bagging_fraction": 0.8,
+  "bagging_freq": 1,
+  "lambda_l2": 1.0,
+  "n_estimators": 600,
+  "random_state": 0,
+  "deterministic": true,
+  "force_col_wise": true,
+  "num_threads": 4,
+  "verbose": -1
+ },
+ "weights": {
+  "image": 0.4246,
+  "categorical": 0.3318,
+  "text": 0.0767,
+  "composition": 0.0671,
+  "palette": 0.034,
+  "numeric": 0.066
+ },
+ "image_embedding": "image_fashionsiglip",
+ "decisions": {
+  "model": "Gradient boosting against the best baseline on validation: units error \u00d71.67 vs \u00d71.94; price error 2.18 \u20ac vs 2.50 \u20ac.",
+  "analogue_sales": "Similar past products as a feature (sales): validation gain -0.033 to +0.015 (same-month ranking) -> not kept (interval includes 0): the simpler model.",
+  "analogue_price": "Similar past products as a feature (price): validation gain +0.054 to +0.156 (\u20ac of error saved) -> kept."
+ },
+ "use_analogue": {
+  "sales": false,
+  "price": true
+ },
+ "typical_error": {
+  "sales": 1.6890034421510485,
+  "sales_within_2x": 0.7569637883008357,
+  "price": 2.6862353461421717,
+  "sales_range_log": [
+   -0.6882239052182064,
+   0.8449653699492785
+  ],
+  "price_range_log": [
+   -0.10994441930237184,
+   0.20932993087717175
+  ]
+ },
+ "conformal": {
+  "sales": {
+   "q": 0.14743573990453218,
+   "table": {
+    "global (same factor for every product)": {
+     "coverage": 0.8175487465181058,
+     "median width (high / low)": 5.010203092181995,
+     "mean log width": 1.6114764516368323,
+     "coverage, worst category": 0.7697262479871175,
+     "coverage, best category": 0.952054794520548,
+     "width, 90th / 10th percentile": 1.0000000000000009
+    },
+    "quantile models, not calibrated": {
+     "coverage": 0.6720055710306406,
+     "median width (high / low)": 3.1340995023685476,
+     "mean log width": 1.2306819041169663,
+     "coverage, worst category": 0.5856164383561644,
+     "coverage, best category": 0.7185185185185186,
+     "width, 90th / 10th percentile": 3.8257685594604385
+    },
+    "conformalised quantiles (delivered)": {
+     "coverage": 0.8043175487465181,
+     "median width (high / low)": 4.223156947884425,
+     "mean log width": 1.530457370770199,
+     "coverage, worst category": 0.7758620689655172,
+     "coverage, best category": 0.8132045088566827,
+     "width, 90th / 10th percentile": 3.852141637926622
+    }
+   },
+   "n_cal": 1469,
+   "n_check": 1436,
+   "typical": 1.6890034421510485,
+   "within_2x": 0.7569637883008357,
+   "same_month": 0.5015616751729537,
+   "top20": 0.36678200692041524
+  },
+  "sales_with_buyer": {
+   "q": 0.1462128758959344,
+   "table": {
+    "global (same factor for every product)": {
+     "coverage": 0.7910863509749304,
+     "median width (high / low)": 4.047194312437635,
+     "mean log width": 1.3980238786866448,
+     "coverage, worst category": 0.7359098228663447,
+     "coverage, best category": 0.9417808219178082,
+     "width, 90th / 10th percentile": 1.0000000000000018
+    },
+    "quantile models, not calibrated": {
+     "coverage": 0.6483286908077994,
+     "median width (high / low)": 2.5851883579942037,
+     "mean log width": 1.0782054115841564,
+     "coverage, worst category": 0.6051282051282051,
+     "coverage, best category": 0.7413793103448276,
+     "width, 90th / 10th percentile": 3.967551419733398
+    },
+    "conformalised quantiles (delivered)": {
+     "coverage": 0.8133704735376045,
+     "median width (high / low)": 3.475651275045777,
+     "mean log width": 1.376066712263134,
+     "coverage, worst category": 0.774074074074074,
+     "coverage, best category": 0.8493150684931506,
+     "width, 90th / 10th percentile": 3.958965095023501
+    }
+   },
+   "n_cal": 1469,
+   "n_check": 1436,
+   "typical": 1.6316222432812335,
+   "within_2x": 0.786908077994429,
+   "same_month": 0.6121811629295365,
+   "top20": 0.5086505190311419
+  }
+ },
+ "sales_test_table": {
+  "category median": {
+   "spearman_within_cat": 0.0,
+   "spearman_same_month": 0.0,
+   "mae_log": 0.7360157803928337,
+   "bias_log": 0.23597418328143144,
+   "within_2x": 0.6733983286908078,
+   "top20_precision": 0.2179930795847751
+  },
+  "family + price band median": {
+   "spearman_within_cat": 0.3312436659413961,
+   "spearman_same_month": 0.28992159619057717,
+   "mae_log": 0.7184338707761698,
+   "bias_log": 0.07389940867736018,
+   "within_2x": 0.6984679665738162,
+   "top20_precision": 0.29411764705882354
+  },
+  "launch month + category only": {
+   "spearman_within_cat": 0.03833232993499928,
+   "spearman_same_month": 0.0,
+   "mae_log": 1.172725551526042,
+   "bias_log": 0.013708139963028651,
+   "within_2x": 0.4477715877437326,
+   "top20_precision": 0.18685121107266436
+  },
+  "similar past products (engine)": {
+   "spearman_within_cat": 0.3514153306265107,
+   "spearman_same_month": 0.34216817938496535,
+   "mae_log": 0.7059208695154638,
+   "bias_log": 0.03410476383704434,
+   "within_2x": 0.6594707520891365,
+   "top20_precision": 0.32525951557093424
+  },
+  "gradient boosting, no analogues": {
+   "spearman_within_cat": 0.5438153438991059,
+   "spearman_same_month": 0.5015616751729537,
+   "mae_log": 0.524138675805261,
+   "bias_log": -0.06507200926003853,
+   "within_2x": 0.7569637883008357,
+   "top20_precision": 0.36678200692041524
+  },
+  "gradient boosting + analogues": {
+   "spearman_within_cat": 0.5324929706723174,
+   "spearman_same_month": 0.4935611574798016,
+   "mae_log": 0.5266303581400467,
+   "bias_log": -0.06016591239461319,
+   "within_2x": 0.7541782729805014,
+   "top20_precision": 0.3737024221453287
+  },
+  "reference: + buyer decisions (not used)": {
+   "spearman_within_cat": 0.6494652674811213,
+   "spearman_same_month": 0.6121811629295365,
+   "mae_log": 0.48957476117125387,
+   "bias_log": -0.054630199030712465,
+   "within_2x": 0.786908077994429,
+   "top20_precision": 0.5086505190311419
+  }
+ },
+ "price_test_table": {
+  "category median": {
+   "mae_eur": 5.761284871244635,
+   "mape": 0.22997925835452204,
+   "bias": -0.06107357519606027,
+   "exact_price_point": 0.2322961373390558,
+   "within_1_point": 0.4455472103004292,
+   "spearman": 0.8507362321670887
+  },
+  "sub-family median": {
+   "mae_eur": 4.159521135226184,
+   "mape": 0.1552082264531503,
+   "bias": -0.06503839277519696,
+   "exact_price_point": 0.3320815450643777,
+   "within_1_point": 0.5965665236051502,
+   "spearman": 0.9160464224435667
+  },
+  "cost \u00d7 sub-family median markup": {
+   "mae_eur": 5.3170003564009445,
+   "mape": 0.2139893458347404,
+   "bias": -0.05919645482796887,
+   "exact_price_point": 0.20091201716738197,
+   "within_1_point": 0.5423819742489271,
+   "spearman": 0.9517368793372333
+  },
+  "similar past products (engine)": {
+   "mae_eur": 3.7700740920180866,
+   "mape": 0.13665912948284414,
+   "bias": -0.05636841449500074,
+   "exact_price_point": 0.3151824034334764,
+   "within_1_point": 0.6786480686695279,
+   "spearman": 0.9447201797799539
+  },
+  "gradient boosting without cost (previous model)": {
+   "mae_eur": 3.392078120225618,
+   "mape": 0.1210605174245228,
+   "bias": -0.04018732082007448,
+   "exact_price_point": 0.338519313304721,
+   "within_1_point": 0.7162017167381974,
+   "spearman": 0.9616720760592107
+  },
+  "gradient boosting, no analogues": {
+   "mae_eur": 2.6453423314586084,
+   "mape": 0.09982433397080459,
+   "bias": -0.04480998893397847,
+   "exact_price_point": 0.3688304721030043,
+   "within_1_point": 0.7848712446351931,
+   "spearman": 0.97725925494743
+  },
+  "gradient boosting + analogues": {
+   "mae_eur": 2.6862353461421717,
+   "mape": 0.10142071134691005,
+   "bias": -0.044948597964843184,
+   "exact_price_point": 0.3709763948497854,
+   "within_1_point": 0.7736051502145923,
+   "spearman": 0.9762435050398551
+  }
+ },
+ "sales_rank_242": {
+  "category median": {
+   "spearman_within_cat": 0.0,
+   "spearman_same_month": 0.0,
+   "mae_log": 1.6070892815017217,
+   "bias_log": 1.4064218424109947,
+   "within_2x": 0.3513115237253168,
+   "top20_precision": 0.2088235294117647
+  },
+  "family + price band median": {
+   "spearman_within_cat": 0.22086054472757036,
+   "spearman_same_month": 0.18206325712925844,
+   "mae_log": 1.4954855571229253,
+   "bias_log": 1.173265784311929,
+   "within_2x": 0.35543766578249336,
+   "top20_precision": 0.3352941176470588
+  },
+  "launch month + category only": {
+   "spearman_within_cat": -0.027272585191120944,
+   "spearman_same_month": 0.0,
+   "mae_log": 1.4165503303809572,
+   "bias_log": 0.9948806812943438,
+   "within_2x": 0.4025935750073681,
+   "top20_precision": 0.31176470588235294
+  },
+  "similar past products (engine)": {
+   "spearman_within_cat": 0.31183521153543114,
+   "spearman_same_month": 0.27659290962918104,
+   "mae_log": 1.4278896018057,
+   "bias_log": 1.1653423664339224,
+   "within_2x": 0.39021514883583847,
+   "top20_precision": 0.36470588235294116
+  },
+  "gradient boosting, no analogues": {
+   "spearman_within_cat": 0.48719260543176546,
+   "spearman_same_month": 0.4046801330084077,
+   "mae_log": 1.202559067158527,
+   "bias_log": 0.9276040402416228,
+   "within_2x": 0.4500442086648983,
+   "top20_precision": 0.36911764705882355
+  },
+  "gradient boosting + analogues": {
+   "spearman_within_cat": 0.4996481909074535,
+   "spearman_same_month": 0.40803054584726306,
+   "mae_log": 1.2066838083521552,
+   "bias_log": 0.9342802782895454,
+   "within_2x": 0.4414972001178898,
+   "top20_precision": 0.38676470588235295
+  },
+  "reference: + buyer decisions (not used)": {
+   "spearman_within_cat": 0.5775178255114505,
+   "spearman_same_month": 0.5228810237033954,
+   "mae_log": 1.1612859076965938,
+   "bias_log": 0.9210485442034242,
+   "within_2x": 0.47126436781609193,
+   "top20_precision": 0.475
+  }
+ },
+ "sales_average": {
+  "created": "2026-11-08T13:14:16+00:00",
+  "models": "LightGBM + CatBoost (mean of the two)",
+  "catboost_params": {
+   "depth": 6,
+   "learning_rate": 0.03,
+   "l2_leaf_reg": 10.0
+  },
+  "reference_weeks": 64.0,
+  "conformal_q": 0.10914697029248421,
+  "typical_error": 1.4859428628076763,
+  "within_2x": 0.8578912901113294
+ }
+}

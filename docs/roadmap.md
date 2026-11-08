@@ -244,7 +244,7 @@ Some images don't match their row (e.g. the row says necklace, the image shows e
 - [x] Fallback for items without a trustworthy image (no file, or flagged in 1b): use only the tabular blocks and reweight. For `colour_unreliable` items, keep the shape signal from the image but take colour from the CSV. *(A pair is scored on the blocks both items have, with the weights rescaled; `image` uses `img_trusted` photos, `palette` only `img_colour_trusted` ones.)*
 - [x] Never return a flagged item as a match because of its image alone. *(Untrusted photos are zero rows, so they never add to a score; checked by a data contract test.)*
 
-**Output:** `data/processed/neighbours.parquet` (regenerated, not in git; rule 4: phases talk through `data/processed/`) with columns `query, rank, candidate, score, sim_<block>, contrib_<block>`; the contributions add up to the score. Settings in `neighbours.json`. Report: `outputs/phase3/engine_report.md` + `examples.jpg`.
+**Output:** `data/processed/neighbours.parquet` (regenerated and committed; rule 4: phases talk through `data/processed/`) with columns `query, rank, candidate, score, sim_<block>, contrib_<block>`; the contributions add up to the score. Settings in `neighbours.json`. Report: `outputs/phase3/engine_report.md` + `examples.jpg`.
 
 ## Phase 4: Evaluation
 

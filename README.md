@@ -144,11 +144,13 @@ the app replaces them.
 │   ├── phase1_vocab.py        allowed values for review fixes (fixed lists)
 │   ├── phase1b_image_audit.py image masks, CLIP embeddings, image checks (heavy: one machine only)
 │   ├── phase2a_*.py, phase2b_palettes.py   feature blocks, filled attributes, text embedding, colour palettes
+│   ├── phase2b_palette_audit.py, phase2b_multi_item.py   palette audit and its exclusion list, photos with a person or several pieces
 │   ├── phase3_engine.py       similarity engine (build | query) + phase3_weights.json
 │   ├── phase4_eval.py         evaluation, weight tuning, human review sheet (run | sheet)
 │   ├── phase4_feedback.py     interactive feedback app + weights learned from it (pool | app | fit)
 │   ├── phase5_explain.py      explanation of every match (build | show)
-│   ├── phase5b_forecast.py    sales and price estimates with SHAP (run)
+│   ├── phase5b_forecast.py    sales and price estimates with SHAP (run), then phase5b_average.py (delivered sales estimate)
+│   ├── phase5b_*.py           CatBoost, metrics, weeks on sale, cost check, upstream audit (reports in outputs/phase5b/)
 │   ├── phase6_deliver.py      command line, HTML report and the brief's example (query | report | brief)
 │   └── review_app.py          browser review app
 ├── tests/                     pytest suite

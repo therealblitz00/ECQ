@@ -149,7 +149,7 @@ Category-specific attributes are only filled for the categories where they apply
 |---|---|---|
 | ★ `PRICE_BASE_W_VAT` | 100% | Retail price incl. VAT. 40 price points from €3.99 to €250, mean ≈ €25. `PRICE_BASE_W_VAT_ASWAS` is identical |
 | `PRICE_OUTLET_W_VAT` | 100% | Outlet/markdown price |
-| `PRICE_LCP` | 96% | Landed cost price |
+| `PRICE_LCP` | 96% | Landed cost price. 38 values are almost certainly wrong (cost <= 0, above the price, or more than 5x from the other colours of the model) and 248 are suspect: flagged in `outputs/phase5b/cost_flags.csv`, never edited |
 | `TRANSP_COST` | 92% | Transport cost per unit |
 
 #### Dates and life cycle

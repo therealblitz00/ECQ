@@ -844,3 +844,20 @@ Control embedding (same day, `outputs/phase2b/multi_item_report.md` § 6): `open
 `image_fashionsiglip_nopersoncrops.npy` computed. Only the 6 accepted re-crops differ from it and every aggregate signal is
 equal to three decimals, so the effect of the person re-crops on the engine is nil in aggregate; they stay for the single
 wrong photos. `outputs/phase2b/image_encoders.csv` regenerated for the five embeddings with the current engine.
+
+### 25.16 Products without a landed cost: similar-products estimate not adopted (2026-11-08)
+
+On the official test (232 + 241 → 242) the similar-products estimate had a smaller error than the model without cost on
+the 129 products without a cost (branch `s3/price-errors`, `price_errors.md`). That came from the test, so the change was
+decided on the validation split 232 → 241 with a rule fixed before the run: adopt it only if the 95% interval of the
+paired difference in euros is above 0. Script: `src/phase5b_nocost_rule.py`; report: `outputs/phase5b/nocost_rule.md`.
+
+| Split | Products without a cost | MAE € model without cost | MAE € similar products | Paired difference (95%, + = similar products better) |
+|---|---|---|---|---|
+| Validation 232 → 241 (decides) | 6 | 2.49 | 4.04 | −4.38 to +0.54 € |
+| Test 232 + 241 → 242 (reported) | 129 | 7.72 | 6.03 | +0.73 to +2.72 € |
+
+Decision: the rule does not pass; the model without cost stays and `phase5b_forecast.py` is unchanged. With 6 products
+the validation cannot confirm or reject the 242 observation: products without a cost are rare in 241 (6) and frequent in
+242 (129). On the whole 242 test the rule would lower the MAE from 2.645 € to 2.587 €; this number is not a blind check,
+because the idea came from that test.

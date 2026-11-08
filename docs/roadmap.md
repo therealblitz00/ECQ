@@ -302,6 +302,16 @@ There is no labelled ground truth, so combine several signals:
   test residuals, similar past products, reasons); the model against the similar past products as a paired interval.
 - [x] Improvements from the literature (2026-10-28, progress.md §25.12): sales ranges per product (conformalised
   quantile regression) and a second-opinion estimate with the buyer's plan.
+- [x] Professor's feedback (2026-11-08, progress.md §25.14): CatBoost tested (`phase5b_catboost.py`); metrics beyond the
+  median (`phase5b_metrics.py`, headline WAPE); upstream audit (`phase5b_upstream_audit.py`); weeks on sale and the
+  LightGBM + CatBoost average out of fold (`phase5b_exposure.py`); landed-cost check (`phase5b_cost_check.py`).
+- [ ] Decide the delivered sales model: LightGBM + CatBoost average trained with the weeks on sale of 241 included
+  (needs `phase5b_forecast.py run` again, ~30 min). Questions for Parfois: costs in `cost_check.md`; are the planning
+  classes revised after the first sales?
+- [x] Palette (2026-11-08): 292 photos with another item or no packshot no longer feed the palette
+  (`data/embeddings/palette_excluded.csv`, `phase2b_palette_audit.py`); `forecast.parquet` not regenerated.
+- [ ] Photos with several pieces or a model: crop suggestions only (`phase2b_multi_item.py`,
+  `multi_item_reviewed.json` empty); nobody reviews them, so no crop is applied.
 - [ ] Stock for a sales period: the data has whole-life units and no dates; `ITEM_LIFE_CYCLE_WEEK` (4–12 weeks) is not
   the selling time (241 products in the outlet: a median of 46 weeks at full price, no correlation). Definition asked to the professor.
 

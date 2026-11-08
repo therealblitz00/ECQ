@@ -820,3 +820,19 @@ The overall −6% bias comes from the earliest launches (November–December 202
 numbers and conclusions of §25.5–§25.12 stand; the text was corrected in the notebook (section 4), `final_report.md`,
 the roadmap and `phase5b_forecast.py`. `ITEM_LIFE_CYCLE_WEEK` (4–12 weeks) is still not the selling time: the 241
 products already in the outlet stayed 46 weeks at full price (Spearman −0.19 with it).
+
+### 25.14 The professor's feedback: models, metrics, palette, photos and data problems before the prediction (2026-11-08)
+
+All numbers are in the reports named below; nothing here changes the delivered `forecast.parquet`.
+
+| Question | Result | Report |
+|---|---|---|
+| CatBoost | Sales: better than LightGBM on 232 → 241 (same-month ranking +0.017 to +0.075) but not out of fold (error −0.020 to −0.006). Price: no gain. | `outputs/phase5b/catboost_report.md` |
+| Metric besides the median | Baselines keep the median; for the similar products a trimmed mean or median beats the weighted mean by 0.024 log. Headline metric: WAPE (sales 38.2%, price 11.8%). MAPE is unusable (1,399%). | `metrics_report.md` |
+| Problems before the prediction | 14 findings. High: the target is what the order allowed to sell; 241 is not a whole life (15–53 weeks on sale against 39–83 in 232). | `upstream_audit.md` |
+| Weeks on sale | Hurts when training on 232 only; helps once the weeks of 241 are in the training (ranking +0.016 to +0.056). Out of fold the LightGBM + CatBoost average ranks better than LightGBM (+0.010 to +0.023). | `exposure_report.md` |
+| Palette and text | Text does not count colour twice (correlation −0.01). Weak on photos with another item or no packshot (65–70% fit the colour name). 292 photos excluded; top-4 changes for 3.4% of queries. | `outputs/phase2b/palette_audit.md` |
+| Photos with several pieces or a model | 317 photos with a person, 720 with several pieces. Crop suggestions only; the embeddings of the crops need the vision machine. | `outputs/phase2b/multi_item_report.md` |
+| Landed-cost check (team review of the largest errors) | 38 certain and 248 suspect costs. Ignoring the certain ones is safe (test −0.040 to +0.051 EUR per product); ignoring the suspect ones is not confirmed (validation +0.19 to +0.34, test −0.10 to +0.01). | `cost_check.md` |
+
+Open: which sales model is delivered, the questions to Parfois, and the review of the crops.

@@ -79,6 +79,7 @@ Current scripts in `src/`:
 | `phase5b_forecast.py` | Whole-life sales (232 → new 241 models) and price (landed cost × markup, 232 + 241 → 242) for new products: baselines, LightGBM + exact TreeSHAP against the similar past products, 80% ranges (sales: conformalised quantiles per product), a second-opinion sales estimate with the buyer's plan (`sales_with_buyer_*`) → `data/processed/forecast.parquet`, `outputs/phase5b/forecast_report.md`, `outputs/phase5b/estimates.csv` |
 | `phase5b_extraction.py` | The extraction date (early November 2024, from the launches without a sale) and the 232 → 241 sales result by time on sale and outlet status → `outputs/phase5b/extraction_check.md` (read-only) |
 | `phase5b_buyer.py` | Benchmark of the sales model against the buyer's own decisions (`PUR_BET`, `TYPOLOGY`: alone, against the model, combined, pairs where they disagree) and ablation of the planning classes → `outputs/phase5b/buyer_report.md` + `buyer_benchmark.csv` |
+| `phase5b_price_errors.py` | Where the largest price errors are on the official test (232 + 241 → 242): worst 10% in € and in % by group, products without a cost, landed-cost flags, an example with SHAP, list vs realised price → `outputs/phase5b/price_errors.md` + `.csv` (read-only) |
 | `phase6_deliver.py` | Delivery: `query KEY` (similar products, why, estimates), `report` → `outputs/phase6/report.html`, `brief` → `outputs/phase6/brief_example.md` + `.jpg` |
 
 New code goes into `src/phase<N>_<topic>.py`, one module per roadmap phase (move to a package
@@ -155,6 +156,7 @@ python -m venv .venv
 .venv/Scripts/python src/phase5b_forecast.py select              # fast feature selection -> outputs/phase5b/feature_selection.md, ~2 min
 .venv/Scripts/python src/phase5b_extraction.py                # extraction date + 241 by time on sale -> outputs/phase5b/extraction_check.md, ~2 min
 .venv/Scripts/python src/phase5b_buyer.py run                    # model vs buyer decisions -> outputs/phase5b/buyer_report.md, ~10 min
+.venv/Scripts/python src/phase5b_price_errors.py run          # largest price errors on the 242 test -> outputs/phase5b/price_errors.md, ~15 min
 .venv/Scripts/python src/phase6_deliver.py query 167718_BU       # similar products, why, sales and price estimates
 .venv/Scripts/python src/phase6_deliver.py report                # -> outputs/phase6/report.html
 .venv/Scripts/python src/phase6_deliver.py brief                 # the brief's example -> outputs/phase6/brief_example.md + .jpg

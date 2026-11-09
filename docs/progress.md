@@ -990,3 +990,12 @@ would add little; the limit is the information in the data (§25.17). Sales: the
 100%), so more whole seasons would likely help a little. Both models fit their training rows much more closely than
 the validation rows (gap 1.26 € and 0.32 log units); this is expected for trees, and since the validation error does
 not rise as the data grows it does not show harm from over-fitting. Stronger regularisation was not tested.
+
+### 25.19 The price-error review in the notebook (2026-11-09)
+
+`notebooks/phase3_explanations_estimates.ipynb` § 4.5 loads the saved results of §25.15, §25.16 and §25.18 (nothing is
+recomputed): the error in € and in % of the price by category, family, collection type and cost status on the official
+test, with the share of errors of 4 € or more; the same categories among the worst errors on the validation season 241;
+the no-cost rule (not adopted, decided on validation); and the learning curve of the price model. The summary's price
+row names the largest errors. The notebook was executed end to end (the six cells of § 4.3 now run in the kernel; the
+encoder table of § 5.3 now shows the control embedding and the third decimals after the palette exclusion).

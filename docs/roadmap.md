@@ -316,6 +316,18 @@ There is no labelled ground truth, so combine several signals:
 - [x] Largest price errors on the official test 232 + 241 → 242 (2026-11-08, progress.md §25.15; `phase5b_price_errors.py` → `price_errors.md`):
   worst 10% in € and in % by category, family, collection, fashion type, price band, markup and cost flag; products
   without a cost (fallback against the analogue estimate); list price against the realised average price (descriptive).
+- [x] Products without a landed cost (2026-11-08, progress.md §25.16; `phase5b_nocost_rule.py` → `nocost_rule.md`): the similar-products
+  estimate against the model without cost. Seen on the 242 test; decided on the validation split 232 → 241 with a rule
+  fixed before the run (95% interval in euros above 0). Result: does not pass (6 products without a cost in 241);
+  `phase5b_forecast.py` unchanged.
+- [x] Why the estimates miss, without test products (2026-11-09, progress.md §25.17; `phase5b_error_diagnosis.py` → `error_diagnosis.md`): errors and
+  range coverage by similarity to the training season (price on validation 232 → 241, sales on the validation half of
+  241), a "new product" range tested by cross-fitting, and the price variation left by identical attributes (232 + 241).
+- [x] Largest errors on the validation splits and range coverage per group (2026-11-09, progress.md §25.18; `phase5b_validation_errors.py worst` →
+  `validation_errors.md`): price 232 → 241 with the 242 shares beside, sales on the validation half of 241 (first
+  analysis of the largest sales errors).
+- [x] Learning curves of the chosen price and sales models (2026-11-09, progress.md §25.18; `phase5b_validation_errors.py curve` → `learning_curve.md`):
+  is the error limited by the amount of training data or by the information in it.
 - [x] Palette (2026-11-08): 292 photos with another item or no packshot no longer feed the palette
   (`data/embeddings/palette_excluded.csv`, `phase2b_palette_audit.py`); `forecast.parquet` not regenerated.
 - [ ] Photos with several pieces or a model: crop suggestions only (`phase2b_multi_item.py`,

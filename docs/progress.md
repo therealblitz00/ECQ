@@ -869,10 +869,124 @@ Decisions: the official split instead of `estimates.csv` (cross-validated across
 | Example `216630_BK` (validation 232 → 241) | Real-fur shopper, 120 € list price, 30.94 € cost (markup 3.88x). Estimated at 72.40 €: the cost lowers the estimated markup by a factor of 0.34 (SHAP), so a high cost is read as a lower markup. No product of its sub-family has a cost in 232. |
 | List price against realised average price | Median realised / list price: 0.77 (232), 0.83 (241), 0.91 (242). Descriptive only: whether `SALES_AMT_FX_RATE` includes VAT, and in which currencies the sales were made, is not documented. |
 
-Questions this raises (not acted on): use the similar-products estimate for products without a cost (a change to
-`phase5b_forecast.py`, to be decided by the team); ask Parfois whether the bridal capsule costs (25.00 €) and the
-realised-price gap are as recorded.
+Not acted on: the similar-products estimate for products without a cost (decided on the validation split, §25.16).
+Parfois cannot be asked, so the bridal capsule costs (25.00 €) and the realised-price gap stay as limitations.
 
 Note on the environment: `phase5b_forecast.py` needs `scikit-learn` (LightGBM's scikit-learn interface) and
 `tests/test_phase5b_catboost.py` needs `catboost`; neither is in `requirements.txt`, so a fresh clone fails both until
 they are installed by hand.
+
+### 25.16 Products without a landed cost: similar-products estimate not adopted (2026-11-08)
+
+On the official test (232 + 241 → 242) the similar-products estimate had a smaller error than the model without cost on
+the 129 products without a cost (§25.15, `price_errors.md`). That came from the test, so the change was
+decided on the validation split 232 → 241 with a rule fixed before the run: adopt it only if the 95% interval of the
+paired difference in euros is above 0. Script: `src/phase5b_nocost_rule.py`; report: `outputs/phase5b/nocost_rule.md`.
+
+| Split | Products without a cost | MAE € model without cost | MAE € similar products | Paired difference (95%, + = similar products better) |
+|---|---|---|---|---|
+| Validation 232 → 241 (decides) | 6 | 2.49 | 4.04 | −4.38 to +0.54 € |
+| Test 232 + 241 → 242 (reported) | 129 | 7.72 | 6.03 | +0.73 to +2.72 € |
+
+Decision: the rule does not pass; the model without cost stays and `phase5b_forecast.py` is unchanged. With 6 products
+the validation cannot confirm or reject the 242 observation: products without a cost are rare in 241 (6) and frequent in
+242 (129). On the whole 242 test the rule would lower the MAE from 2.645 € to 2.587 €; this number is not a blind check,
+because the idea came from that test.
+
+### 25.17 Why the estimates miss: novelty and price noise floor, without test products (2026-11-09)
+
+Two diagnoses suggested by §25.15, run without any test product. Script: `src/phase5b_error_diagnosis.py`; report:
+`outputs/phase5b/error_diagnosis.md`; per product: `error_novelty.csv`, `error_noise.csv`.
+
+**1. Are the errors larger for products that resemble nothing in the training season?** Similarity = the engine's mean
+score over the 10 closest products of 232 (same category). Price on the validation split 232 → 241 (2,911 products),
+sales on the validation half of 241 (1,469; the other half is the sales test). 80% ranges cross-fitted on two halves
+of the models.
+
+| | Price (error in % of the price) | Sales (error in log units) |
+|---|---|---|
+| Rank correlation similarity – error | −0.008 (−0.052 to +0.033) | −0.031 (−0.084 to +0.024) |
+| Least similar quintile minus most similar | −3.0 points (−6.2 to +0.1) | +0.075 (−0.006 to +0.158) |
+| Sub-family not in 232 against seen | MAPE 11.9% against 14.3% (245 products) | 0.470 against 0.514 (113 products) |
+| Coverage of the 80% range, least similar quintile | 78.4% | 81.3% |
+| Same, with its own range ("new product" warning) | 79.1% | 77.2% |
+
+Result: the hypothesis is not supported. In percent of the price the least similar products do not err more; in euros
+they do (MAE 2.90 € against 1.81 €), but they are also more expensive (median list price 23.99 € against 8.99 €), so
+the relative error is the same. For sales the
+most similar quintile has the smallest error (0.439 against 0.50–0.56), and the interval of the difference touches 0.
+The 80% ranges already cover about 80% in every quintile, so a separate range for new products changes nothing and is
+not proposed. The bridal capsule and the real-fur shopper (§25.15) are single cases, not a pattern of new products.
+Limits: the engine's similarity measures look and attributes, not what sets a price or a sales volume; and its level
+differs by category (the most similar quintile is 65% jewellery), so the quintiles also mix categories.
+
+**2. How much price variation do identical attributes leave?** Training seasons 232 + 241, one colourway per model,
+products with a cost. Each product is estimated by the median price of the other models of its group (leave one out).
+
+| Group = same season, category, family, sub-family … | Models | Same price as the group median | MAE € (MAPE) group median | MAE € (MAPE) price model, cross-validated |
+|---|---|---|---|---|
+| … + material + finishing + cost within ±5% | 2,743 (56%) | 40% | 1.72 € (12.6%) | 1.31 € (9.3%) |
+| … + cost within ±10% | 3,994 (81%) | 37% | 2.07 € (13.1%) | 1.58 € (10.0%) |
+
+Result: products that are the same on these attributes still differ by 1.72 € (12.6%) on average, and 60% of them do
+not share the group's price. The price model errs less than this on the same products, so it uses information beyond
+these attributes (colour, print, supplier, origin, segment, collection type, weight, sizes, the exact
+cost; no photo or description); the figure is a floor for a model with these attributes only,
+not for the price model. The cross-validated estimates mix seasons, so the model's numbers are optimistic. What the
+table does show: a large part of the price is not set by the recorded attributes, which limits any model built on them.
+
+### 25.18 Largest errors and range coverage on the validation splits; learning curves (2026-11-09)
+
+No test product. Script: `src/phase5b_validation_errors.py`; reports: `outputs/phase5b/validation_errors.md` (`worst`),
+`outputs/phase5b/learning_curve.md` (`curve`). Models: the validation versions of the chosen ones (LightGBM, no
+analogues); for sales this is not the delivered LightGBM + CatBoost average, and it does not use the weeks on sale.
+80% ranges cross-fitted on two halves of the models.
+
+**Price, validation 232 → 241 (2,911 products), compared with the 242 test (§25.15).**
+
+| Pattern | 241 (validation) | 242 (test) |
+|---|---|---|
+| Apparel among the worst in € | 48% of the worst, 19% of the products | 61%, 25% |
+| Jewellery among the worst in % | 63%, 43% | 54%, 39% |
+| Exclusive Online among the worst in € | 16%, 5% | 26%, 8% |
+| Markup below 0.8x the category, worst in € | 33%, 13% | 28%, 10% |
+| Markup above 1.25x, worst in % | 51%, 34% | 31%, 22% |
+| Under 10 €, worst in % | 53%, 36% | 30%, 30% |
+| Worst in € estimated too high | 54% | 26% |
+
+The groups with the largest errors are the same in both seasons. The direction is not: in 241 the worst errors are
+split between too high and too low, in 242 three quarters are too low. The under-estimation of 242 is therefore a
+feature of that season (the markups of wallets and hand bags rose, `forecast_report.md`), not of the model.
+
+Coverage of the 80% price range (one factor for every product): 79.9% overall, but 72% for jewellery and products
+under 10 €, 64% for Exclusive Online, 58% for the Capsule fashion type, 55% for 40–80 €, 24% for products with a
+`suspect` cost; 91% for hand bags. The range is too narrow for cheap jewellery and special collections and too wide
+for hand bags. A range per category was not tested here.
+
+**Sales, validation half of 241 (1,469 products), first analysis of the largest sales errors.**
+
+- Largest errors in units: 61% are best sellers (top quintile of real units; 20% of the products), and 77% of these
+  errors are under-estimates. Largest errors as a factor: 49% are the weakest sellers (bottom quintile). Over each
+  whole quintile, the best sellers are estimated too low in 82% of the cases and the weakest too high in 72%: the
+  model pulls both ends towards the middle.
+- Jewellery: 43% of the products, 58% of the worst in units and 60% as a factor (necklaces 16–18% against 8%).
+  Capsule fashion type: 3% of the products, 11% of the worst as a factor; range coverage 57%.
+- Weeks on sale at the extraction: products with 39 weeks or more are 44% of the products and 53% of the worst in
+  units, and are estimated too high in only 34% of the cases (they sold longer; this model does not see the weeks).
+- Coverage of the 80% range: 79.9% overall; 57% for the weakest sellers, 57% for Capsule, 75% for jewellery and
+  apparel, 91% for hand bags.
+
+**Learning curves** (the chosen models refitted on 25–100% of the training models, three draws below 100%):
+
+| Share of training models | Price: validation MAE € (training rows) | Sales: validation mae_log (training rows) |
+|---|---|---|
+| 25% | 2.665 (0.929) | 0.583 (0.098) |
+| 50% | 2.369 (0.873) | 0.546 (0.122) |
+| 75% | 2.302 (0.955) | 0.523 (0.158) |
+| 100% | 2.290 (1.028) | 0.510 (0.186) |
+
+Price: the validation error is almost flat from 50% (−0.012 € from 75% to 100%), so more products of the same kind
+would add little; the limit is the information in the data (§25.17). Sales: the error still falls (−0.013 from 75% to
+100%), so more whole seasons would likely help a little. Both models fit their training rows much more closely than
+the validation rows (gap 1.26 € and 0.32 log units); this is expected for trees, and since the validation error does
+not rise as the data grows it does not show harm from over-fitting. Stronger regularisation was not tested.

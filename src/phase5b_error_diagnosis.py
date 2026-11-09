@@ -18,7 +18,8 @@
    different prices. Each product is estimated by the median price of the other models of its group (leave one out):
    what is left is variation these attributes cannot explain. The price model's cross-validated estimate
    (`estimates.csv`) is scored on the same products for comparison. This is a floor only for a model that sees these
-   attributes; the model sees more (photo, text, supplier, weight), so it can do better on some products.
+   attributes; the model sees more (colour, print, supplier, origin, segment, collection, weight, sizes, the exact
+   cost), so it can do better on some products.
 
 Decisions fixed before the run: quintiles of the mean similarity to the 10 closest products; "new product" = lowest
 quintile; bootstrap by model (1,000 resamples); one colourway per model in the noise groups (colours of one model
@@ -310,8 +311,8 @@ models of its group (leave one out). The model column is the price model's cross
 {_md(noise, pct={'share of training models', 'same price as the group median', 'MAPE group median', 'MAPE model (cross-validated)'}, digits=2)}
 
 Reading: the group median uses only these attributes, so its error is what they leave unexplained. It is a floor for a
-model with these attributes only; the price model also sees the photo, the description, the supplier and the weight,
-so it can be below it. The cross-validated estimates of `estimates.csv` are optimistic (folds mix seasons), and the
+model with these attributes only; the price model also sees colour, print, supplier, origin, segment, collection type,
+weight, number of sizes and the exact cost (no photo or description), so it can be below it. The cross-validated estimates of `estimates.csv` are optimistic (folds mix seasons), and the
 groups cover only the products that share these attributes with another model.
 """
 

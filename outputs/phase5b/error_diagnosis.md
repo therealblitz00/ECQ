@@ -85,6 +85,6 @@ models of its group (leave one out). The model column is the price model's cross
 | loose | SEA_COD + CAT_DES_EN + GFA_DES_EN + GFS_DES_EN + cost within ±10% | 725 | 3994 | 81.3% | 37.1% | 2.07 | 13.1% | 1.58 | 10.0% |
 
 Reading: the group median uses only these attributes, so its error is what they leave unexplained. It is a floor for a
-model with these attributes only; the price model also sees the photo, the description, the supplier and the weight,
-so it can be below it. The cross-validated estimates of `estimates.csv` are optimistic (folds mix seasons), and the
+model with these attributes only; the price model also sees colour, print, supplier, origin, segment, collection type,
+weight, number of sizes and the exact cost (no photo or description), so it can be below it. The cross-validated estimates of `estimates.csv` are optimistic (folds mix seasons), and the
 groups cover only the products that share these attributes with another model.

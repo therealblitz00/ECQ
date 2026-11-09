@@ -930,6 +930,7 @@ products with a cost. Each product is estimated by the median price of the other
 
 Result: products that are the same on these attributes still differ by 1.72 € (12.6%) on average, and 60% of them do
 not share the group's price. The price model errs less than this on the same products, so it uses information beyond
-these attributes (photo, description, supplier, weight); the figure is a floor for a model with these attributes only,
+these attributes (colour, print, supplier, origin, segment, collection type, weight, sizes, the exact
+cost; no photo or description); the figure is a floor for a model with these attributes only,
 not for the price model. The cross-validated estimates mix seasons, so the model's numbers are optimistic. What the
 table does show: a large part of the price is not set by the recorded attributes, which limits any model built on them.

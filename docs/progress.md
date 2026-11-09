@@ -934,3 +934,59 @@ these attributes (colour, print, supplier, origin, segment, collection type, wei
 cost; no photo or description); the figure is a floor for a model with these attributes only,
 not for the price model. The cross-validated estimates mix seasons, so the model's numbers are optimistic. What the
 table does show: a large part of the price is not set by the recorded attributes, which limits any model built on them.
+
+### 25.18 Largest errors and range coverage on the validation splits; learning curves (2026-11-09)
+
+No test product. Script: `src/phase5b_validation_errors.py`; reports: `outputs/phase5b/validation_errors.md` (`worst`),
+`outputs/phase5b/learning_curve.md` (`curve`). Models: the validation versions of the chosen ones (LightGBM, no
+analogues); for sales this is not the delivered LightGBM + CatBoost average, and it does not use the weeks on sale.
+80% ranges cross-fitted on two halves of the models.
+
+**Price, validation 232 → 241 (2,911 products), compared with the 242 test (§25.15).**
+
+| Pattern | 241 (validation) | 242 (test) |
+|---|---|---|
+| Apparel among the worst in € | 48% of the worst, 19% of the products | 61%, 25% |
+| Jewellery among the worst in % | 63%, 43% | 54%, 39% |
+| Exclusive Online among the worst in € | 16%, 5% | 26%, 8% |
+| Markup below 0.8x the category, worst in € | 33%, 13% | 28%, 10% |
+| Markup above 1.25x, worst in % | 51%, 34% | 31%, 22% |
+| Under 10 €, worst in % | 53%, 36% | 30%, 30% |
+| Worst in € estimated too high | 54% | 26% |
+
+The groups with the largest errors are the same in both seasons. The direction is not: in 241 the worst errors are
+split between too high and too low, in 242 three quarters are too low. The under-estimation of 242 is therefore a
+feature of that season (the markups of wallets and hand bags rose, `forecast_report.md`), not of the model.
+
+Coverage of the 80% price range (one factor for every product): 79.9% overall, but 72% for jewellery and products
+under 10 €, 64% for Exclusive Online, 58% for the Capsule fashion type, 55% for 40–80 €, 24% for products with a
+`suspect` cost; 91% for hand bags. The range is too narrow for cheap jewellery and special collections and too wide
+for hand bags. A range per category was not tested here.
+
+**Sales, validation half of 241 (1,469 products), first analysis of the largest sales errors.**
+
+- Largest errors in units: 61% are best sellers (top quintile of real units; 20% of the products), and 77% of these
+  errors are under-estimates. Largest errors as a factor: 49% are the weakest sellers (bottom quintile). Over each
+  whole quintile, the best sellers are estimated too low in 82% of the cases and the weakest too high in 72%: the
+  model pulls both ends towards the middle.
+- Jewellery: 43% of the products, 58% of the worst in units and 60% as a factor (necklaces 16–18% against 8%).
+  Capsule fashion type: 3% of the products, 11% of the worst as a factor; range coverage 57%.
+- Weeks on sale at the extraction: products with 39 weeks or more are 44% of the products and 53% of the worst in
+  units, and are estimated too high in only 34% of the cases (they sold longer; this model does not see the weeks).
+- Coverage of the 80% range: 79.9% overall; 57% for the weakest sellers, 57% for Capsule, 75% for jewellery and
+  apparel, 91% for hand bags.
+
+**Learning curves** (the chosen models refitted on 25–100% of the training models, three draws below 100%):
+
+| Share of training models | Price: validation MAE € (training rows) | Sales: validation mae_log (training rows) |
+|---|---|---|
+| 25% | 2.665 (0.929) | 0.583 (0.098) |
+| 50% | 2.369 (0.873) | 0.546 (0.122) |
+| 75% | 2.302 (0.955) | 0.523 (0.158) |
+| 100% | 2.290 (1.028) | 0.510 (0.186) |
+
+Price: the validation error is almost flat from 50% (−0.012 € from 75% to 100%), so more products of the same kind
+would add little; the limit is the information in the data (§25.17). Sales: the error still falls (−0.013 from 75% to
+100%), so more whole seasons would likely help a little. Both models fit their training rows much more closely than
+the validation rows (gap 1.26 € and 0.32 log units); this is expected for trees, and since the validation error does
+not rise as the data grows it does not show harm from over-fitting. Stronger regularisation was not tested.

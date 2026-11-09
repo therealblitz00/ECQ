@@ -320,7 +320,7 @@ There is no labelled ground truth, so combine several signals:
   estimate against the model without cost. Seen on the 242 test; decided on the validation split 232 → 241 with a rule
   fixed before the run (95% interval in euros above 0). Result: does not pass (6 products without a cost in 241);
   `phase5b_forecast.py` unchanged.
-- [ ] Why the estimates miss, without test products (`phase5b_error_diagnosis.py` → `error_diagnosis.md`): errors and
+- [x] Why the estimates miss, without test products (2026-11-09, progress.md §25.17; `phase5b_error_diagnosis.py` → `error_diagnosis.md`): errors and
   range coverage by similarity to the training season (price on validation 232 → 241, sales on the validation half of
   241), a "new product" range tested by cross-fitting, and the price variation left by identical attributes (232 + 241).
 - [x] Palette (2026-11-08): 292 photos with another item or no packshot no longer feed the palette

@@ -892,3 +892,44 @@ Decision: the rule does not pass; the model without cost stays and `phase5b_fore
 the validation cannot confirm or reject the 242 observation: products without a cost are rare in 241 (6) and frequent in
 242 (129). On the whole 242 test the rule would lower the MAE from 2.645 € to 2.587 €; this number is not a blind check,
 because the idea came from that test.
+
+### 25.17 Why the estimates miss: novelty and price noise floor, without test products (2026-11-09)
+
+Two diagnoses suggested by §25.15, run without any test product. Script: `src/phase5b_error_diagnosis.py`; report:
+`outputs/phase5b/error_diagnosis.md`; per product: `error_novelty.csv`, `error_noise.csv`.
+
+**1. Are the errors larger for products that resemble nothing in the training season?** Similarity = the engine's mean
+score over the 10 closest products of 232 (same category). Price on the validation split 232 → 241 (2,911 products),
+sales on the validation half of 241 (1,469; the other half is the sales test). 80% ranges cross-fitted on two halves
+of the models.
+
+| | Price (error in % of the price) | Sales (error in log units) |
+|---|---|---|
+| Rank correlation similarity – error | −0.008 (−0.052 to +0.033) | −0.031 (−0.084 to +0.024) |
+| Least similar quintile minus most similar | −3.0 points (−6.2 to +0.1) | +0.075 (−0.006 to +0.158) |
+| Sub-family not in 232 against seen | MAPE 11.9% against 14.3% (245 products) | 0.470 against 0.514 (113 products) |
+| Coverage of the 80% range, least similar quintile | 78.4% | 81.3% |
+| Same, with its own range ("new product" warning) | 79.1% | 77.2% |
+
+Result: the hypothesis is not supported. In percent of the price the least similar products do not err more; in euros
+they do (MAE 2.90 € against 1.81 €), but they are also more expensive (median list price 23.99 € against 8.99 €), so
+the relative error is the same. For sales the
+most similar quintile has the smallest error (0.439 against 0.50–0.56), and the interval of the difference touches 0.
+The 80% ranges already cover about 80% in every quintile, so a separate range for new products changes nothing and is
+not proposed. The bridal capsule and the real-fur shopper (§25.15) are single cases, not a pattern of new products.
+Limits: the engine's similarity measures look and attributes, not what sets a price or a sales volume; and its level
+differs by category (the most similar quintile is 65% jewellery), so the quintiles also mix categories.
+
+**2. How much price variation do identical attributes leave?** Training seasons 232 + 241, one colourway per model,
+products with a cost. Each product is estimated by the median price of the other models of its group (leave one out).
+
+| Group = same season, category, family, sub-family … | Models | Same price as the group median | MAE € (MAPE) group median | MAE € (MAPE) price model, cross-validated |
+|---|---|---|---|---|
+| … + material + finishing + cost within ±5% | 2,743 (56%) | 40% | 1.72 € (12.6%) | 1.31 € (9.3%) |
+| … + cost within ±10% | 3,994 (81%) | 37% | 2.07 € (13.1%) | 1.58 € (10.0%) |
+
+Result: products that are the same on these attributes still differ by 1.72 € (12.6%) on average, and 60% of them do
+not share the group's price. The price model errs less than this on the same products, so it uses information beyond
+these attributes (photo, description, supplier, weight); the figure is a floor for a model with these attributes only,
+not for the price model. The cross-validated estimates mix seasons, so the model's numbers are optimistic. What the
+table does show: a large part of the price is not set by the recorded attributes, which limits any model built on them.

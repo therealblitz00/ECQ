@@ -60,6 +60,13 @@ def test_noise_groups_one_colour_per_model_training_seasons_only():
     assert d.loc[d["PROD_REF"] == "m1", "group"].iloc[0] == d.loc[d["PROD_REF"] == "m2", "group"].iloc[0]
 
 
+def test_noise_groups_accept_missing_text():
+    items = _items()
+    items["MATERIAL"] = pd.array(["PU", "PU", None, None, "PU"], dtype="string")
+    d = ed.noise_groups(items, ed.NOISE_KEYS["strict"], 0.05)
+    assert d["group"].str.contains("(missing)", regex=False).sum() == 2
+
+
 def test_seen_subfamily():
     items = _items()
     pool = items["SEA_COD"].eq("232").to_numpy()

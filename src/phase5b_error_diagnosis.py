@@ -48,6 +48,11 @@ NOISE_KEYS = {"strict": ["SEA_COD", *SUBFAMILY, "MATERIAL", "FINISHING"], "loose
 QUINTILE_LABELS = ["1 (least similar)", "2", "3", "4", "5 (most similar)"]
 
 
+def joined(df: pd.DataFrame) -> pd.Series:
+    """Columns joined into one key; a missing value is its own level (string columns keep NA through astype(str))."""
+    return df.astype(object).where(df.notna(), "(missing)").astype(str).agg("|".join, axis=1)
+
+
 # --------------------------------------------------------------------------- 1. novelty
 def nearest_similarity(items: pd.DataFrame, blocks: dict, weights: dict, rows: np.ndarray, pool: np.ndarray,
                        k: int = fc.K_ANALOGUES) -> pd.DataFrame:
@@ -73,7 +78,7 @@ def nearest_similarity(items: pd.DataFrame, blocks: dict, weights: dict, rows: n
 
 
 def seen_subfamily(items: pd.DataFrame, pool: np.ndarray, require_cost: bool = False) -> np.ndarray:
-    key = items[SUBFAMILY].astype(str).agg("|".join, axis=1)
+    key = joined(items[SUBFAMILY])
     ok = pool & (np.isfinite(items["log_cost"].to_numpy(float)) if require_cost else pool)
     return key.isin(set(key[ok])).to_numpy()
 
@@ -197,7 +202,7 @@ def noise_groups(items: pd.DataFrame, keys: list[str], band: float) -> pd.DataFr
     d = items[items["SEA_COD"].astype(str).isin(fc.COMPLETE_SEASONS) & np.isfinite(items["log_cost"])].copy()
     d = d.sort_values(KEY, kind="stable").drop_duplicates("PROD_REF")
     d["cost_band"] = np.floor(d["log_cost"] / (2 * band)).astype(int)
-    d["group"] = d[keys].astype(str).agg("|".join, axis=1) + "|" + d["cost_band"].astype(str)
+    d["group"] = joined(d[keys]) + "|" + d["cost_band"].astype(str)
     return d
 
 

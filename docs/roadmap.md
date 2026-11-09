@@ -323,6 +323,11 @@ There is no labelled ground truth, so combine several signals:
 - [x] Why the estimates miss, without test products (2026-11-09, progress.md §25.17; `phase5b_error_diagnosis.py` → `error_diagnosis.md`): errors and
   range coverage by similarity to the training season (price on validation 232 → 241, sales on the validation half of
   241), a "new product" range tested by cross-fitting, and the price variation left by identical attributes (232 + 241).
+- [ ] Largest errors on the validation splits and range coverage per group (`phase5b_validation_errors.py worst` →
+  `validation_errors.md`): price 232 → 241 with the 242 shares beside, sales on the validation half of 241 (first
+  analysis of the largest sales errors).
+- [ ] Learning curves of the chosen price and sales models (`phase5b_validation_errors.py curve` → `learning_curve.md`):
+  is the error limited by the amount of training data or by the information in it.
 - [x] Palette (2026-11-08): 292 photos with another item or no packshot no longer feed the palette
   (`data/embeddings/palette_excluded.csv`, `phase2b_palette_audit.py`); `forecast.parquet` not regenerated.
 - [ ] Photos with several pieces or a model: crop suggestions only (`phase2b_multi_item.py`,

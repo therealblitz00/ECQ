@@ -2044,14 +2044,22 @@ summary.round(1)
 # The balances follow a business-day week and a month shaped like a saw-tooth, with salaries at the end of the month,
 # pensions on the 8th and debits at the beginning. Day to day they look like random walks, but over a month most of
 # the movement cancels out around a level that jumps from time to time, and accounts are essentially independent of
-# each other. All of this
-# points towards models fitted to the recent history of each account, or global models with good calendar information,
-# evaluated on folds that include January.
+# each other. All of this points towards models fitted to the recent history of each account, or global models with
+# good calendar information, evaluated on folds that include January.
 #
 # The real difficulty, however, lies in the metric. A large share of balances lives near zero, and the oracle showed
-# that most of the official error comes from choosing the wrong level for those accounts. Sprint 2 will therefore have to
-# do two things well: model the rhythm of the ordinary accounts, and find a careful strategy for the ones that live
-# close to zero. The benchmark to beat is in section 17.
+# that most of the official error comes from choosing the wrong level for those accounts.
+#
+# This gives Sprint 2 a clear plan with three parts. First, two strategies instead of one. The accounts split along
+# their distance from zero (D14), and the ratio between a balance and its recent volatility tells us in advance which
+# accounts are at risk of crossing zero (D12). Stable accounts far from zero get the forecasting models; accounts that
+# live around zero get a dedicated strategy built for MAPE, leaning the forecast towards zero when the sign is
+# uncertain (§5, D10). Second, we forecast the level around which each balance oscillates rather than carrying the last
+# value forward, because over a month most of the movement cancels out (D18) and the level is stable between breaks
+# (D7, D16); models should be estimated on the recent regime. Third, the forecasts follow the calendar: business days
+# only, the turn of the month with salaries and early-month debits, and the 8th moved to the next business day when it
+# falls on a weekend (§7, D3), which in the forecast window means Monday 9 January 2023. The benchmark to beat is in
+# section 17.
 
 # %% [markdown]
 # ## 19. Where the results are saved

@@ -1,0 +1,8 @@
+,value
+missing values,5853.0
+% of all cells,1.07
+accounts with any missing,25.0
+accounts entirely missing,0.0
+leading missing (account not opened yet),5853.0
+trailing missing (account closed),0.0
+interior missing (gaps),0.0

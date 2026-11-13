@@ -1,0 +1,42 @@
+file,description,rows,columns
+01_structure.csv,"Dataset structure: size, date range, duplicates",9,1
+02_missing_summary.csv,Missing values: totals by type (leading/trailing/interior),7,1
+02_first_observation.csv,Per account: first observed (raw) date and number of leading missing days,500,2
+03_change_share_month_weekday_raw.csv,"Raw labels: share of accounts whose balance changes, by month x weekday (shows the Aug-2022 switch)",36,7
+03_change_share_daily_raw.csv,"Raw labels: share of accounts whose balance changes, per date",1094,1
+03_holiday_check_old_convention.csv,Old date convention: activity on labels after/on holidays (supports label D = close of D-1),3,1
+03_realignment_check.csv,Checks of the realigned calendar and repaired day,3,1
+03_weekday_activity_before_after.csv,Share of accounts changing by weekday: raw vs realigned,7,2
+04_per_account_statistics.csv,"Per account: mean, median, std, min, max, skewness, kurtosis, share negative, activity, CV, JB p-value",500,11
+04_per_account_statistics_summary.csv,Distribution across accounts of the per-account statistics,11,10
+05_near_zero_summary.csv,"Zeros, negatives and near-zero balances (MAPE risk)",5,1
+05_sign_type_per_account.csv,Per account: always positive / always negative / changes sign,500,1
+06_extremes_summary.csv,Extreme daily moves (robust z on non-zero changes) and spikes,6,1
+06_extremes_per_account.csv,Per account: number of extreme moves and reversed spikes,500,2
+06_top_accounts.csv,Accounts with the largest absolute balances,5,1
+07_calendar_daily.csv,"Per date: weekday/day/month, share changing, share with large inflow/outflow, mean relative change",1095,7
+07_calendar_by_weekday.csv,Calendar effects aggregated by weekday,7,4
+07_calendar_by_day.csv,Calendar effects aggregated by day,31,4
+07_calendar_by_month.csv,Calendar effects aggregated by month,12,4
+07_kruskal_wallis.csv,"Kruskal-Wallis tests of relative daily change by weekday, day of month, month",3,2
+07_holiday_effect.csv,Activity on Portuguese public holidays vs normal business days,2,2
+09_mstl_strength_summary.csv,MSTL component strengths: median-account series and per-account median,3,2
+09_mstl_strength_per_account.csv,"Per account (sample): strength of trend, weekly and monthly components",200,3
+09_mstl_median_account.csv,MSTL decomposition of the cross-sectional median balance,1096,5
+10_stationarity_per_account.csv,"Per account: ADF and KPSS p-values (levels, differences) and classification",500,6
+10_stationarity_summary.csv,"% of accounts per stationarity class, levels vs first differences",4,2
+11_acf_changes_per_account.csv,"Per account: ACF of daily changes, lags 0-35",500,36
+11_acf_changes_summary.csv,Median and IQR across accounts of the ACF of daily changes,36,3
+11_ljung_box_per_account.csv,Per account: Ljung-Box p-values on daily changes (lags 7 and 30),500,2
+11_acf_pacf_median_account.csv,"ACF/PACF of the median-account series, levels and first differences",41,4
+12_arch_per_account.csv,Per account: ARCH-LM p-value on daily changes (7 lags),500,1
+12_monthly_volatility.csv,Per month: median across accounts of the mean absolute daily change,36,1
+13_yearly_summary.csv,"Per year: typical balance, share negative, activity, active accounts",3,4
+14_correlation_summary.csv,Distribution of pairwise correlations: levels vs daily changes (sample),8,2
+14_top_correlated_pairs.csv,50 account pairs with the strongest correlation of daily changes,50,4
+15_segments_per_account.csv,Per account: last-12-month features and segment,500,6
+15_segment_summary.csv,Per segment: number of accounts and median features,4,7
+16_prepared_balances.csv,"PREPARED DATASET (wide, same layout as the raw file): realigned calendar, repaired 2022-08-05, leading NaN kept",500,1096
+17_baselines_by_fold.csv,Baseline forecasts: three MAPE metrics per fold and model,20,5
+17_baselines_summary.csv,Baseline forecasts: metrics averaged over folds (reference for Sprint 2),4,3
+00_account_features.csv,"ONE ROW PER ACCOUNT: all per-account statistics, tests and segment",500,31

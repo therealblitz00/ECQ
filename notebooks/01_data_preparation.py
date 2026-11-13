@@ -75,6 +75,26 @@ def sample_accounts(index, k):
         return index
     return pd.Index(np.sort(rng.choice(index.to_numpy(), size=k, replace=False)))
 
+
+# ---- Saving analysis results ---------------------------------------------------
+# Every table produced by the analysis is also written to CSV (data/sprint1/), so the results can be consulted
+# without re-running the notebook. 00_index.csv lists every file with a description.
+SAVE_RESULTS = True
+PROJECT_ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
+RESULTS_DIR = PROJECT_ROOT / "data" / "sprint1"
+saved_files = []
+
+
+def save_result(obj, name, description, index=True):
+    """Write a Series/DataFrame to RESULTS_DIR/<name>.csv and register it in the index."""
+    if not SAVE_RESULTS:
+        return
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    df = obj.to_frame() if isinstance(obj, pd.Series) else obj
+    df.to_csv(RESULTS_DIR / f"{name}.csv", index=index)
+    saved_files.append({"file": f"{name}.csv", "description": description,
+                        "rows": df.shape[0], "columns": df.shape[1]})
+
 # %% [markdown]
 # # Part A — Getting to know the data
 # ## 1. Loading and structure
@@ -105,6 +125,7 @@ structure = pd.Series({
     "observed values": len(observed),
     "values not in whole cents": int(not_cents.sum()),
 })
+save_result(structure.astype(str).rename("value"), "01_structure", "Dataset structure: size, date range, duplicates")
 structure.to_frame("value")
 
 # %% [markdown]
@@ -135,6 +156,9 @@ display(missing.to_frame("value"))
 
 first_obs = pd.Series(dates[np.minimum(n_leading, len(dates) - 1)], index=raw.index, name="first_observation")
 late = first_obs[first_obs > dates.min()]
+save_result(missing.rename("value"), "02_missing_summary", "Missing values: totals by type (leading/trailing/interior)")
+save_result(pd.DataFrame({"first_observation_raw_label": first_obs, "leading_missing_days": n_leading}),
+            "02_first_observation", "Per account: first observed (raw) date and number of leading missing days")
 
 fig, axes = plt.subplots(1, 2, figsize=(14, 4), gridspec_kw={"width_ratios": [2, 1]})
 order = np.argsort(n_leading)
@@ -175,6 +199,10 @@ share_raw = change_share(raw)
 weekday_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 by_month_weekday = (share_raw.groupby([share_raw.index.to_period("M"), share_raw.index.dayofweek]).mean()
                     .unstack().rename(columns=dict(enumerate(weekday_names))))
+save_result(by_month_weekday.rename(index=str), "03_change_share_month_weekday_raw",
+            "Raw labels: share of accounts whose balance changes, by month x weekday (shows the Aug-2022 switch)")
+save_result(share_raw.rename("share_changing"), "03_change_share_daily_raw",
+            "Raw labels: share of accounts whose balance changes, per date")
 
 fig, ax = plt.subplots(figsize=(14, 3.5))
 sns.heatmap(by_month_weekday.T, cmap="viridis", vmin=0, vmax=1, ax=ax, cbar_kws={"label": "share of accounts changing"})
@@ -206,11 +234,14 @@ old_conv = share_raw[share_raw.index < "2022-08-01"]
 tue_sat = old_conv[(old_conv.index.dayofweek >= 1) & (old_conv.index.dayofweek <= 5)]
 prev_is_holiday = np.array([(d - pd.Timedelta(days=1)) in pt_holidays for d in tue_sat.index])
 same_is_holiday = np.array([d in pt_holidays for d in tue_sat.index])
-display(pd.Series({
+holiday_check = pd.Series({
     "label after a holiday (old convention)": tue_sat[prev_is_holiday].mean(),
     "label on a holiday (old convention)": tue_sat[same_is_holiday].mean(),
     "other Tue-Sat labels": tue_sat[~prev_is_holiday & ~same_is_holiday].mean(),
-}).round(3).to_frame("share of accounts changing"))
+}).round(3).rename("share of accounts changing")
+save_result(holiday_check, "03_holiday_check_old_convention",
+            "Old date convention: activity on labels after/on holidays (supports label D = close of D-1)")
+display(holiday_check.to_frame())
 
 # (b) The switch itself
 window = raw.loc[:, "2022-08-02":"2022-08-09"]
@@ -274,6 +305,8 @@ compare = pd.DataFrame({
     "raw labels": share_raw.groupby(share_raw.index.dayofweek).mean(),
     "realigned": share.groupby(share.index.dayofweek).mean(),
 }).rename(index=dict(enumerate(weekday_names)))
+save_result(check.astype(str).rename("value"), "03_realignment_check", "Checks of the realigned calendar and repaired day")
+save_result(compare, "03_weekday_activity_before_after", "Share of accounts changing by weekday: raw vs realigned")
 compare.plot.bar(figsize=(9, 3.5), rot=0, title="Share of accounts changing by weekday — before and after realignment")
 plt.ylabel("share"); plt.tight_layout(); plt.show()
 
@@ -327,6 +360,11 @@ for acc in test_ids:
     x = x[business[-len(x):]] if len(x) else x
     jb_p.append(stats.jarque_bera(x).pvalue if len(x) > 30 else np.nan)
 jb_p = pd.Series(jb_p, index=test_ids)
+per_account["jarque_bera_p_changes"] = jb_p
+save_result(per_account, "04_per_account_statistics",
+            "Per account: mean, median, std, min, max, skewness, kurtosis, share negative, activity, CV, JB p-value")
+save_result(per_account.describe(percentiles=[0.05, 0.25, 0.5, 0.75, 0.95]).T, "04_per_account_statistics_summary",
+            "Distribution across accounts of the per-account statistics")
 print(f"Jarque-Bera rejects normality of daily changes (p < 0.05) for {100 * (jb_p < 0.05).mean():.1f}% "
       f"of {len(test_ids)} accounts")
 
@@ -359,6 +397,9 @@ near_zero = pd.Series({
 })
 display(near_zero.to_frame("value"))
 display(pd.Series(sign_type, index=bal.index).value_counts().to_frame("accounts"))
+save_result(near_zero.rename("value"), "05_near_zero_summary", "Zeros, negatives and near-zero balances (MAPE risk)")
+save_result(pd.Series(sign_type, index=bal.index, name="sign_type"), "05_sign_type_per_account",
+            "Per account: always positive / always negative / changes sign")
 
 # Illustration: the same absolute error (EUR 50) produces wildly different percentage errors
 illus = pd.DataFrame({"actual": [5000, 500, 100, 20, 5, 1]})
@@ -417,6 +458,10 @@ display(extremes.to_frame("value"))
 # Largest accounts and the effect of a single account on the aggregate
 top = per_account["max"].abs().sort_values(ascending=False).head(5)
 display(top.round(0).to_frame("max |balance|"))
+save_result(extremes.rename("value"), "06_extremes_summary", "Extreme daily moves (robust z on non-zero changes) and spikes")
+save_result(pd.DataFrame({"extreme_moves": big.sum(1), "spikes": spike.sum(1)}, index=bal.index),
+            "06_extremes_per_account", "Per account: number of extreme moves and reversed spikes")
+save_result(top.rename("max_abs_balance"), "06_top_accounts", "Accounts with the largest absolute balances")
 total = bal.sum(0)
 total_wo_top = bal.drop(index=top.index[:1]).sum(0)
 fig, ax = plt.subplots()
@@ -462,6 +507,10 @@ cal = pd.DataFrame({
     "large_outflow": np.nanmean(np.where(np.isnan(rel), np.nan, outflow), 0),
     "mean_rel_change": np.nanmean(rel, 0),
 }, index=cd)
+save_result(cal, "07_calendar_daily", "Per date: weekday/day/month, share changing, share with large inflow/outflow, mean relative change")
+for g in ["weekday", "day", "month"]:
+    save_result(cal.groupby(g)[["share_changing", "large_inflow", "large_outflow", "mean_rel_change"]].mean(),
+                f"07_calendar_by_{g}", f"Calendar effects aggregated by {g}")
 
 fig, axes = plt.subplots(1, 3, figsize=(16, 3.8))
 cal.groupby("weekday")[["large_inflow", "large_outflow"]].mean().rename(index=dict(enumerate(weekday_names))).plot.bar(ax=axes[0], rot=0)
@@ -494,13 +543,17 @@ for g in ["weekday", "day", "month"]:
     groups = [v.to_numpy() for _, v in pts.groupby(g)["rel"]]
     h, p = stats.kruskal(*groups)
     kw[g] = {"H statistic": round(h, 1), "p-value": p}
-display(pd.DataFrame(kw).T)
+kw = pd.DataFrame(kw).T
+display(kw)
 
 # Holidays (business days only)
 bd = cal[cal.weekday < 5]
 is_hol = np.array([d in pt_holidays for d in bd.index])
-display(pd.DataFrame({"holiday": bd[is_hol][["share_changing", "large_inflow"]].mean(),
-                      "normal business day": bd[~is_hol][["share_changing", "large_inflow"]].mean()}).round(3))
+holiday_effect = pd.DataFrame({"holiday": bd[is_hol][["share_changing", "large_inflow"]].mean(),
+                               "normal business day": bd[~is_hol][["share_changing", "large_inflow"]].mean()}).round(3)
+display(holiday_effect)
+save_result(kw, "07_kruskal_wallis", "Kruskal-Wallis tests of relative daily change by weekday, day of month, month")
+save_result(holiday_effect, "07_holiday_effect", "Activity on Portuguese public holidays vs normal business days")
 
 # %% [markdown]
 # **Findings.**
@@ -565,8 +618,14 @@ for acc in sample_accounts(bal.index, min(200, MAX_TEST_ACCOUNTS)):
     if len(s) >= 120:
         strengths[acc] = component_strengths(s)
 strengths = pd.DataFrame(strengths).T
-display(pd.concat({"median account (series)": pd.Series(component_strengths(typical_series)),
-                   "per-account (median of strengths)": strengths.median()}, axis=1).round(3))
+strength_summary = pd.concat({"median account (series)": pd.Series(component_strengths(typical_series)),
+                              "per-account (median of strengths)": strengths.median()}, axis=1).round(3)
+display(strength_summary)
+save_result(strength_summary, "09_mstl_strength_summary", "MSTL component strengths: median-account series and per-account median")
+save_result(strengths, "09_mstl_strength_per_account", "Per account (sample): strength of trend, weekly and monthly components")
+save_result(pd.DataFrame({"observed": typical_series, "trend": mstl.trend, "seasonal_7": mstl.seasonal["seasonal_7"],
+                          "seasonal_30": mstl.seasonal["seasonal_30"], "resid": mstl.resid}),
+            "09_mstl_median_account", "MSTL decomposition of the cross-sectional median balance")
 
 # %% [markdown]
 # **Findings.** The trend component dominates; the monthly component is clearly stronger than the weekly one (the
@@ -605,8 +664,11 @@ def classify(adf_p, kpss_p, alpha=0.05):
 
 st["levels"] = [classify(a, k) for a, k in zip(st.adf_p_level, st.kpss_p_level)]
 st["first differences"] = [classify(a, k) for a, k in zip(st.adf_p_diff, st.kpss_p_diff)]
-display(pd.concat([st["levels"].value_counts(normalize=True), st["first differences"].value_counts(normalize=True)],
-                  axis=1).fillna(0).mul(100).round(1).rename_axis("% of accounts"))
+st_summary = pd.concat([st["levels"].value_counts(normalize=True), st["first differences"].value_counts(normalize=True)],
+                       axis=1).fillna(0).mul(100).round(1).rename_axis("% of accounts")
+display(st_summary)
+save_result(st, "10_stationarity_per_account", "Per account: ADF and KPSS p-values (levels, differences) and classification")
+save_result(st_summary, "10_stationarity_summary", "% of accounts per stationarity class, levels vs first differences")
 
 # %% [markdown]
 # **Findings.** In levels the two tests disagree for a large share of accounts — the signature of series with
@@ -627,15 +689,28 @@ plot_pacf(typical_series.diff().dropna(), lags=40, ax=axes[1, 1], title="PACF �
 plt.tight_layout(); plt.show()
 
 NLAGS = 35
-acfs, lb7, lb30 = [], [], []
+acfs, lb7, lb30, acf_ids = [], [], [], []
 for acc in test_ids:
     x = np.diff(bal.loc[acc].dropna().to_numpy())
     if np.std(x) == 0:
         continue
+    acf_ids.append(acc)
     acfs.append(acf(x, nlags=NLAGS, fft=True))
     lb = acorr_ljungbox(x, lags=[7, 30])
     lb7.append(lb["lb_pvalue"].iloc[0]); lb30.append(lb["lb_pvalue"].iloc[1])
 acfs = np.array(acfs)
+save_result(pd.DataFrame(acfs, index=pd.Index(acf_ids, name="ACCOUNT_ID"), columns=[f"lag_{l}" for l in range(NLAGS + 1)]),
+            "11_acf_changes_per_account", "Per account: ACF of daily changes, lags 0-35")
+save_result(pd.DataFrame({"median": np.median(acfs, 0), "p25": np.percentile(acfs, 25, 0), "p75": np.percentile(acfs, 75, 0)},
+                         index=pd.Index(range(NLAGS + 1), name="lag")),
+            "11_acf_changes_summary", "Median and IQR across accounts of the ACF of daily changes")
+save_result(pd.DataFrame({"ljung_box_p_lag7": lb7, "ljung_box_p_lag30": lb30}, index=pd.Index(acf_ids, name="ACCOUNT_ID")),
+            "11_ljung_box_per_account", "Per account: Ljung-Box p-values on daily changes (lags 7 and 30)")
+save_result(pd.DataFrame({"acf": acf(typical_series, nlags=40), "pacf": pacf(typical_series, nlags=40),
+                          "acf_diff": acf(typical_series.diff().dropna(), nlags=40),
+                          "pacf_diff": pacf(typical_series.diff().dropna(), nlags=40)},
+                         index=pd.Index(range(41), name="lag")),
+            "11_acf_pacf_median_account", "ACF/PACF of the median-account series, levels and first differences")
 fig, ax = plt.subplots(figsize=(12, 3.8))
 lags = np.arange(NLAGS + 1)
 ax.fill_between(lags, np.percentile(acfs, 25, 0), np.percentile(acfs, 75, 0), alpha=0.3, label="interquartile range")
@@ -669,6 +744,9 @@ arch_p = pd.Series(arch_p, index=test_ids)
 print(f"ARCH-LM rejects homoscedasticity for {100 * (arch_p < 0.05).mean():.1f}% of accounts")
 
 monthly_vol = pd.DataFrame(np.abs(dB), columns=cd).T.groupby(cd.to_period("M")).mean().median(axis=1)
+save_result(arch_p.rename("arch_lm_p"), "12_arch_per_account", "Per account: ARCH-LM p-value on daily changes (7 lags)")
+save_result(monthly_vol.rename(index=str).rename("median_mean_abs_change"), "12_monthly_volatility",
+            "Per month: median across accounts of the mean absolute daily change")
 monthly_vol.plot(title="Median (across accounts) of mean |daily change| per month", marker="o")
 plt.ylabel("EUR"); plt.tight_layout(); plt.show()
 
@@ -688,6 +766,7 @@ yearly = pd.DataFrame({
     "share of accounts changing per business day": share[share.index.dayofweek < 5].groupby(share.index[share.index.dayofweek < 5].year).mean(),
     "active accounts": bal.notna().sum(0).groupby(bal.columns.year).max(),
 }).round(3)
+save_result(yearly, "13_yearly_summary", "Per year: typical balance, share negative, activity, active accounts")
 yearly
 
 # %% [markdown]
@@ -719,10 +798,16 @@ sns.heatmap(corr_changes[np.ix_(order_idx, order_idx)], cmap="RdBu_r", center=0,
             xticklabels=False, yticklabels=False)
 axes[1].set(title="Correlation of daily changes (sample of accounts)")
 plt.tight_layout(); plt.show()
-display(pd.DataFrame({
+corr_summary = pd.DataFrame({
     "levels": pd.Series(corr_levels[iu]).describe(percentiles=[0.05, 0.5, 0.95]),
     "daily changes": pd.Series(corr_changes[iu]).describe(percentiles=[0.05, 0.5, 0.95]),
-}).round(3))
+}).round(3)
+display(corr_summary)
+pairs = pd.DataFrame({"account_a": corr_ids[iu[0]], "account_b": corr_ids[iu[1]],
+                      "corr_changes": corr_changes[iu], "corr_levels": corr_levels[iu]})
+top_pairs = pairs.reindex(pairs.corr_changes.abs().sort_values(ascending=False).index).head(50)
+save_result(corr_summary, "14_correlation_summary", "Distribution of pairwise correlations: levels vs daily changes (sample)")
+save_result(top_pairs, "14_top_correlated_pairs", "50 account pairs with the strongest correlation of daily changes", index=False)
 
 # %% [markdown]
 # **Findings.** Correlations between accounts are **weak**: the median pairwise correlation of daily changes is close
@@ -765,6 +850,8 @@ seg_summary = feat.groupby("segment").agg(
     share_negative=("share_negative", "median"), cv=("cv", "median"), median_balance=("median_balance", "median"))
 seg_summary["% accounts"] = (100 * seg_summary.accounts / len(feat)).round(1)
 display(seg_summary.round(3))
+save_result(feat, "15_segments_per_account", "Per account: last-12-month features and segment")
+save_result(seg_summary, "15_segment_summary", "Per segment: number of accounts and median features")
 
 fig, axes = plt.subplots(1, len(seg_summary), figsize=(16, 3.2))
 for ax, seg in zip(np.atleast_1d(axes), seg_summary.index):
@@ -800,6 +887,8 @@ plt.tight_layout(); plt.show()
 
 # %%
 prepared = bal.copy()
+save_result(prepared.rename(columns=lambda c: c.strftime("%Y-%m-%d")), "16_prepared_balances",
+            "PREPARED DATASET (wide, same layout as the raw file): realigned calendar, repaired 2022-08-05, leading NaN kept")
 display(pd.Series({
     "accounts": prepared.shape[0],
     "days": prepared.shape[1],
@@ -868,6 +957,8 @@ for origin in origins:
 results = pd.DataFrame(results)
 display(results.pivot(index="model", columns="fold (test start)", values="MAPE (official)").round(1))
 summary = results.groupby("model")[[c for c in results.columns if "MAPE" in c]].mean().sort_values(f"MAPE |actual|>={NEAR_ZERO:.0f}")
+save_result(results, "17_baselines_by_fold", "Baseline forecasts: three MAPE metrics per fold and model", index=False)
+save_result(summary, "17_baselines_summary", "Baseline forecasts: metrics averaged over folds (reference for Sprint 2)")
 summary.round(1)
 
 # %% [markdown]
@@ -895,3 +986,26 @@ summary.round(1)
 #    global model on scaled data with calendar features; segment-specific strategies.
 # 7. **Validation:** rolling-origin backtesting with 30-day horizons including January 2022; baselines to beat are in
 #    §17.
+
+# %% [markdown]
+# ## 19. Saved results
+# One table per account combining every per-account result, and the index of all CSV files written to `data/sprint1/`.
+
+# %%
+account_features = (per_account
+                    .join(first_obs.rename("first_observation_raw_label"))
+                    .join(pd.Series(sign_type, index=bal.index, name="sign_type"))
+                    .join(pd.DataFrame({"extreme_moves": big.sum(1), "spikes": spike.sum(1)}, index=bal.index))
+                    .join(st[["adf_p_level", "kpss_p_level", "levels", "first differences"]]
+                          .rename(columns={"levels": "stationarity_levels", "first differences": "stationarity_diff"}))
+                    .join(pd.DataFrame({"ljung_box_p_lag7": lb7, "ljung_box_p_lag30": lb30}, index=acf_ids))
+                    .join(arch_p.rename("arch_lm_p"))
+                    .join(strengths.add_prefix("mstl_strength_"))
+                    .join(feat.add_suffix("_last12m")))
+save_result(account_features, "00_account_features", "ONE ROW PER ACCOUNT: all per-account statistics, tests and segment")
+
+index = pd.DataFrame(saved_files)
+if SAVE_RESULTS:
+    index.to_csv(RESULTS_DIR / "00_index.csv", index=False)
+    print(f"{len(index)} result files written to {RESULTS_DIR}")
+index

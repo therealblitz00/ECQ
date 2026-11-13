@@ -14,6 +14,14 @@ Master's course project (EQC, FEP × Millennium BCP): forecast each account's da
 3. Build the notebook: `.venv\Scripts\jupytext --to ipynb notebooks/NN_name.py`
 4. Verify it runs headless and save outputs: `.venv\Scripts\jupyter nbconvert --to notebook --execute --inplace notebooks/NN_name.ipynb`
 The `.py` is the source of truth; never hand-edit the `.ipynb`.
+Execution needs the venv kernel: add `--ExecutePreprocessor.kernel_name=eqc-case-study-iii` (registered user kernel; the default `python3` kernel is the system Python without the deps).
+
+## Saved results (read these instead of re-running notebooks)
+Each sprint notebook writes every analysis table to `data/sprintN/` via `save_result()`:
+- `00_index.csv` — list of all files with descriptions; start here.
+- `00_account_features.csv` — one row per account with all per-account results (Sprint 1).
+- Files are prefixed with the notebook section number (e.g. `10_stationarity_per_account.csv`).
+- `*prepared_balances*.csv` is the full prepared dataset (bank data) — git-ignored.
 
 ## Data
 - `data/raw/small_dataset.csv` (50 accounts) — exactly the first 50 rows of `data/raw/medium-dataset.csv` (500 accounts).

@@ -9,6 +9,8 @@ data/raw/*
 data/processed/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+# Prepared full datasets written by the sprint notebooks (copies of the bank data)
+data/sprint*/*prepared_balances*.csv
 
 # OS
 .DS_Store

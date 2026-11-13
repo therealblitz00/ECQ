@@ -1,0 +1,10 @@
+,value
+accounts,500
+days,1095
+first date,2020-01-02
+last date,2022-12-31
+calendar days missing from columns,0
+duplicated account IDs,0
+duplicated dates,0
+observed values,541647
+values not in whole cents,0

@@ -8,14 +8,24 @@ Forecast each client's daily account balance for the **next 30 days**, evaluated
 | `data/raw/small_dataset.csv` | 50 accounts × 1095 days (subset: the first 50 accounts of the medium dataset) |
 | `data/raw/medium-dataset.csv` | 500 accounts × 1095 days |
 
-- *Wide* format: one row per `ACCOUNT_ID`, one column per day (2020-01-02 → 2022-12-31).
-- Initial observations (medium): ~1% missing values, ~22% negative balances, 6 exact zeros (problematic for MAPE).
+- *Wide* format: one row per `ACCOUNT_ID`, one column per day (raw labels 2020-01-02 → 2022-12-31). The data is fictitious.
 - The **final evaluation uses a large dataset** (not yet available). The small/medium datasets are for development; all code must scale to the large one (vectorised, memory-aware) and run on the group's Lenovo ThinkStation PGX (ARM64 Linux).
 - The final forecasts are for the 30 days following the end of the data, for the same accounts.
 - How MAPE treats zero/negative balances is not specified — any assumption must be documented.
 
+### Key findings so far (Sprint 1, medium dataset)
+- **Date convention changes in Aug 2022:** until label 2022-08-06 a label *D* holds the closing balance of *D − 1*; from 2022-08-07 it is the same-day close. Fixed by realigning the calendar (prepared data: 2020-01-01 → 2022-12-31, 1096 days).
+- **Corrupted day:** label 2022-08-05 is the sum of two closing balances; repaired exactly.
+- **Missing values (~1%) are all leading** — 25 accounts opened later; no imputation.
+- **MAPE risk:** 22% of balances negative, 17% with |balance| < €100, 358/500 accounts change sign.
+- **Calendar:** activity on business days only; inflows peak at month end (salaries) and on day 8 (pensions); outflows early in the month.
+- **Dynamics:** levels ≈ random walk with level shifts; first differences stationary (d = 1); weak cross-account correlation.
+- **Baselines (mean of 5 folds):** median of last 30 days → 71.5% MAPE on |actual| ≥ €100; official pooled MAPE > 1 000% for all baselines (dominated by near-zero actuals).
+
+All Sprint 1 results are saved as CSV in `data/sprint1/` (start with `00_index.csv` and `00_account_features.csv`).
+
 ## Deliverables & Tooling
-- Each sprint is delivered as a Jupyter notebook (`.ipynb`).
+- Each sprint is delivered as a self-contained Jupyter notebook (`.ipynb`) that runs with only the professor's CSV.
 - Language: Python 3.13.
 
 ## Repository Structure
@@ -33,6 +43,12 @@ reports/figures/   exported figures
 python3.13 -m venv .venv
 # Windows: .venv\Scripts\activate    Linux (PGX): source .venv/bin/activate
 pip install -r requirements.txt
+python -m ipykernel install --user --name eqc-case-study-iii
+
+# Build and run a sprint notebook from its .py source
+cd notebooks
+jupytext --to ipynb 01_data_preparation.py
+jupyter nbconvert --to notebook --execute --inplace --ExecutePreprocessor.kernel_name=eqc-case-study-iii 01_data_preparation.ipynb
 ```
 
 ---
@@ -48,24 +64,32 @@ pip install -r requirements.txt
 
 ### Sprint 1 — Data Preparation (due 2026-11-19)
 Inspect the time series and decide which changes are needed. Deliverable: `notebooks/01_data_preparation.ipynb`.
-- [ ] Project setup: folder structure, Python environment, scalable data loader (wide → long)
-- [ ] Missing values: locate them (leading = account not yet open, trailing = closed, interior = gaps) and define imputation per case
-- [ ] Calendar: check whether balances only change on business days (weekends/holidays)
-- [ ] Zeros, negatives and near-zero balances: quantify and define treatment (MAPE blows up near zero)
-- [ ] Duplicates, impossible values, extreme jumps
-- [ ] Descriptive statistics per account and globally (mean, median, dispersion, skewness, kurtosis, normality) and distributions
-- [ ] Extremes/outliers in levels and in daily changes (spikes that revert vs permanent level shifts)
-- [ ] Correlations between accounts, computed on daily changes (levels give spurious correlation), and of the aggregate series
-- [ ] Calendar relationships: how balances and daily changes relate to day of week, day of month, month and holidays (heatmaps + Kruskal–Wallis/ANOVA tests)
-- [ ] Exploratory analysis: trend, weekly and day-of-month seasonality (paydays, direct debits), Portuguese holiday/13th–14th month subsidies (June/July, Nov/Dec), structural breaks (COVID 2020, 2022 inflation)
-- [ ] Stationarity (ADF/KPSS) and ACF/PACF on a sample of accounts
-- [ ] Account segmentation (stable, volatile, always negative, sign-changing, step-like)
-- [ ] Documented data-preparation decisions, each backed by evidence
-- [ ] Validation scheme: rolling-origin backtesting with 30-day horizons, including January 2022 (same season as the final forecast)
-- [ ] Baseline MAPE (naive, seasonal naive) as the reference for Sprint 2
+
+Done:
+- [x] Project setup: folder structure, Python environment, self-contained notebook workflow
+- [x] Missing values: located (all leading — accounts opened later); decision: no imputation
+- [x] Calendar audit: Aug-2022 date-convention change detected and realigned; corrupted 2022-08-05 repaired
+- [x] Zeros, negatives and near-zero balances quantified; three-metric evaluation protocol defined
+- [x] Duplicates, impossible values (none), extreme moves (heavy tails; mostly permanent level shifts)
+- [x] Descriptive statistics per account and globally, normality (Jarque–Bera) and distributions
+- [x] Calendar relationships: weekday, day of month, month, holidays (heatmaps + Kruskal–Wallis)
+- [x] Decomposition (MSTL, weekly + monthly) and component strengths
+- [x] Stationarity (ADF/KPSS on levels and differences), ACF/PACF, Ljung–Box, ARCH-LM
+- [x] Structural changes across years
+- [x] Correlations between accounts on daily changes vs levels
+- [x] Account segmentation (dormant, near-zero/overdraft, stable positive, volatile positive)
+- [x] Documented data-preparation decisions, each backed by evidence
+- [x] Validation scheme (rolling origin, 5 folds incl. January 2022) and baseline MAPE
+- [x] All analysis results saved as CSV in `data/sprint1/`
+
+To do:
+- [ ] Deeper analyses (see "Advanced analyses" below)
+- [ ] Executive summary at the top of the notebook
+- [ ] Group review of the notebook and its conclusions
+- [ ] Re-run on the large dataset when available and check that the findings (and the Aug-2022 fix) still hold
 
 ### Sprint 2 — Modelling: Forecasting Models (due 2026-11-26)
-- [ ] Baselines: naive (last value), seasonal naive, mean/median
+- [x] Baselines: naive (last value), seasonal naive, mean/median (done in Sprint 1, §17)
 - [ ] Statistical models: ETS, ARIMA/SARIMA
 - [ ] ML / global models (e.g. LightGBM with lags and calendar features)
 - [ ] Compare models by MAPE under the defined validation scheme

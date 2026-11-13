@@ -96,10 +96,35 @@ To do:
 - [ ] Group review of the notebook and its conclusions
 
 ### Sprint 2 — Modelling: Forecasting Models (due 2026-11-26)
+Each item follows the methods and vocabulary of the course materials (EDA, stationarity, decomposition and smoothing, ARIMA/SARIMA, forecasting, multivariate series, ML for time series).
+
 - [x] Baselines: naive (last value), seasonal naive, mean/median (done in Sprint 1, §17)
-- [ ] Statistical models: ETS, ARIMA/SARIMA
-- [ ] ML / global models (e.g. LightGBM with lags and calendar features)
-- [ ] Compare models by MAPE under the defined validation scheme
+- [ ] **Evaluation protocol in course terms**
+  - [ ] Name the validation scheme (fixed / recursive-expanding / rolling window) and justify the choice; keep the Sprint 1 folds (incl. January)
+  - [ ] Add **MASE** next to the official MAPE: the course slides state that MAPE cannot be used with negative, zero or very small values and propose MASE as the alternative
+  - [ ] Report in-sample (fitted) and out-of-sample accuracy (ME, MAE, RMSE, MAPE, MASE), and the error as a function of the horizon (1 to 30 days)
+  - [ ] Compare a 30-step-ahead forecast from a fixed origin with rolling 1-step-ahead forecasts
+  - [ ] 95% prediction intervals and their empirical coverage (share of actuals inside the interval)
+- [ ] **Exponential smoothing (ETS)**: SES, Holt, damped trend, Holt-Winters additive with weekly period; state why the multiplicative form (and Box-Cox) is not usable here (negative and zero balances)
+- [ ] **Box-Jenkins workflow (ARIMA/SARIMA)**, shown in full on 3-4 representative accounts (one per Sprint 1 segment):
+  - [ ] Orders of differencing: ndiffs/nsdiffs logic, ADF confirmed with KPSS
+  - [ ] Identification from the ACF/PACF of the stationary series; several candidate models
+  - [ ] Diagnostics: residual ACF, Ljung-Box, normality of residuals, significance of the parameters, parameter redundancy
+  - [ ] Selection by AIC/AICc/BIC, then accuracy on the validation folds
+  - [ ] At scale (all accounts, large dataset): AutoARIMA/AutoETS with `statsforecast`, parallel per account
+- [ ] **Multiple seasonality**: SARIMA takes one integer period, but the data have a weekly cycle and a ~30.4-day monthly cycle. Use **regression with ARIMA errors** (dynamic regression / SARIMAX) with:
+  - [ ] Fourier terms for the monthly cycle (the course recommends Fourier over dummies when the period is large)
+  - [ ] Weekday dummies and holiday flags
+  - [ ] Payday indicators (the 8th, moved to the next business day at weekends; the 28th-30th) as exogenous regressors
+  - [ ] Compare with MSTL + ARIMA/ETS on the seasonally adjusted series
+- [ ] **ML / global models** (LightGBM or sklearn HistGradientBoosting):
+  - [ ] Features: lags, rolling statistics (mean, std, min, max), calendar features, cyclical encodings (sin/cos or periodic splines), payday flags
+  - [ ] Multi-step strategy for 30 days: recursive vs direct, compared
+  - [ ] Loss choice: absolute/quantile (median) loss, and a 1/|actual|-weighted variant aimed at MAPE
+  - [ ] Time-ordered splits only (`TimeSeriesSplit` / the Sprint 1 folds), no shuffling
+  - [ ] Residual diagnostics (should resemble white noise) and feature importance / SHAP
+- [ ] **Near-zero accounts**: dedicated strategy (e.g. level choice per segment), evaluated with the three Sprint 1 measures plus MASE
+- [ ] Compare all models on the same folds and measures; pick the champion per segment and overall
 
 ### Sprint 3 — Anomalies + Optimizations (due 2026-12-03)
 - [ ] Identify and explain the anomalies found (in the data and in forecast errors)

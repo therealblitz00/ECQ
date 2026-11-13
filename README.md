@@ -22,6 +22,9 @@ Forecast each client's daily account balance for the **next 30 days**, evaluated
 - **Dynamics:** levels ≈ random walk with level shifts; first differences stationary (d = 1); weak cross-account correlation.
 - **Paydays:** largest inflows on the 8th (moved to the next business day at weekends; 8 Jan 2023 is a Sunday → 9 Jan) and on the 28th–30th; ~1 in 5 recurring amounts falls on a fixed day of the month.
 - **Structure:** monthly cycle ≈30.4 days with harmonics (15.2, 10.1); frequent level shifts (half the accounts changed level in the last ~2 months); January dips like a deep ordinary month; accounts independent (no transfers/duplicates); no credit-limit floors; daily changes anti-persistent (Hurst ≈ 0.37).
+- **Dynamics, refined:** random walk day to day, but strong mean reversion over a month (variance ratio ≈ 0.24 at 21 business days); once one level break is allowed (Zivot–Andrews) most accounts are stationary → forecast the level the balance oscillates around.
+- **Two kinds of accounts:** the feature map splits accounts mainly by distance from zero — ~230 stable positive accounts (naive median MAPE ≈ 26%) vs ~270 accounts living around zero (≈ 260%).
+- **Modelling hints:** flows are lumpy (Syntetos–Boylan) → forecast levels, not flows; seasonal patterns stable across years but too weak for seasonal differencing → calendar regressors/Fourier terms; asinh scaling for global models; ~40% of accounts keep non-linear structure (BDS) → room for tree-based ML.
 - **Oracle:** the best constant level per account reaches an official MAPE of ~44% vs ~1 300% for the naive forecast — most of the error is choosing the wrong level for near-zero accounts.
 - **Baselines (mean of 5 folds):** median of last 30 days → 71.5% MAPE on |actual| ≥ €100; official pooled MAPE > 1 000% for all baselines (dominated by near-zero actuals).
 
@@ -86,6 +89,7 @@ Done:
 - [x] All analysis results saved as CSV in `data/sprint1/`
 
 - [x] Advanced analyses (Part D): transaction forensics (Benford, cents, round amounts), recurring payments, paydays and the weekend rule for the 8th, overdraft floors, transfers/duplicates (permutation test), spectral analysis, change points, January paths, oracle bounds, error drivers, zero-crossing risk, Hurst exponent
+- [x] Specialist pattern-finding tools (Part D, D14–D22): feature map of all accounts (PCA + clustering), Syntetos–Boylan flow classification, Zivot–Andrews unit-root test with a break, seasonal-differencing rule, Lo–MacKinlay variance ratios, asinh/Yeo–Johnson transformations, BDS non-linearity test, seasonal subseries and lag plots, matrix profile (motifs and discords)
 - [x] Notebook rewritten as storytelling, with a short summary at the top
 
 To do:

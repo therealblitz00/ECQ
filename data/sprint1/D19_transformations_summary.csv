@@ -1,0 +1,10 @@
+,median absolute value across accounts
+skew raw,1.422
+skew asinh,0.474
+skew Yeo-Johnson,0.056
+kurtosis raw,2.312
+kurtosis asinh,0.892
+kurtosis Yeo-Johnson,0.751
+level-volatility link raw,0.379
+level-volatility link asinh,0.281
+Yeo-Johnson lambda,0.033

@@ -21,7 +21,7 @@ file,description,rows,columns
 07_kruskal_wallis.csv,"Kruskal-Wallis tests of relative daily change by weekday, day of month, month",3,2
 07_holiday_effect.csv,Activity on Portuguese public holidays vs normal business days,2,2
 09_mstl_strength_summary.csv,MSTL component strengths: median-account series and per-account median,3,2
-09_mstl_strength_per_account.csv,"Per account (sample): strength of trend, weekly and monthly components",200,3
+09_mstl_strength_per_account.csv,"Per account (sample): strength of trend, weekly and monthly components",500,3
 09_mstl_median_account.csv,MSTL decomposition of the cross-sectional median balance,1096,5
 10_stationarity_per_account.csv,"Per account: ADF and KPSS p-values (levels, differences) and classification",500,6
 10_stationarity_summary.csv,"% of accounts per stationarity class, levels vs first differences",4,2
@@ -55,7 +55,24 @@ D11_predictability_per_account.csv,"Per account: naive MAPE and candidate driver
 D11_error_drivers.csv,Spearman correlation of account characteristics with naive MAPE,5,1
 D12_zero_crossing_risk.csv,P(balance crosses zero within 30 days) by |balance| / recent volatility,6,2
 D13_hurst_per_account.csv,Per account: Hurst exponent (R/S) of daily changes,500,1
+D14_feature_space_per_account.csv,"Per account: time-series features, PCA coordinates and cluster",500,21
+D14_pca_loadings.csv,"PCA loadings of the time-series features (PC1, PC2)",18,2
+D14_cluster_profiles.csv,"Median features, size and naive MAPE of each cluster",20,2
+D15_syntetos_boylan_per_account.csv,"Per account: ADI, CV2 and demand-pattern category of inflows and outflows",500,6
+D15_syntetos_boylan_table.csv,Accounts by inflow category x outflow category,3,4
+D16_zivot_andrews_per_account.csv,"Per account: Zivot-Andrews statistic, p-value, break date and ADF/KPSS class",500,4
+D16_zivot_andrews_summary.csv,"% of accounts rejecting a unit root with one break, by ADF/KPSS class",4,2
+D17_seasonal_differencing.csv,Seasonal strength rule (Fs > 0.64) for weekly and monthly differencing,2,2
+D18_variance_ratio_per_account.csv,Per account: Lo-MacKinlay variance ratios and z statistics (business days),500,6
+D18_variance_ratio_summary.csv,Variance-ratio test summary by horizon,3,3
+D19_transformations_per_account.csv,"Per account: skewness, kurtosis and level-volatility link raw vs asinh vs Yeo-Johnson",500,9
+D19_transformations_summary.csv,Effect of variance-stabilising transformations (medians),9,1
+D20_bds_per_account.csv,Per account: BDS p-values on AR(5) residuals of business-day changes,200,2
+D20_bds_summary.csv,% of accounts with non-linear dependence left after a linear AR model,2,1
+D21_subseries_large_inflow_by_day_year.csv,Share of accounts with a large inflow by day of month and year,31,3
+D21_subseries_activity_by_weekday_year.csv,Share of accounts changing by weekday and year,5,3
+D22_matrix_profile_per_account.csv,Per account (sample): motif and discord (most unusual 30-day window) from the matrix profile,100,5
 16_prepared_balances.csv,"PREPARED DATASET (wide, same layout as the raw file): realigned calendar, repaired 2022-08-05, leading NaN kept",500,1096
 17_baselines_by_fold.csv,Baseline forecasts: all metrics per fold and model,20,5
 17_baselines_summary.csv,Baseline forecasts: metrics averaged over folds (reference for Sprint 2),4,3
-00_account_features.csv,"ONE ROW PER ACCOUNT: all per-account statistics, tests and segment",500,31
+00_account_features.csv,"ONE ROW PER ACCOUNT: all per-account statistics, tests and segment",500,50

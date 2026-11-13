@@ -30,8 +30,8 @@
 # **The short version.** The file looked clean but was not: until August 2022 every column held the previous day's
 # balance, and one day in August 2022 holds the sum of two balances. Once both are corrected, the balances follow a
 # business-day week and a saw-tooth month, with salaries at the end of the month, pensions on the 8th and debits at the
-# start. Accounts behave independently, jump to new levels from time to time and remember little beyond yesterday's
-# level. The hard part is the metric: one balance in six is within €100 of zero, and an oracle experiment shows that
+# start. Accounts behave independently. Day to day a balance looks like a random walk, but over a month most of its
+# movement cancels out around a level that jumps from time to time. The hard part is the metric: one balance in six is within €100 of zero, and an oracle experiment shows that
 # most of the official error comes from choosing the wrong level for those accounts. That is where Sprint 2 will win or
 # lose.
 #
@@ -51,7 +51,11 @@ import seaborn as sns
 import holidays
 from scipy import stats
 from scipy.signal import periodogram
-from statsmodels.tsa.stattools import adfuller, kpss, acf, pacf
+from statsmodels.tsa.stattools import adfuller, kpss, acf, pacf, zivot_andrews, bds
+from sklearn.decomposition import PCA
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+import stumpy
 from statsmodels.tsa.seasonal import MSTL, STL
 from statsmodels.stats.diagnostic import acorr_ljungbox, het_arch
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
@@ -640,7 +644,7 @@ def component_strengths(series):
 
 
 strengths = {}
-for acc in sample_accounts(bal.index, min(200, MAX_TEST_ACCOUNTS)):
+for acc in sample_accounts(bal.index, MAX_TEST_ACCOUNTS):
     s = bal.loc[acc].dropna()
     if len(s) >= 120:
         strengths[acc] = component_strengths(s)
@@ -922,7 +926,10 @@ plt.tight_layout(); plt.show()
 # could exploit and for an honest idea of how much room for improvement there is. We take apart the daily movements
 # into the transactions behind them, look for recurring payments, paydays, credit limits and links between accounts,
 # measure the exact cycles, find when each account last changed behaviour, study January (the month we will forecast)
-# and finally ask how good a forecast could possibly be.
+# and ask how good a forecast could possibly be. We then borrow the tools that time-series specialists use to find
+# patterns: a feature map of all accounts, the demand classification of Syntetos and Boylan, unit-root tests with
+# breaks, seasonal differencing rules, variance ratios, variance-stabilising transformations, a test for non-linear
+# structure, seasonal subseries plots and the matrix profile.
 #
 # Some of these analyses work at the level of individual transactions and use a fixed random sample of accounts, which
 # includes every account in the development data.
@@ -1488,18 +1495,459 @@ save_result(hurst, "D13_hurst_per_account", "Per account: Hurst exponent (R/S) o
 # no long memory, so long-memory models such as ARFIMA are not needed.
 
 # %% [markdown]
-# ## D14. What the closer look taught us
+# ## D14. A map of all the accounts
+#
+# So far we have described the accounts one property at a time. Forecasting researchers often go one step further:
+# they compute a set of features for every series (how persistent it is, how strong its cycles are, how often it
+# crosses zero, how lumpy its variance is) and then place all series on a single map. Accounts that sit close together
+# on the map behave alike and will probably need the same kind of model. We compute eighteen such features, convert
+# them to comparable scores, reduce them to two dimensions with a principal component analysis, and let a clustering
+# algorithm tell us how many natural groups there are.
+
+# %%
+def series_features(s):
+    """Feature vector describing one account (in the spirit of Hyndman's tsfeatures)."""
+    x = s.dropna().to_numpy()
+    d = np.diff(x)
+    n = len(x)
+    sd = x.std()
+    z = (x - x.mean()) / sd if sd > 0 else np.zeros_like(x)
+    k = n // 30
+    blocks = z[-k * 30:].reshape(k, 30)
+    unchanged = np.r_[False, d == 0]
+    run_ends = np.flatnonzero(np.diff(np.r_[0, unchanged.astype(int), 0]))
+    longest_flat = int((run_ends[1::2] - run_ends[::2]).max()) if len(run_ends) else 0
+    above = x > np.median(x)
+    return {
+        "acf1_level": acf(x, nlags=1)[1] if sd > 0 else np.nan,
+        "acf1_diff": acf(d, nlags=1)[1] if d.std() > 0 else np.nan,
+        "acf10_diff": float(np.sum(acf(d, nlags=10)[1:] ** 2)) if d.std() > 0 else np.nan,
+        "stability": float(blocks.mean(1).var()),
+        "lumpiness": float(blocks.var(1).var()),
+        "crossing_points": float(np.mean(above[1:] != above[:-1])),
+        "zero_crossings_per_year": float(np.sum(np.sign(x[1:]) != np.sign(x[:-1])) / (n / 365)),
+        "longest_flat_spell": longest_flat,
+        "kurtosis_changes": float(stats.kurtosis(d)),
+    }
+
+
+ts_feat = pd.DataFrame({acc: series_features(bal.loc[acc]) for acc in bal.index}).T
+ts_feat = ts_feat.join(strengths.add_prefix("strength_")).join(pd.Series(spec_entropy, name="spectral_entropy")) \
+                 .join(hurst).join(feat[["activity", "share_near_zero", "share_negative", "cv"]])
+ts_feat["log_cv"] = np.log10(ts_feat.pop("cv").clip(lower=1e-3))
+
+# Rank-based normal scores make the features comparable and robust to extreme values
+filled = ts_feat.fillna(ts_feat.median())
+scores = filled.rank(pct=True).sub(0.5 / len(filled)).apply(stats.norm.ppf)
+pca = PCA(n_components=5, random_state=RANDOM_STATE).fit(scores)
+pcs = pd.DataFrame(pca.transform(scores)[:, :2], index=scores.index, columns=["PC1", "PC2"])
+loadings = pd.DataFrame(pca.components_[:2].T, index=scores.columns, columns=["PC1", "PC2"])
+explained = pd.Series(pca.explained_variance_ratio_, index=[f"PC{i}" for i in range(1, 6)])
+
+sil = {}
+for k_ in range(2, 9):
+    sil[k_] = silhouette_score(scores, KMeans(n_clusters=k_, n_init=10, random_state=RANDOM_STATE).fit_predict(scores))
+best_k = max(sil, key=sil.get)
+clusters = pd.Series(KMeans(n_clusters=best_k, n_init=10, random_state=RANDOM_STATE).fit_predict(scores),
+                     index=scores.index, name="cluster")
+
+display(explained.round(3).to_frame("explained variance"))
+display(loadings.round(2).sort_values("PC1"))
+display(pd.Series(sil).round(3).to_frame("silhouette"))
+cluster_profile = ts_feat.groupby(clusters).median().T
+cluster_profile.loc["accounts"] = clusters.value_counts().sort_index()
+cluster_profile.loc["median naive MAPE"] = naive_mape_acc.groupby(clusters).median()
+display(cluster_profile.round(2))
+display(pd.crosstab(clusters, feat.segment))
+
+fig, axes = plt.subplots(1, 2, figsize=(15, 5))
+for c in sorted(clusters.unique()):
+    m_ = clusters == c
+    axes[0].scatter(pcs.PC1[m_], pcs.PC2[m_], s=12, label=f"cluster {c}")
+axes[0].legend(); axes[0].set(title="Accounts in feature space, coloured by cluster", xlabel="PC1", ylabel="PC2")
+sc = axes[1].scatter(pcs.PC1, pcs.PC2, s=12, c=np.log10(naive_mape_acc.reindex(pcs.index).clip(lower=1)), cmap="magma_r")
+plt.colorbar(sc, ax=axes[1], label="log10 naive MAPE (%)")
+axes[1].set(title="... coloured by the error of the naive forecast", xlabel="PC1", ylabel="PC2")
+plt.tight_layout(); plt.show()
+save_result(ts_feat.join(pcs).join(clusters), "D14_feature_space_per_account", "Per account: time-series features, PCA coordinates and cluster")
+save_result(loadings, "D14_pca_loadings", "PCA loadings of the time-series features (PC1, PC2)")
+save_result(cluster_profile, "D14_cluster_profiles", "Median features, size and naive MAPE of each cluster")
+
+# %% [markdown]
+# The map has one dominant direction. The first component, which carries about 40% of the information, runs from
+# accounts that are persistent, stable and far from zero to accounts that cross their median and zero often, vary a lot
+# relative to their level and spend much time near zero. The second component separates accounts with a strong monthly
+# cycle from accounts whose changes look like noise.
+#
+# The clustering agrees with this reading. The best split has only two groups, and the separation is modest, which
+# tells us accounts form a continuum rather than tidy families. Still, the two groups are very different where it
+# matters: about 230 positive, stable accounts that the naive forecast already handles with a median error near 26%,
+# and about 270 accounts that live around zero, cross it almost twenty times a year and carry a median error ten times
+# higher. The rule-based segments of section 15 fall almost entirely on one side or the other. For Sprint 2 this is a
+# clear instruction: the main dividing line between accounts is their distance from zero, and it deserves its own
+# model strategy.
+
+# %% [markdown]
+# ## D15. How often does money move?
+#
+# Demand forecasters classify series by two numbers: how many periods pass, on average, between two non-zero values
+# (ADI) and how variable those non-zero values are (CV²). Syntetos and Boylan drew a grid with these two numbers that
+# separates smooth series from erratic, intermittent and lumpy ones, and each quadrant has its preferred methods. We
+# apply it to each account's inflows and outflows separately, on business days.
+
+# %%
+ADI_CUT, CV2_CUT = 1.32, 0.49
+business_mask = np.array([(d.dayofweek < 5) and (d not in pt_holidays) for d in cd])
+
+
+def syntetos_boylan(flows):
+    """flows: accounts x business days, non-negative. Returns ADI, CV^2 and category per account."""
+    occurs = flows > 0
+    n_obs = np.sum(~np.isnan(flows), 1)
+    n_occ = np.sum(occurs, 1)
+    adi = n_obs / np.maximum(n_occ, 1)
+    sizes = np.where(occurs, flows, np.nan)
+    cv2 = (np.nanstd(sizes, 1) / np.nanmean(sizes, 1)) ** 2
+    cat = np.select([(adi < ADI_CUT) & (cv2 < CV2_CUT), (adi < ADI_CUT), (cv2 < CV2_CUT)],
+                    ["smooth", "erratic", "intermittent"], default="lumpy")
+    return pd.DataFrame({"ADI": adi, "CV2": cv2, "category": np.where(n_occ < 2, "too few", cat)}, index=bal.index)
+
+
+flows_b = dB[:, business_mask]
+sb_in = syntetos_boylan(np.where(np.isnan(flows_b), np.nan, np.clip(flows_b, 0, None)))
+sb_out = syntetos_boylan(np.where(np.isnan(flows_b), np.nan, np.clip(-flows_b, 0, None)))
+sb_table = pd.crosstab(sb_in.category.rename("inflows"), sb_out.category.rename("outflows"), margins=True)
+display(sb_table)
+display(pd.DataFrame({"inflows": sb_in[["ADI", "CV2"]].median(), "outflows": sb_out[["ADI", "CV2"]].median()}).round(2))
+
+fig, ax = plt.subplots(figsize=(8, 5))
+ax.scatter(sb_in.ADI, sb_in.CV2, s=10, label="inflows"); ax.scatter(sb_out.ADI, sb_out.CV2, s=10, label="outflows")
+ax.axvline(ADI_CUT, color="grey", ls="--"); ax.axhline(CV2_CUT, color="grey", ls="--")
+ax.set(xscale="log", yscale="log", xlabel="ADI (business days between movements)", ylabel="CV² of movement sizes",
+       title="Syntetos–Boylan classification of each account's flows")
+for txt, (xx, yy) in {"smooth": (1.05, 0.15), "erratic": (1.05, 3), "intermittent": (3, 0.15), "lumpy": (3, 3)}.items():
+    ax.text(xx, yy, txt, color="grey")
+ax.legend(); plt.tight_layout(); plt.show()
+save_result(sb_in.add_prefix("inflow_").join(sb_out.add_prefix("outflow_")), "D15_syntetos_boylan_per_account",
+            "Per account: ADI, CV2 and demand-pattern category of inflows and outflows")
+save_result(sb_table, "D15_syntetos_boylan_table", "Accounts by inflow category x outflow category")
+
+# %% [markdown]
+# Almost every account falls in the lumpy quadrant, for both directions of money. Inflows arrive on average every nine
+# business days and their size varies a lot; outflows are more frequent, roughly every two business days, but their
+# sizes vary even more. Nothing about these flows is smooth.
+#
+# This is useful for choosing what to forecast. Predicting each day's movement is close to hopeless when movements are
+# this lumpy, which is why forecasting the level of the balance, rather than the flows that build it, is the sensible
+# choice. If we do want to model flows, for example the payday inflow, the methods designed for intermittent demand
+# (Croston and its successors) are the natural candidates.
+
+# %% [markdown]
+# ## D16. A break, not a random walk?
+#
+# In section 10 the ADF and KPSS tests disagreed for about half of the accounts, and we suspected the level shifts. The
+# Zivot–Andrews test lets us check this: it is a unit-root test that allows the series to have one break in its level
+# at a date it chooses itself. If accounts that looked non-stationary become stationary once a single break is allowed,
+# then their apparent wandering is really a jump between two stable levels.
+
+# %%
+za_rows = {}
+for acc in test_ids:
+    x = bal.loc[acc].dropna()
+    try:
+        stat_, p_, _, _, bp = zivot_andrews(x.to_numpy(), trim=0.15, maxlag=7, regression="c", autolag=None)
+        za_rows[acc] = {"za_stat": stat_, "za_p": p_, "break_date": x.index[bp]}
+    except Exception:
+        za_rows[acc] = {"za_stat": np.nan, "za_p": np.nan, "break_date": pd.NaT}
+za = pd.DataFrame(za_rows).T
+za["za_p"] = za.za_p.astype(float)
+za["levels_class"] = st["levels"]
+za_summary = za.groupby("levels_class").za_p.apply(lambda p: (p < 0.05).mean() * 100).round(1) \
+               .to_frame("% rejecting a unit root once a break is allowed")
+za_summary["accounts"] = za.levels_class.value_counts()
+display(za_summary)
+za.break_date = pd.to_datetime(za.break_date)
+za.break_date.dt.to_period("Q").value_counts().sort_index().plot.bar(figsize=(12, 3.5), title="Date of the most likely break (Zivot–Andrews), by quarter")
+plt.tight_layout(); plt.show()
+save_result(za, "D16_zivot_andrews_per_account", "Per account: Zivot-Andrews statistic, p-value, break date and ADF/KPSS class")
+save_result(za_summary, "D16_zivot_andrews_summary", "% of accounts rejecting a unit root with one break, by ADF/KPSS class")
+
+# %% [markdown]
+# The suspicion is confirmed. Among the accounts on which ADF and KPSS disagreed, almost nine in ten reject the unit
+# root once one break is allowed, and even among the accounts both tests had called non-stationary, six in ten do. The
+# breaks are spread evenly over the three years rather than concentrated on a common date, which fits the picture of
+# independent accounts each living its own story.
+#
+# The balances are therefore better described as stable around a level that occasionally jumps than as random walks.
+# This favours models that estimate a local level from recent data and can reset it after a break, alongside the
+# differenced ARIMA models suggested in section 10.
+
+# %% [markdown]
+# ## D17. Does the month need a seasonal difference?
+#
+# A SARIMA model can remove a seasonal pattern by differencing the series at the seasonal lag, but doing so when the
+# pattern is weak only adds noise. A practical rule, used for example by the `feasts` package of Hyndman and
+# colleagues, recommends a seasonal difference when the seasonal strength measured by STL exceeds 0.64. We apply it to
+# the weekly and monthly strengths of every account from section 9.
+
+# %%
+FS_CUT = 0.64
+seasonal_diff = pd.DataFrame({
+    "% of accounts with strength > 0.64 (seasonal difference advised)":
+        [100 * (strengths["weekly (7)"] > FS_CUT).mean(), 100 * (strengths["monthly (30)"] > FS_CUT).mean()],
+    "median strength": [strengths["weekly (7)"].median(), strengths["monthly (30)"].median()],
+}, index=["weekly (7)", "monthly (30)"]).round(2)
+display(seasonal_diff)
+save_result(seasonal_diff, "D17_seasonal_differencing", "Seasonal strength rule (Fs > 0.64) for weekly and monthly differencing")
+
+# %% [markdown]
+# No account needs a weekly seasonal difference and only about one in ten would need a monthly one. For the vast
+# majority of accounts the seasonal patterns are real but too weak for seasonal differencing. In Sprint 2 we will
+# therefore bring the calendar in through regressors or Fourier terms rather than through seasonal differences, keeping
+# the seasonal part of SARIMA for the few accounts with a strong monthly cycle.
+
+# %% [markdown]
+# ## D18. A formal check of the random walk
+#
+# If a balance were a random walk, the variance of its changes over *q* days would be *q* times the variance of its
+# daily changes. The variance-ratio test of Lo and MacKinlay compares the two: a ratio of 1 means random walk, a ratio
+# below 1 means that movements partly cancel out over the horizon, above 1 that they reinforce each other. We compute
+# it over a week, a month and a quarter of business days.
+
+# %%
+def variance_ratio(x, q):
+    """Lo-MacKinlay variance ratio and its homoscedastic z statistic."""
+    r = np.diff(x)
+    n = len(r)
+    mu = r.mean()
+    var1 = np.sum((r - mu) ** 2) / (n - 1)
+    rq = x[q:] - x[:-q]
+    m = q * (n - q + 1) * (1 - q / n)
+    varq = np.sum((rq - q * mu) ** 2) / m
+    vr = varq / var1
+    z_ = (vr - 1) / np.sqrt(2 * (2 * q - 1) * (q - 1) / (3 * q * n))
+    return vr, z_
+
+
+VR_LAGS = {"1 week (5 business days)": 5, "1 month (21)": 21, "1 quarter (63)": 63}
+vr_rows = {}
+for acc in bal.index:
+    s = bal.loc[acc].dropna()
+    x = s[s.index.dayofweek < 5].to_numpy()
+    if np.diff(x).std() == 0:
+        continue
+    row = {}
+    for lab, q in VR_LAGS.items():
+        row[f"VR {lab}"], row[f"z {lab}"] = variance_ratio(x, q)
+    vr_rows[acc] = row
+vr = pd.DataFrame(vr_rows).T
+vr_summary = pd.DataFrame({
+    "median VR": [vr[f"VR {l}"].median() for l in VR_LAGS],
+    "% VR significantly < 1": [100 * (vr[f"z {l}"] < -1.96).mean() for l in VR_LAGS],
+    "% VR significantly > 1": [100 * (vr[f"z {l}"] > 1.96).mean() for l in VR_LAGS],
+}, index=list(VR_LAGS)).round(2)
+display(vr_summary)
+save_result(vr, "D18_variance_ratio_per_account", "Per account: Lo-MacKinlay variance ratios and z statistics (business days)")
+save_result(vr_summary, "D18_variance_ratio_summary", "Variance-ratio test summary by horizon")
+
+# %% [markdown]
+# The ratios are far below 1 and fall with the horizon: about 0.75 over a week, 0.24 over a month and 0.13 over a
+# quarter, significantly below 1 for most accounts. Over a month, the balance moves only about a quarter as much as a
+# random walk would.
+#
+# This is one of the most practical results of the sprint. Day to day the balance looks like a random walk, which is why
+# section 11 found a strong first-lag autocorrelation. Over our 30-day horizon, however, most of the movement cancels
+# out: salary in, spending out. A forecast that targets the level around which the balance oscillates should beat one
+# that simply carries the last value forward, and this is exactly what the benchmark in section 17 suggests on the
+# typical account.
+
+# %% [markdown]
+# ## D19. Taming the scale
+#
+# Balances are skewed and their variability tends to grow with their size, which many models handle badly. The usual
+# cure, the logarithm or the Box–Cox transformation, cannot handle negative values. Two alternatives can: the inverse
+# hyperbolic sine (asinh), which behaves like a logarithm for large values and like a straight line near zero, and the
+# Yeo–Johnson transformation, an extension of Box–Cox to negative numbers. We apply both to each account, scaled by its
+# typical balance, and check how much they reduce skewness and the link between level and volatility.
+
+# %%
+def level_vol_link(x):
+    """Spearman correlation, over time, between the local level and the local volatility (30-day windows)."""
+    s_ = pd.Series(x)
+    lvl = s_.abs().rolling(30).mean()
+    vol = s_.diff().rolling(30).std()
+    ok_ = lvl.notna() & vol.notna()
+    return stats.spearmanr(lvl[ok_], vol[ok_])[0] if ok_.sum() > 60 else np.nan
+
+
+tr_rows = {}
+for acc in test_ids:
+    x = bal.loc[acc].dropna().to_numpy()
+    if x.std() == 0:
+        continue
+    scale_ = max(np.median(np.abs(x)), 1.0)
+    asinh_x = np.arcsinh(x / scale_)
+    yj_x, lam = stats.yeojohnson(x / scale_)
+    tr_rows[acc] = {
+        "skew raw": stats.skew(x), "skew asinh": stats.skew(asinh_x), "skew Yeo-Johnson": stats.skew(yj_x),
+        "kurtosis raw": stats.kurtosis(x), "kurtosis asinh": stats.kurtosis(asinh_x), "kurtosis Yeo-Johnson": stats.kurtosis(yj_x),
+        "level-volatility link raw": level_vol_link(x), "level-volatility link asinh": level_vol_link(asinh_x),
+        "Yeo-Johnson lambda": lam,
+    }
+transforms = pd.DataFrame(tr_rows).T
+transforms_summary = transforms.abs().median().round(3).to_frame("median absolute value across accounts")
+transforms_summary.loc["Yeo-Johnson lambda", :] = transforms["Yeo-Johnson lambda"].median().round(3)
+display(transforms_summary)
+save_result(transforms, "D19_transformations_per_account", "Per account: skewness, kurtosis and level-volatility link raw vs asinh vs Yeo-Johnson")
+save_result(transforms_summary, "D19_transformations_summary", "Effect of variance-stabilising transformations (medians)")
+
+# %% [markdown]
+# Both transformations make the balances far more symmetric. Yeo–Johnson almost removes the skewness, and the parameter
+# it chooses is close to zero, which means it is doing something very close to a logarithm. The asinh transformation
+# also weakens the link between the level of a balance and the size of its movements. For a global model that learns
+# from all accounts at once, scaling each account and then applying asinh is a simple and robust choice. One caution
+# for Sprint 2: the score is computed on the original euros, so any forecast made on a transformed scale has to be
+# transformed back, and the back-transformed value is closer to a median than to a mean, which suits MAPE well.
+
+# %% [markdown]
+# ## D20. Is there structure a linear model cannot see?
+#
+# ARIMA models only capture linear relationships with the past. The BDS test asks whether anything is left once those
+# are removed: we fit a linear autoregression to each account's business-day changes and test whether the residuals are
+# independent.
+
+# %%
+bds_rows = {}
+for acc in sample_accounts(bal.index, min(200, MAX_TEST_ACCOUNTS)):
+    s = bal.loc[acc].dropna()
+    x = np.diff(s.to_numpy())[s.index[1:].dayofweek < 5]
+    if x.std() == 0:
+        continue
+    # remove the linear part first (AR(5) on business-day changes), then test the residuals
+    X_ = np.column_stack([x[5 - k:-k] for k in range(1, 6)] + [np.ones(len(x) - 5)])
+    resid = x[5:] - X_ @ np.linalg.lstsq(X_, x[5:], rcond=None)[0]
+    stat_, p_ = bds((resid - resid.mean()) / resid.std(), max_dim=3)
+    bds_rows[acc] = {"bds_p_dim2": p_[0], "bds_p_dim3": p_[1]}
+bds_res = pd.DataFrame(bds_rows).T
+bds_summary = (bds_res < 0.05).mean().mul(100).round(1).to_frame("% of accounts rejecting i.i.d. residuals")
+display(bds_summary)
+save_result(bds_res, "D20_bds_per_account", "Per account: BDS p-values on AR(5) residuals of business-day changes")
+save_result(bds_summary, "D20_bds_summary", "% of accounts with non-linear dependence left after a linear AR model")
+
+# %% [markdown]
+# For roughly two accounts in five, the residuals of the linear model still show dependence. Part of it is the volatility
+# clustering of section 12, which the BDS test also picks up, but part of it is genuinely non-linear, for example a
+# large inflow being followed by a different spending pattern than a small one. This leaves room for non-linear
+# learners, such as gradient-boosted trees, to add something on top of ARIMA in Sprint 2.
+#
+# ## D21. Seeing the seasons year by year
+#
+# Before closing the search for patterns, two classic pictures of time-series analysis. A seasonal subseries plot draws
+# the same seasonal pattern once per year, so we can see whether it is stable. Lag plots show each value against an
+# earlier one, which makes dependence, or its absence, visible at a glance.
+
+# %%
+sub = cal[cal.weekday < 5].assign(year=lambda t: t.index.year)
+subseries = sub.pivot_table(index="day", columns="year", values="large_inflow", aggfunc="mean")
+fig, axes = plt.subplots(1, 2, figsize=(16, 4))
+subseries.plot(ax=axes[0], marker="o", title="Seasonal subseries: share with a large inflow by day of month, one line per year")
+axes[0].set(xlabel="day of month")
+wk = sub.pivot_table(index="weekday", columns="year", values="share_changing", aggfunc="mean").rename(index=dict(enumerate(weekday_names)))
+wk.plot.bar(ax=axes[1], rot=0, title="... share of accounts changing by weekday, one bar per year")
+plt.tight_layout(); plt.show()
+
+lag_acc = bal.loc[per_account.share_days_changed.idxmax()].dropna()
+lag_x = lag_acc.diff().dropna()
+lag_x = lag_x[lag_x.index.dayofweek < 5]
+fig, axes = plt.subplots(1, 4, figsize=(17, 3.8))
+axes[0].scatter(lag_acc.shift(1), lag_acc, s=4); axes[0].set(title=f"Balance vs balance 1 day before\n(account {lag_acc.name})")
+for ax, L in zip(axes[1:], (1, 5, 21)):
+    ax.scatter(lag_x.shift(L), lag_x, s=4)
+    ax.set(title=f"Daily change vs change {L} business days before")
+plt.tight_layout(); plt.show()
+save_result(subseries, "D21_subseries_large_inflow_by_day_year", "Share of accounts with a large inflow by day of month and year")
+save_result(wk, "D21_subseries_activity_by_weekday_year", "Share of accounts changing by weekday and year")
+
+# %% [markdown]
+# The monthly pattern of large inflows is almost identical in the three years: the peak on the 8th and the rise at the
+# end of the month are there every year, so a seasonal pattern estimated on the past can be trusted for January 2023.
+# The weekday bars show the date-convention change from another angle: after realignment the three years agree, with
+# activity on business days only.
+#
+# The lag plots tell the same story as the variance ratios. Today's balance sits on a straight line against
+# yesterday's, while today's change shows no visible relation with the change one, five or twenty-one business days
+# earlier.
+
+# %% [markdown]
+# ## D22. Repeated patterns and the most unusual month
+#
+# The matrix profile is a recent tool for mining time series. For every 30-day window of an account it finds the most
+# similar other window in the same account. A low distance means the window is a repeated pattern, a motif; the window
+# with the highest distance is the most unusual stretch of the account's history, its discord. Discords are natural
+# candidates for the anomalies we will study in Sprint 3, and motifs tell us how much of an account's history repeats
+# itself.
+
+# %%
+MP_WINDOW = 30
+mp_ids = sample_accounts(bal.index, min(100, MAX_TEST_ACCOUNTS))
+mp_rows, discord_dates = {}, []
+for acc in mp_ids:
+    s = bal.loc[acc].dropna()
+    x = s.to_numpy().astype(float)
+    if len(x) < 4 * MP_WINDOW or np.diff(x).std() == 0:
+        continue
+    profile = stumpy.stump(x, m=MP_WINDOW)[:, 0].astype(float)
+    profile[~np.isfinite(profile)] = np.nan
+    motif_i, discord_i = int(np.nanargmin(profile)), int(np.nanargmax(profile))
+    discord_dates.append(s.index[discord_i])
+    mp_rows[acc] = {"motif_start": s.index[motif_i], "motif_distance": profile[motif_i],
+                    "discord_start": s.index[discord_i], "discord_distance": profile[discord_i],
+                    "share_windows_with_close_repeat": float(np.nanmean(profile < 0.25 * np.sqrt(MP_WINDOW)))}
+mp = pd.DataFrame(mp_rows).T
+display(mp[["motif_distance", "discord_distance", "share_windows_with_close_repeat"]].astype(float).describe().round(2))
+
+example_mp = mp.discord_distance.astype(float).idxmax()
+s = bal.loc[example_mp].dropna(); x = s.to_numpy().astype(float)
+prof = stumpy.stump(x, m=MP_WINDOW)[:, 0].astype(float)
+fig, axes = plt.subplots(2, 1, figsize=(14, 6), sharex=True)
+axes[0].plot(s.index, x, lw=0.8); axes[0].set_title(f"Account {example_mp}: balance, with its most unusual 30-day window (discord)")
+dstart = mp.loc[example_mp, "discord_start"]; mstart = mp.loc[example_mp, "motif_start"]
+axes[0].axvspan(dstart, dstart + pd.Timedelta(days=MP_WINDOW), color="red", alpha=0.2, label="discord")
+axes[0].axvspan(mstart, mstart + pd.Timedelta(days=MP_WINDOW), color="green", alpha=0.2, label="motif")
+axes[0].legend()
+axes[1].plot(s.index[:len(prof)], prof, lw=0.8); axes[1].set_title("Matrix profile (distance to the most similar other window)")
+plt.tight_layout(); plt.show()
+pd.Series(pd.to_datetime(discord_dates)).dt.to_period("Q").value_counts().sort_index().plot.bar(
+    figsize=(12, 3.2), title="When does each account's most unusual 30-day window start? (by quarter)")
+plt.tight_layout(); plt.show()
+save_result(mp, "D22_matrix_profile_per_account", "Per account (sample): motif and discord (most unusual 30-day window) from the matrix profile")
+
+# %% [markdown]
+# For a typical account about a third of its 30-day windows have a close repetition somewhere else in its history, so
+# monthly shapes do recur, which is good news for models that learn from the past. The most unusual windows are spread
+# over the three years, with more of them in 2020, the first year of the pandemic and the start of several accounts.
+# Reassuringly, they do not cluster around August 2022: after our repair, the date-convention switch leaves no trace
+# in the data. The discords found here will be the starting point of the anomaly analysis in Sprint 3.
+
+# %% [markdown]
+# ## D23. What the closer look taught us
 #
 # The deeper analyses did not overturn the picture from Parts A to C; they sharpened it. The data looks like real money
 # (D1) and the accounts are independent of each other (D5), so we model them as separate series that share a calendar.
 # That calendar is more precise than we thought: inflows come at the end of the month and on the 8th, moved to the next
-# business day at weekends (D3), and the monthly cycle needs several harmonics to be drawn (D6). Some payments return on
-# fixed days and can be projected (D2), while there are no credit limits to respect (D4).
+# business day at weekends (D3), the monthly cycle needs several harmonics to be drawn (D6), it is stable from year to
+# year (D21) and too weak for seasonal differencing in most accounts (D17). Some payments return on fixed days and can
+# be projected (D2), while there are no credit limits to respect (D4).
 #
-# Two findings will shape Sprint 2 more than any other. Accounts change level often, so the recent past matters most
-# (D7), and January behaves like a deep version of an ordinary month (D8). Above all, the oracle showed that most of the
-# official error comes from choosing the wrong level for accounts that live near zero (D10 to D12). Getting those
-# accounts right is worth more than any refinement of the daily dynamics.
+# The specialist tools changed how we see the dynamics. Day to day the balance looks like a random walk, but over a
+# month most of the movement cancels out (D18), and the apparent wandering is largely a stable level that jumps from
+# time to time (D7, D16). Flows are lumpy (D15), so forecasting the level is wiser than forecasting each movement. A
+# logarithm-like transformation such as asinh makes the accounts comparable (D19), and some non-linear structure is left
+# for machine-learning models (D20).
+#
+# Above all, two findings will shape Sprint 2. The accounts split along one main line, their distance from zero (D14),
+# and the oracle showed that most of the official error comes from choosing the wrong level for the accounts that live
+# near zero (D10 to D12). Getting those accounts right is worth more than any refinement of the daily dynamics.
 
 # %% [markdown]
 # # Part E · From evidence to decisions
@@ -1518,7 +1966,10 @@ save_result(hurst, "D13_hurst_per_account", "Per account: Hurst exponent (R/S) o
 # | Big moves are mostly permanent level shifts (§6, D7) | Keep them; focus models on the recent regime |
 # | Account sizes differ by orders of magnitude (§4) | Scale each account before any model that learns across accounts |
 # | Weekly and monthly rhythms, holidays, the 8th (§7, D3, D6) | Calendar information: business days, day of month, end of month, the 8th moved to the next business day, holidays |
-# | Random-walk levels, stationary differences (§10, §11) | One difference for ARIMA, or models whose level can move |
+# | Random walk day to day, but strong mean reversion over a month and level breaks (§10, §11, D16, D18) | Forecast the level around which the balance oscillates; ARIMA with d = 1 or local-level models that reset after breaks |
+# | Seasonal patterns stable but weak (D17, D21) | Calendar regressors or Fourier terms instead of seasonal differencing |
+# | Skewed scales, negatives (D19) | Scale per account and use asinh for global models; evaluate on the original scale |
+# | Two kinds of accounts: far from zero vs living around zero (D14) | Separate strategies per group in Sprint 2 |
 # | Accounts are independent (§14, D5) | No VAR; separate or global models with calendar information |
 #
 # The prepared dataset keeps the shape of the original file: one row per account, one column per day, realigned and
@@ -1591,8 +2042,9 @@ summary.round(1)
 # learned one day off. The missing values turned out to be accounts opened late, and need no treatment.
 #
 # The balances follow a business-day week and a month shaped like a saw-tooth, with salaries at the end of the month,
-# pensions on the 8th and debits at the beginning. They behave like random walks that jump to new levels from time to
-# time, their daily changes have little memory, and accounts are essentially independent of each other. All of this
+# pensions on the 8th and debits at the beginning. Day to day they look like random walks, but over a month most of
+# the movement cancels out around a level that jumps from time to time, and accounts are essentially independent of
+# each other. All of this
 # points towards models fitted to the recent history of each account, or global models with good calendar information,
 # evaluated on folds that include January.
 #
@@ -1618,7 +2070,15 @@ account_features = (per_account
                     .join(pd.DataFrame({"ljung_box_p_lag7": lb7, "ljung_box_p_lag30": lb30}, index=acf_ids))
                     .join(arch_p.rename("arch_lm_p"))
                     .join(strengths.add_prefix("mstl_strength_"))
-                    .join(feat.add_suffix("_last12m")))
+                    .join(feat.add_suffix("_last12m"))
+                    .join(naive_mape_acc)
+                    .join(pcs).join(clusters.rename("feature_cluster"))
+                    .join(sb_in[["ADI", "CV2", "category"]].add_prefix("inflow_"))
+                    .join(sb_out[["ADI", "CV2", "category"]].add_prefix("outflow_"))
+                    .join(za[["za_p", "break_date"]].rename(columns={"za_p": "zivot_andrews_p", "break_date": "zivot_andrews_break"}))
+                    .join(vr[["VR 1 month (21)", "z 1 month (21)"]].rename(columns=lambda c: "variance_ratio_" + c))
+                    .join(payday[["payday_mode", "calendar_day_concentration", "regular_payday"]])
+                    .join(cp_table[["change_points", "days_since_last_change_point"]]))
 save_result(account_features, "00_account_features", "ONE ROW PER ACCOUNT: all per-account statistics, tests and segment")
 
 index = pd.DataFrame(saved_files)

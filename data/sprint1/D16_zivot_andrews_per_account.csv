@@ -1,0 +1,501 @@
+,za_stat,za_p,break_date,levels_class
+1,-6.901964857460838,1e-05,2021-12-15,unit root (both agree)
+2,-6.982905158924094,1e-05,2022-06-29,unit root (both agree)
+3,-9.325698794484813,1e-05,2020-09-20,conflicting: difference-stationary / level shifts
+4,-3.5233806206663787,0.6644977879808726,2021-09-23,unit root (both agree)
+5,-6.457971982399858,0.00034930030175762787,2020-06-18,unit root (both agree)
+6,-6.256484504488148,0.0005587203575398782,2020-07-02,conflicting: difference-stationary / level shifts
+7,-6.420793798522078,0.00038794219366209174,2021-10-10,conflicting: difference-stationary / level shifts
+8,-8.923150610018977,1e-05,2021-11-07,stationary (both agree)
+9,-6.97436371430605,1e-05,2022-07-18,conflicting: difference-stationary / level shifts
+10,-8.22418884136687,1e-05,2022-04-27,stationary (both agree)
+11,-11.62410348276714,1e-05,2021-06-07,conflicting: difference-stationary / level shifts
+12,-10.086966420558497,1e-05,2021-08-11,stationary (both agree)
+13,-4.3791753033665435,0.15986840572921374,2021-04-25,unit root (both agree)
+14,-6.213168337709249,0.0006037418852155843,2022-07-14,conflicting: difference-stationary / level shifts
+15,-11.234140753877742,1e-05,2021-04-25,stationary (both agree)
+16,-5.596833395460642,0.0028736991582905304,2021-01-20,unit root (both agree)
+17,-8.170004252988894,1e-05,2021-10-03,conflicting: difference-stationary / level shifts
+18,-3.120224846869416,0.8712538059305568,2022-02-24,unit root (both agree)
+19,-6.214235076700267,0.0006026331486264943,2020-12-07,conflicting: difference-stationary / level shifts
+20,-4.459217280431682,0.13224213550056343,2021-11-23,unit root (both agree)
+21,-7.825483147958815,1e-05,2021-11-11,stationary (both agree)
+22,-4.201188679418431,0.23820900503892897,2021-03-22,unit root (both agree)
+23,-7.137989052466959,1e-05,2021-03-08,conflicting: difference-stationary / level shifts
+24,-6.114190547117998,0.0007066164392159395,2021-08-24,conflicting: difference-stationary / level shifts
+25,-6.358723327094484,0.00045245638443722896,2020-12-03,stationary (both agree)
+26,-7.158573308515805,1e-05,2021-07-15,conflicting: difference-stationary / level shifts
+27,-7.465397862266867,1e-05,2022-07-20,stationary (both agree)
+28,-3.4255601029563607,0.7258087174044735,2022-06-30,unit root (both agree)
+29,-9.855822613320674,1e-05,2020-06-13,stationary (both agree)
+30,-6.051475262156723,0.0007718008298843512,2021-05-09,unit root (both agree)
+31,-8.602230635385116,1e-05,2021-08-01,conflicting: difference-stationary / level shifts
+32,-3.5216546815294256,0.6656138893368948,2022-06-26,unit root (both agree)
+33,-5.556715211888843,0.003389973271510652,2022-07-20,conflicting: difference-stationary / level shifts
+34,-3.2629908513797505,0.8124685942465644,2022-07-20,conflicting: difference-stationary / level shifts
+35,-7.9956847982041666,1e-05,2022-06-13,conflicting: difference-stationary / level shifts
+36,-3.421816120249478,0.7280600599822742,2021-03-17,unit root (both agree)
+37,-4.509317299004103,0.11674796801245803,2021-08-15,conflicting: difference-stationary / level shifts
+38,-8.738694754855354,1e-05,2020-10-19,conflicting: difference-stationary / level shifts
+39,-9.078148808665642,1e-05,2020-12-03,stationary (both agree)
+40,-9.096372464226762,1e-05,2021-09-05,conflicting: difference-stationary / level shifts
+41,-8.831490148375268,1e-05,2021-10-24,conflicting: difference-stationary / level shifts
+42,-6.415932766846625,0.0003929946045373661,2022-05-01,unit root (both agree)
+43,-3.858378796992907,0.44091918571911093,2022-03-09,unit root (both agree)
+44,-5.079023232008757,0.022184214614337738,2021-12-19,conflicting: difference-stationary / level shifts
+45,-3.4492125484249323,0.7115859600571665,2022-07-20,unit root (both agree)
+46,-3.908001769465866,0.4081911734193166,2021-03-07,unit root (both agree)
+47,-3.9597907199203237,0.37601406792896974,2021-10-04,inconclusive
+48,-4.663255085543049,0.0779735238829532,2022-02-13,unit root (both agree)
+49,-10.657577660808327,1e-05,2021-01-28,stationary (both agree)
+50,-8.83124475932919,1e-05,2021-01-03,conflicting: difference-stationary / level shifts
+51,-7.607134344051831,1e-05,2022-01-18,conflicting: difference-stationary / level shifts
+52,-4.647430494266539,0.08156414633632718,2022-02-27,conflicting: difference-stationary / level shifts
+53,-9.446495182881659,1e-05,2020-09-20,stationary (both agree)
+54,-4.134015775352425,0.27341098786613194,2021-07-04,unit root (both agree)
+55,-5.9335129566737494,0.0008944073206225599,2020-12-08,conflicting: difference-stationary / level shifts
+56,-9.253628047316976,1e-05,2021-06-27,conflicting: difference-stationary / level shifts
+57,-9.5825254941753,1e-05,2022-04-04,conflicting: difference-stationary / level shifts
+58,-5.438286115666948,0.00523723157517195,2021-07-28,conflicting: difference-stationary / level shifts
+59,-2.6544359962347395,0.9729612666448101,2022-06-22,unit root (both agree)
+60,-8.834517629747449,1e-05,2021-03-07,conflicting: difference-stationary / level shifts
+61,-4.590945391360618,0.09438069718628196,2022-01-23,conflicting: difference-stationary / level shifts
+62,-4.756698303181311,0.06004610543122044,2021-06-23,inconclusive
+63,-7.095779010797388,1e-05,2020-06-30,stationary (both agree)
+64,-8.882088377948389,1e-05,2020-06-25,conflicting: difference-stationary / level shifts
+65,-7.533766954945037,1e-05,2022-05-29,stationary (both agree)
+66,-4.273785812727605,0.20354723468219788,2020-10-08,conflicting: difference-stationary / level shifts
+67,-8.982970993571444,1e-05,2021-02-09,conflicting: difference-stationary / level shifts
+68,-8.732671937861443,1e-05,2020-12-07,conflicting: difference-stationary / level shifts
+69,-10.941034315803353,1e-05,2022-07-20,stationary (both agree)
+70,-4.390837840447507,0.15542384129287107,2021-11-01,inconclusive
+71,-6.356619606792299,0.0004546429283733583,2020-07-29,conflicting: difference-stationary / level shifts
+72,-4.957936006291756,0.03347034455486963,2020-06-22,conflicting: difference-stationary / level shifts
+73,-7.025048067310417,1e-05,2020-11-24,unit root (both agree)
+74,-9.227992405262794,1e-05,2020-07-19,conflicting: difference-stationary / level shifts
+75,-5.603319632783699,0.0028066787271781423,2021-04-20,unit root (both agree)
+76,-11.4759822072539,1e-05,2020-12-03,unit root (both agree)
+77,-5.644699194023849,0.0023791155814853423,2020-11-30,conflicting: difference-stationary / level shifts
+78,-7.831982813693345,1e-05,2021-06-06,conflicting: difference-stationary / level shifts
+79,-9.515446548809036,1e-05,2022-07-07,conflicting: difference-stationary / level shifts
+80,-8.260505880787827,1e-05,2021-12-07,stationary (both agree)
+81,-10.784687568344712,1e-05,2020-10-20,conflicting: difference-stationary / level shifts
+82,-6.142133695631879,0.0006775731667448192,2020-12-27,conflicting: difference-stationary / level shifts
+83,-6.884492279613902,1e-05,2020-08-09,stationary (both agree)
+84,-6.627133356635932,0.00017347903089808635,2022-02-27,conflicting: difference-stationary / level shifts
+85,-4.7904262277551695,0.053768105920041415,2021-08-15,conflicting: difference-stationary / level shifts
+86,-8.455554467041294,1e-05,2022-01-26,conflicting: difference-stationary / level shifts
+87,-9.404532568240697,1e-05,2021-01-31,conflicting: difference-stationary / level shifts
+88,-5.8007109952975,0.0012073274742742327,2020-08-04,conflicting: difference-stationary / level shifts
+89,-8.59895358924116,1e-05,2021-02-14,conflicting: difference-stationary / level shifts
+90,-10.022526127955727,1e-05,2021-08-30,unit root (both agree)
+91,-9.734985918455358,1e-05,2020-06-28,conflicting: difference-stationary / level shifts
+92,-7.0362574615528475,1e-05,2021-04-28,stationary (both agree)
+93,-6.594203802573033,0.00020770502409731982,2022-06-16,unit root (both agree)
+94,-7.678212947427255,1e-05,2020-11-02,conflicting: difference-stationary / level shifts
+95,-6.084184374468559,0.0007378039572452776,2020-11-24,unit root (both agree)
+96,-8.608380458398551,1e-05,2022-07-27,conflicting: difference-stationary / level shifts
+97,-4.8968723103933325,0.040324348943414405,2022-01-30,conflicting: difference-stationary / level shifts
+98,-8.745196267073858,1e-05,2022-05-22,conflicting: difference-stationary / level shifts
+99,-5.788115602415451,0.0012910011132966789,2021-04-04,conflicting: difference-stationary / level shifts
+100,-7.795838977458885,1e-05,2021-10-24,conflicting: difference-stationary / level shifts
+101,-10.096423137097068,1e-05,2021-04-04,conflicting: difference-stationary / level shifts
+102,-6.005773804078609,0.0008193015579655409,2021-09-27,conflicting: difference-stationary / level shifts
+103,-9.215801479382414,1e-05,2021-04-14,stationary (both agree)
+104,-6.56964231679971,0.000233233497499514,2020-12-15,stationary (both agree)
+105,-5.328564074868067,0.00812396325237376,2022-03-27,unit root (both agree)
+106,-7.168889684064244,1e-05,2020-06-15,conflicting: difference-stationary / level shifts
+107,-8.382563771688025,1e-05,2020-08-02,conflicting: difference-stationary / level shifts
+108,-5.050754480494828,0.023928912082692478,2021-05-16,conflicting: difference-stationary / level shifts
+109,-7.9602257215413275,1e-05,2021-07-07,unit root (both agree)
+110,-4.592856746259932,0.09394700801871204,2021-03-23,unit root (both agree)
+111,-5.9968990515290415,0.0008285257102217838,2021-12-09,stationary (both agree)
+112,-8.440728652718583,1e-05,2020-06-14,stationary (both agree)
+113,-8.470206597274187,1e-05,2022-04-21,conflicting: difference-stationary / level shifts
+114,-5.400175276541688,0.0059817293115513115,2022-07-30,unit root (both agree)
+115,-4.055070195100114,0.31863338471307584,2022-01-27,conflicting: difference-stationary / level shifts
+116,-5.496390706880136,0.004266389355464719,2020-10-28,unit root (both agree)
+117,-2.6846105933319606,0.9701517138424617,2022-07-20,unit root (both agree)
+118,-8.445121601493627,1e-05,2022-02-08,unit root (both agree)
+119,-8.189617282847506,1e-05,2022-04-26,conflicting: difference-stationary / level shifts
+120,-7.897923744423799,1e-05,2021-08-15,conflicting: difference-stationary / level shifts
+121,-5.578848503210148,0.0030805465789158627,2020-07-12,conflicting: difference-stationary / level shifts
+122,-7.076769384118572,1e-05,2021-03-03,unit root (both agree)
+123,-10.840380388277644,1e-05,2021-08-29,conflicting: difference-stationary / level shifts
+124,-7.934533075077875,1e-05,2022-04-24,conflicting: difference-stationary / level shifts
+125,-6.126645775200363,0.0006936708478232445,2020-06-28,stationary (both agree)
+126,-6.136164649835772,0.0006837772143439224,2020-09-06,stationary (both agree)
+127,-6.85608947976257,1e-05,2022-05-15,conflicting: difference-stationary / level shifts
+128,-5.795997961499723,0.0012386370723462235,2020-06-13,unit root (both agree)
+129,-7.634457789560065,1e-05,2022-03-29,conflicting: difference-stationary / level shifts
+130,-5.969241204645958,0.0008572724487144373,2021-11-22,unit root (both agree)
+131,-8.072483770382114,1e-05,2020-12-02,unit root (both agree)
+132,-6.127475405024256,0.0006928085554078597,2022-01-25,unit root (both agree)
+133,-14.545923457591474,1e-05,2021-01-07,unit root (both agree)
+134,-6.614261559123937,0.00018685759209165567,2020-06-13,conflicting: difference-stationary / level shifts
+135,-10.375778040491465,1e-05,2020-07-30,unit root (both agree)
+136,-4.7149846982448915,0.06781053193267597,2020-08-24,unit root (both agree)
+137,-6.669566413432759,0.0001293753813139829,2021-12-26,unit root (both agree)
+138,-3.330907205696991,0.7788837672768332,2022-06-06,unit root (both agree)
+139,-8.726517797080934,1e-05,2022-02-22,unit root (both agree)
+140,-9.103719299562583,1e-05,2021-05-27,conflicting: difference-stationary / level shifts
+141,-10.170632884292129,1e-05,2021-04-18,conflicting: difference-stationary / level shifts
+142,-10.506633129324806,1e-05,2020-09-13,unit root (both agree)
+143,-3.4335699059896894,0.7209922393327184,2021-08-29,unit root (both agree)
+144,-6.062791792353567,0.0007600387670025924,2021-04-11,unit root (both agree)
+145,-6.24459907559463,0.000571073716704794,2021-10-03,unit root (both agree)
+146,-4.642957176165125,0.08257914862835242,2021-05-11,unit root (both agree)
+147,-8.258499815215671,1e-05,2021-08-01,conflicting: difference-stationary / level shifts
+148,-5.767316878488538,0.0014291710722876656,2021-07-01,conflicting: difference-stationary / level shifts
+149,-5.069123114197929,0.022795232418659783,2022-07-17,conflicting: difference-stationary / level shifts
+150,-7.624757148639458,1e-05,2020-12-01,conflicting: difference-stationary / level shifts
+151,-6.569888870770809,0.00023297723667915917,2021-03-04,conflicting: difference-stationary / level shifts
+152,-5.837201830559068,0.0009945102233559296,2022-07-20,unit root (both agree)
+153,-9.302874829228474,1e-05,2021-10-14,conflicting: difference-stationary / level shifts
+154,-6.100728418209063,0.0007206085732000291,2022-06-20,unit root (both agree)
+155,-4.59203100647939,0.09413436955904206,2020-07-20,conflicting: difference-stationary / level shifts
+156,-11.457425898851714,1e-05,2022-06-16,conflicting: difference-stationary / level shifts
+157,-5.675844991660565,0.0020572949818085913,2021-04-08,conflicting: difference-stationary / level shifts
+158,-7.586902703832723,1e-05,2021-09-29,conflicting: difference-stationary / level shifts
+159,-8.88519968270164,1e-05,2020-06-28,stationary (both agree)
+160,-5.805786540320925,0.0011736096437857905,2021-12-30,stationary (both agree)
+161,-8.155550918497212,1e-05,2021-05-25,conflicting: difference-stationary / level shifts
+162,-8.640378706219352,1e-05,2021-12-22,conflicting: difference-stationary / level shifts
+163,-8.454104370428349,1e-05,2020-07-06,stationary (both agree)
+164,-4.761792829150982,0.05909782794449736,2022-07-20,unit root (both agree)
+165,-1.7324310201341,0.9990000000000001,2022-07-20,unit root (both agree)
+166,-8.02294862695925,1e-05,2021-03-18,stationary (both agree)
+167,-6.926668676584289,1e-05,2021-05-24,conflicting: difference-stationary / level shifts
+168,-9.220370276112329,1e-05,2021-07-04,conflicting: difference-stationary / level shifts
+169,-3.3444117743514896,0.7717164980620478,2020-10-19,unit root (both agree)
+170,-4.9551229685544085,0.03378608982238492,2022-05-22,unit root (both agree)
+171,-8.090804470118332,1e-05,2020-12-15,unit root (both agree)
+172,-2.292256138769525,0.9919049435574313,2022-06-01,conflicting: difference-stationary / level shifts
+173,-5.61576671035985,0.002678066642283013,2020-07-16,conflicting: difference-stationary / level shifts
+174,-6.231495922632553,0.0005846927418307322,2021-11-17,stationary (both agree)
+175,-6.9596018550185175,1e-05,2021-06-01,stationary (both agree)
+176,-9.18125875873575,1e-05,2021-12-19,conflicting: difference-stationary / level shifts
+177,-5.060114046901828,0.02335125615730986,2021-07-01,unit root (both agree)
+178,-7.265797421392365,1e-05,2021-11-25,stationary (both agree)
+179,-5.570643140633816,0.003195258763682142,2020-08-27,stationary (both agree)
+180,-7.859662421833554,1e-05,2021-03-29,conflicting: difference-stationary / level shifts
+181,-4.737607008213419,0.06359969320724089,2021-01-14,stationary (both agree)
+182,-4.722532331060843,0.06640564160136195,2021-06-20,unit root (both agree)
+183,-6.602463281459552,0.00019912036887668623,2021-07-07,stationary (both agree)
+184,-6.7083222707105925,8.909370288347859e-05,2020-07-12,conflicting: difference-stationary / level shifts
+185,-6.766772919592197,2.8341847352992387e-05,2020-07-14,stationary (both agree)
+186,-8.730749026160835,1e-05,2020-06-24,conflicting: difference-stationary / level shifts
+187,-8.59847871199274,1e-05,2021-03-07,conflicting: difference-stationary / level shifts
+188,-6.327604381909837,0.00048480048494410643,2021-12-13,conflicting: difference-stationary / level shifts
+189,-9.684327005194296,1e-05,2021-07-22,conflicting: difference-stationary / level shifts
+190,-5.061774432144174,0.023248780109600835,2022-07-17,unit root (both agree)
+191,-9.869636525926584,1e-05,2020-12-01,conflicting: difference-stationary / level shifts
+192,-4.50231566680359,0.11881018296312726,2022-05-02,unit root (both agree)
+193,-10.293570167788708,1e-05,2022-07-07,conflicting: difference-stationary / level shifts
+194,-5.853791576694749,0.0009772673376086075,2020-11-26,conflicting: difference-stationary / level shifts
+195,-9.576511384608683,1e-05,2020-11-04,stationary (both agree)
+196,-9.410438622078283,1e-05,2021-02-02,stationary (both agree)
+197,-6.217953102643195,0.0005987687437094354,2020-09-10,stationary (both agree)
+198,-7.69052700125789,1e-05,2022-01-12,conflicting: difference-stationary / level shifts
+199,-4.045934915898376,0.3241618761205667,2021-10-17,inconclusive
+200,-7.251395852615939,1e-05,2020-06-22,conflicting: difference-stationary / level shifts
+201,-9.198772297372797,1e-05,2020-09-30,unit root (both agree)
+202,-4.510501299568292,0.11639924023082837,2021-06-29,unit root (both agree)
+203,-5.408150679730675,0.005825929288324369,2021-09-01,conflicting: difference-stationary / level shifts
+204,-4.184650226677423,0.2467287107575608,2021-09-02,unit root (both agree)
+205,-5.645332738363368,0.002372569349417571,2020-07-07,unit root (both agree)
+206,-7.17294924479532,1e-05,2020-07-07,conflicting: difference-stationary / level shifts
+207,-5.063997810451041,0.0231115571232488,2021-08-08,unit root (both agree)
+208,-4.27173294168421,0.20448513263696558,2021-06-24,stationary (both agree)
+209,-7.861012991942309,1e-05,2020-10-12,conflicting: difference-stationary / level shifts
+210,-6.264776681586868,0.0005501017167758536,2020-09-01,stationary (both agree)
+211,-6.702973096578157,9.465347442270279e-05,2021-11-10,stationary (both agree)
+212,-4.719100442899125,0.06704444142299072,2022-07-20,conflicting: difference-stationary / level shifts
+213,-5.331333027349648,0.008029298210268446,2021-11-23,unit root (both agree)
+214,-8.707268521574006,1e-05,2021-10-27,stationary (both agree)
+215,-2.1036452113248902,0.9952260782166146,2022-09-28,conflicting: difference-stationary / level shifts
+216,-8.397436225035415,1e-05,2021-09-16,conflicting: difference-stationary / level shifts
+217,-6.3868564815915825,0.000423215625432371,2020-09-16,unit root (both agree)
+218,-9.045887281875668,1e-05,2020-07-07,conflicting: difference-stationary / level shifts
+219,-4.605952164995663,0.09097563872852091,2021-08-02,conflicting: difference-stationary / level shifts
+220,-10.427473714731576,1e-05,2022-03-01,unit root (both agree)
+221,-12.15026127440225,1e-05,2021-05-06,unit root (both agree)
+222,-7.318254996721424,1e-05,2020-11-26,stationary (both agree)
+223,-9.765897865208128,1e-05,2020-12-29,stationary (both agree)
+224,-5.801625496923523,0.0012012522625156248,2021-01-03,conflicting: difference-stationary / level shifts
+225,-6.509507205012301,0.0002957361333730419,2022-02-15,conflicting: difference-stationary / level shifts
+226,-9.80677349350096,1e-05,2021-05-30,conflicting: difference-stationary / level shifts
+227,-4.479146228979414,0.12570633970240913,2020-09-28,conflicting: difference-stationary / level shifts
+228,-10.352088183009732,1e-05,2021-01-07,conflicting: difference-stationary / level shifts
+229,-10.221645006820312,1e-05,2022-07-13,conflicting: difference-stationary / level shifts
+230,-5.1323084744153515,0.01889554346514866,2021-04-06,conflicting: difference-stationary / level shifts
+231,-4.791553115575034,0.05355835090927064,2022-06-28,unit root (both agree)
+232,-2.6000318147836117,0.9780268328879319,2022-07-20,inconclusive
+233,-7.1512572578605225,1e-05,2020-11-30,conflicting: difference-stationary / level shifts
+234,-6.149386393650113,0.0006700349294345282,2021-03-22,unit root (both agree)
+235,-7.425421960302259,1e-05,2022-03-13,stationary (both agree)
+236,-6.8617143095544435,1e-05,2020-10-04,conflicting: difference-stationary / level shifts
+237,-7.611773583373682,1e-05,2022-06-15,conflicting: difference-stationary / level shifts
+238,-5.240802977313343,0.012199454165157426,2022-03-08,conflicting: difference-stationary / level shifts
+239,-4.044343893809811,0.32512644551545367,2020-09-28,unit root (both agree)
+240,-6.1987908848264315,0.0006186853795504808,2022-07-20,conflicting: difference-stationary / level shifts
+241,-9.81682057425379,1e-05,2022-06-22,unit root (both agree)
+242,-9.114089226690053,1e-05,2022-03-02,conflicting: difference-stationary / level shifts
+243,-7.328658496181433,1e-05,2022-06-22,stationary (both agree)
+244,-5.20429921266867,0.014452402114754572,2022-05-05,conflicting: difference-stationary / level shifts
+245,-4.155506130152216,0.2620500474982998,2022-02-03,conflicting: difference-stationary / level shifts
+246,-3.68887916199243,0.5549245076124274,2020-11-02,unit root (both agree)
+247,-7.155947681125389,1e-05,2020-08-16,conflicting: difference-stationary / level shifts
+248,-7.2064957000564664,1e-05,2021-07-06,conflicting: difference-stationary / level shifts
+249,-5.203018913865636,0.014531419898022818,2021-02-01,conflicting: difference-stationary / level shifts
+250,-3.9170694603952723,0.4023785510286717,2021-04-26,unit root (both agree)
+251,-5.772976901913724,0.0013915704383596378,2020-08-16,unit root (both agree)
+252,-7.104409133757715,1e-05,2020-11-09,stationary (both agree)
+253,-6.681065660012142,0.00011742340849131683,2020-11-09,unit root (both agree)
+254,-6.263135816667002,0.0005518071826768173,2020-12-13,conflicting: difference-stationary / level shifts
+255,-8.876799683494198,1e-05,2021-11-29,conflicting: difference-stationary / level shifts
+256,-5.7923959241176295,0.001262566105642535,2021-08-22,conflicting: difference-stationary / level shifts
+257,-6.133198725980448,0.0006868599068549672,2021-05-04,conflicting: difference-stationary / level shifts
+258,-4.3533877164002135,0.1696959922255285,2021-02-01,conflicting: difference-stationary / level shifts
+259,-8.977092860980713,1e-05,2022-03-06,stationary (both agree)
+260,-4.529766768255703,0.11072491509905075,2020-11-01,conflicting: difference-stationary / level shifts
+261,-5.593476630748834,0.002908383645909953,2020-12-06,unit root (both agree)
+262,-9.443288218973748,1e-05,2021-07-07,stationary (both agree)
+263,-5.655196591279026,0.0022706489845109976,2021-07-29,stationary (both agree)
+264,-6.091336502492854,0.0007303702493775066,2021-06-20,conflicting: difference-stationary / level shifts
+265,-7.3029576676349635,1e-05,2022-05-31,stationary (both agree)
+266,-6.195111673209039,0.0006225094420189513,2021-05-24,stationary (both agree)
+267,-7.581501092312208,1e-05,2022-07-20,conflicting: difference-stationary / level shifts
+268,-11.021655852781509,1e-05,2020-08-10,conflicting: difference-stationary / level shifts
+269,-6.836633179045256,1e-05,2022-04-11,stationary (both agree)
+270,-4.99925518465213,0.028832534385564414,2022-07-05,conflicting: difference-stationary / level shifts
+271,-7.3234913695566135,1e-05,2022-04-06,conflicting: difference-stationary / level shifts
+272,-4.4809891793928776,0.12510193513286189,2021-07-27,unit root (both agree)
+273,-3.505429598671243,0.6761060536269767,2022-07-07,conflicting: difference-stationary / level shifts
+274,-6.773722314028774,2.111885471025065e-05,2021-04-27,conflicting: difference-stationary / level shifts
+275,-3.8290343485871547,0.4601135883996239,2022-04-20,unit root (both agree)
+276,-7.202237279769069,1e-05,2020-08-23,unit root (both agree)
+277,-8.309987553676715,1e-05,2020-11-02,conflicting: difference-stationary / level shifts
+278,-4.9189882013149235,0.037841983419956524,2022-03-27,conflicting: difference-stationary / level shifts
+279,-9.699037418511923,1e-05,2021-11-22,conflicting: difference-stationary / level shifts
+280,-6.865027194532659,1e-05,2021-10-05,unit root (both agree)
+281,-3.9867982478568242,0.36003408412604804,2022-07-17,unit root (both agree)
+282,-10.68820816098573,1e-05,2021-03-31,conflicting: difference-stationary / level shifts
+283,-8.74330686918792,1e-05,2021-04-06,stationary (both agree)
+284,-8.25108280466658,1e-05,2020-06-29,stationary (both agree)
+285,-9.838505492963126,1e-05,2021-10-26,conflicting: difference-stationary / level shifts
+286,-7.831194119494704,1e-05,2021-08-01,stationary (both agree)
+287,-6.7715556361910325,2.3370834825068464e-05,2021-11-23,unit root (both agree)
+288,-8.693968291805179,1e-05,2022-07-17,conflicting: difference-stationary / level shifts
+289,-5.461029023414802,0.004830821653395026,2020-12-02,unit root (both agree)
+290,-6.26710688319725,0.000547679774944591,2020-11-26,unit root (both agree)
+291,-8.068425068808159,1e-05,2021-04-22,unit root (both agree)
+292,-3.5186709808117156,0.66754333884395,2022-07-19,unit root (both agree)
+293,-6.20202412577063,0.0006153248456557232,2020-08-30,stationary (both agree)
+294,-7.825387565797694,1e-05,2021-09-05,unit root (both agree)
+295,-6.032326818028743,0.0007917031497654013,2021-12-27,conflicting: difference-stationary / level shifts
+296,-8.8601183191654,1e-05,2022-01-18,stationary (both agree)
+297,-6.523285840576288,0.00028141503184196827,2021-09-06,stationary (both agree)
+298,-6.2301670124878985,0.0005860739712724206,2021-06-07,conflicting: difference-stationary / level shifts
+299,-6.774554945286712,2.025344269412579e-05,2022-04-10,conflicting: difference-stationary / level shifts
+300,-6.277894192540762,0.0005364677683828302,2021-02-25,conflicting: difference-stationary / level shifts
+301,-6.711825684594964,8.545235931862002e-05,2021-05-18,conflicting: difference-stationary / level shifts
+302,-5.519979640910919,0.0039035419976105297,2020-07-05,conflicting: difference-stationary / level shifts
+303,-6.571428997400597,0.00023137647514268674,2020-06-22,unit root (both agree)
+304,-5.42890145084191,0.005420561616684697,2020-12-17,unit root (both agree)
+305,-5.476579510119923,0.004582609575100987,2022-07-18,unit root (both agree)
+306,-4.2796738467868245,0.2008571606419845,2020-06-30,stationary (both agree)
+307,-12.731448133892874,1e-05,2021-03-28,stationary (both agree)
+308,-8.057016200827391,1e-05,2021-05-30,conflicting: difference-stationary / level shifts
+309,-4.683892288604499,0.07359796578726475,2021-07-21,unit root (both agree)
+310,-4.292606293720016,0.19522777377416464,2020-06-13,conflicting: difference-stationary / level shifts
+311,-6.589063649622043,0.00021304754527472723,2022-01-09,stationary (both agree)
+312,-6.480779654366424,0.0003255946899498583,2021-11-30,conflicting: difference-stationary / level shifts
+313,-6.925972342900364,1e-05,2021-11-28,conflicting: difference-stationary / level shifts
+314,-8.857467639257525,1e-05,2022-05-04,conflicting: difference-stationary / level shifts
+315,-10.490688840744737,1e-05,2021-11-24,conflicting: difference-stationary / level shifts
+316,-6.824461615373886,1e-05,2021-12-19,stationary (both agree)
+317,-8.178961016789462,1e-05,2020-08-27,conflicting: difference-stationary / level shifts
+318,-9.556869841185097,1e-05,2021-05-16,stationary (both agree)
+319,-9.391540844603973,1e-05,2020-06-28,unit root (both agree)
+320,-6.44678759112089,0.0003609250234019101,2020-07-07,conflicting: difference-stationary / level shifts
+321,-8.735374814670289,1e-05,2020-06-18,conflicting: difference-stationary / level shifts
+322,-8.909809939715354,1e-05,2022-05-24,conflicting: difference-stationary / level shifts
+323,-1.9526335186685562,0.9978851509077771,2020-08-13,unit root (both agree)
+324,-6.910841451765429,1e-05,2021-07-07,unit root (both agree)
+325,-4.2167903229863315,0.2301718921356214,2021-02-07,conflicting: difference-stationary / level shifts
+326,-5.213915140842844,0.013858923993405775,2020-06-28,stationary (both agree)
+327,-8.736241104320207,1e-05,2020-06-30,conflicting: difference-stationary / level shifts
+328,-3.4434869217378647,0.7150289105605142,2020-11-01,unit root (both agree)
+329,-6.383984302706627,0.0004262008822261833,2022-07-20,unit root (both agree)
+330,-7.293545877053332,1e-05,2021-10-05,stationary (both agree)
+331,-5.601326621587655,0.0028272719406111217,2021-03-28,inconclusive
+332,-10.18753867556655,1e-05,2022-05-15,conflicting: difference-stationary / level shifts
+333,-7.6826508670852345,1e-05,2021-11-17,conflicting: difference-stationary / level shifts
+334,-8.550710632870576,1e-05,2022-07-07,conflicting: difference-stationary / level shifts
+335,-4.485202297218933,0.12385064290205788,2021-03-03,stationary (both agree)
+336,-7.5602445998370795,1e-05,2021-02-19,stationary (both agree)
+337,-5.2319140827024375,0.012748061057700124,2020-07-29,unit root (both agree)
+338,-8.543786332621224,1e-05,2022-07-07,stationary (both agree)
+339,-10.798844340047669,1e-05,2022-01-20,stationary (both agree)
+340,-7.193513462209753,1e-05,2020-11-19,stationary (both agree)
+341,-11.73870150308063,1e-05,2022-03-03,unit root (both agree)
+342,-4.788307025260092,0.05416256696074522,2021-03-21,conflicting: difference-stationary / level shifts
+343,-5.892321493919304,0.0009372204945090705,2021-10-31,conflicting: difference-stationary / level shifts
+344,-6.715723365804516,8.140122609294378e-05,2021-12-30,stationary (both agree)
+345,-9.39817428563587,1e-05,2021-08-24,conflicting: difference-stationary / level shifts
+346,-7.746626661128454,1e-05,2021-07-22,conflicting: difference-stationary / level shifts
+347,-3.634076650806841,0.5916969092984963,2022-07-20,unit root (both agree)
+348,-4.956783217931926,0.03359973758228278,2020-10-20,unit root (both agree)
+349,-3.257315009188488,0.8149844817426914,2020-11-16,unit root (both agree)
+350,-3.6760939929406953,0.5637662566108609,2020-08-04,unit root (both agree)
+351,-4.914127521243082,0.0383875632780629,2021-06-27,stationary (both agree)
+352,-10.897115196564297,1e-05,2022-06-28,conflicting: difference-stationary / level shifts
+353,-10.708565910080715,1e-05,2022-03-13,conflicting: difference-stationary / level shifts
+354,-5.582131290189518,0.003034652730469474,2022-07-07,unit root (both agree)
+355,-6.2020445033716625,0.0006153036657869336,2021-05-30,inconclusive
+356,-5.869104940851618,0.000961351085099106,2021-09-07,conflicting: difference-stationary / level shifts
+357,-6.641186771013805,0.0001588723324895884,2022-02-03,unit root (both agree)
+358,-5.559130269172972,0.0033562104127922315,2022-02-07,unit root (both agree)
+359,-6.4418745231993615,0.00036603151919436443,2021-09-07,conflicting: difference-stationary / level shifts
+360,-5.978277876016695,0.0008478800028802857,2021-11-21,conflicting: difference-stationary / level shifts
+361,-10.015709325415179,1e-05,2020-10-28,stationary (both agree)
+362,-7.443004540291629,1e-05,2020-06-13,stationary (both agree)
+363,-3.8446122272226217,0.4502641456609624,2021-12-13,conflicting: difference-stationary / level shifts
+364,-3.922018146832303,0.39923871936036454,2020-06-30,unit root (both agree)
+365,-8.742871034349227,1e-05,2020-11-05,unit root (both agree)
+366,-9.673958794551936,1e-05,2021-08-23,stationary (both agree)
+367,-8.80745264901927,1e-05,2022-03-30,unit root (both agree)
+368,-10.476532092979772,1e-05,2020-12-27,conflicting: difference-stationary / level shifts
+369,-6.83380403759986,1e-05,2022-05-22,conflicting: difference-stationary / level shifts
+370,-7.041288471624122,1e-05,2021-04-27,unit root (both agree)
+371,-3.164245138296826,0.8551492140569158,2022-01-31,unit root (both agree)
+372,-8.000274026051356,1e-05,2021-05-03,stationary (both agree)
+373,-5.507093346608589,0.004095557117181344,2020-11-30,unit root (both agree)
+374,-8.416589518007775,1e-05,2021-05-09,stationary (both agree)
+375,-5.521359846978148,0.00388424651225852,2020-12-07,unit root (both agree)
+376,-10.893401028637093,1e-05,2021-02-04,stationary (both agree)
+377,-6.824877051789993,1e-05,2021-11-18,conflicting: difference-stationary / level shifts
+378,-7.31278414285678,1e-05,2021-10-17,unit root (both agree)
+379,-9.376901233158552,1e-05,2021-01-03,conflicting: difference-stationary / level shifts
+380,-8.225400952059347,1e-05,2020-11-26,stationary (both agree)
+381,-8.8728899587697,1e-05,2021-10-21,conflicting: difference-stationary / level shifts
+382,-5.458101720239431,0.004877546364893361,2021-04-13,stationary (both agree)
+383,-3.6333038727522364,0.5921975429177011,2021-12-05,unit root (both agree)
+384,-9.438191468686961,1e-05,2022-07-20,conflicting: difference-stationary / level shifts
+385,-3.5389780283541334,0.6544115181362302,2021-11-29,unit root (both agree)
+386,-3.920103505464172,0.40043365034347955,2022-02-08,conflicting: difference-stationary / level shifts
+387,-9.060581259544291,1e-05,2020-07-26,stationary (both agree)
+388,-11.716418235191618,1e-05,2020-07-26,stationary (both agree)
+389,-9.214980420097357,1e-05,2022-02-27,conflicting: difference-stationary / level shifts
+390,-7.58841740925279,1e-05,2021-09-14,stationary (both agree)
+391,-8.611627863129483,1e-05,2020-08-02,conflicting: difference-stationary / level shifts
+392,-5.626135578099535,0.0025709281039519006,2020-08-25,conflicting: difference-stationary / level shifts
+393,-10.213994722574357,1e-05,2020-06-21,stationary (both agree)
+394,-5.7661886311712145,0.0014366662381504406,2022-02-21,stationary (both agree)
+395,-5.692836550193816,0.0019239583458857687,2021-03-07,unit root (both agree)
+396,-3.38404732332918,0.7506807539915189,2021-01-31,unit root (both agree)
+397,-10.057703524311068,1e-05,2021-07-26,conflicting: difference-stationary / level shifts
+398,-7.726567163724429,1e-05,2022-02-06,stationary (both agree)
+399,-7.459863923840532,1e-05,2022-03-29,conflicting: difference-stationary / level shifts
+400,-10.870834071865524,1e-05,2020-12-02,conflicting: difference-stationary / level shifts
+401,-9.364337699178204,1e-05,2020-09-02,stationary (both agree)
+402,-2.2274356521974394,0.9930463279273419,2022-07-20,unit root (both agree)
+403,-11.438822639917912,1e-05,2021-06-21,stationary (both agree)
+404,-8.351878696323476,1e-05,2021-08-29,unit root (both agree)
+405,-6.827365838817878,1e-05,2020-06-13,conflicting: difference-stationary / level shifts
+406,-6.906202957676565,1e-05,2020-06-13,conflicting: difference-stationary / level shifts
+407,-4.330604474413589,0.17882662533943844,2021-12-13,unit root (both agree)
+408,-4.318485726727262,0.18405743839465558,2022-06-16,conflicting: difference-stationary / level shifts
+409,-6.2580929868833195,0.0005570485490661562,2022-07-07,stationary (both agree)
+410,-3.8863247341400236,0.42208670888460026,2022-07-20,unit root (both agree)
+411,-5.219007574049424,0.013544628000570422,2020-06-25,unit root (both agree)
+412,-10.211593292708583,1e-05,2022-05-01,conflicting: difference-stationary / level shifts
+413,-2.445190106056672,0.9874915859833705,2022-07-20,unit root (both agree)
+414,-7.678718931492048,1e-05,2022-05-05,conflicting: difference-stationary / level shifts
+415,-5.161164651761636,0.017114591110827276,2020-06-21,conflicting: difference-stationary / level shifts
+416,-4.562255451926196,0.10115591071919289,2020-09-29,unit root (both agree)
+417,-7.091458357238403,1e-05,2021-07-27,conflicting: difference-stationary / level shifts
+418,-6.7667893567389665,2.8324763074459884e-05,2021-06-30,conflicting: difference-stationary / level shifts
+419,-5.732007272303928,0.0016637396379198311,2021-11-25,stationary (both agree)
+420,-9.935900895033239,1e-05,2020-07-17,conflicting: difference-stationary / level shifts
+421,-9.79960373946783,1e-05,2021-10-21,conflicting: difference-stationary / level shifts
+422,-8.426719329673084,1e-05,2020-09-07,conflicting: difference-stationary / level shifts
+423,-4.712259350664087,0.06831781872829895,2021-09-19,conflicting: difference-stationary / level shifts
+424,-6.652763270073444,0.00014684006575043632,2020-06-28,stationary (both agree)
+425,-12.318017883529782,1e-05,2021-05-20,stationary (both agree)
+426,-6.778666335652609,1.598018656579199e-05,2021-08-25,conflicting: difference-stationary / level shifts
+427,-8.437336616438413,1e-05,2020-07-19,stationary (both agree)
+428,-4.983520227142022,0.03059868145938785,2022-07-07,unit root (both agree)
+429,-6.946600014759082,1e-05,2022-07-07,unit root (both agree)
+430,-5.80816757075763,0.0011577919965612873,2021-06-02,conflicting: difference-stationary / level shifts
+431,-6.342560327895231,0.0004692557221876343,2020-11-08,unit root (both agree)
+432,-7.357021916265399,1e-05,2021-06-23,stationary (both agree)
+433,-8.621538582950352,1e-05,2022-06-23,unit root (both agree)
+434,-8.263260899765546,1e-05,2020-07-09,stationary (both agree)
+435,-9.845271054003373,1e-05,2020-06-15,stationary (both agree)
+436,-9.319534438039213,1e-05,2022-07-07,conflicting: difference-stationary / level shifts
+437,-4.455325640982112,0.13351841762360228,2022-04-11,unit root (both agree)
+438,-4.2570139648620575,0.21120981137515646,2022-07-19,unit root (both agree)
+439,-6.29583182467724,0.0005178239302567271,2020-07-12,conflicting: difference-stationary / level shifts
+440,-6.428887303153052,0.00037953004711651343,2021-04-28,conflicting: difference-stationary / level shifts
+441,-5.3290925133897495,0.008105896978128215,2021-10-07,conflicting: difference-stationary / level shifts
+442,-1.7702704297212923,0.9990000000000001,2022-07-20,unit root (both agree)
+443,-10.936442125009489,1e-05,2022-04-20,stationary (both agree)
+444,-5.217266950433188,0.01365205621914988,2022-07-07,unit root (both agree)
+445,-4.902804659362582,0.039658481192185395,2021-07-26,stationary (both agree)
+446,-4.349663864259711,0.17111514319370769,2021-09-27,conflicting: difference-stationary / level shifts
+447,-4.327865475593137,0.18000885894633242,2022-01-12,unit root (both agree)
+448,-9.82647225447259,1e-05,2021-10-24,conflicting: difference-stationary / level shifts
+449,-8.584203177175183,1e-05,2021-06-30,unit root (both agree)
+450,-7.084437491680334,1e-05,2020-08-16,conflicting: difference-stationary / level shifts
+451,-6.422847352795654,0.0003858077907950683,2022-07-17,conflicting: difference-stationary / level shifts
+452,-6.7437251024828555,5.2297058836717024e-05,2021-09-05,unit root (both agree)
+453,-5.620678788198382,0.002627311549923723,2021-02-25,conflicting: difference-stationary / level shifts
+454,-5.742462162207464,0.001594285775543322,2020-08-17,conflicting: difference-stationary / level shifts
+455,-10.008685488362225,1e-05,2022-06-27,conflicting: difference-stationary / level shifts
+456,-8.614503399039327,1e-05,2022-07-20,stationary (both agree)
+457,-4.406774329274933,0.14944105690839143,2021-06-14,conflicting: difference-stationary / level shifts
+458,-5.422972031034431,0.005536393220659682,2021-03-07,conflicting: difference-stationary / level shifts
+459,-8.267674977853275,1e-05,2022-01-16,conflicting: difference-stationary / level shifts
+460,-5.056729146786692,0.023560166220373702,2020-10-27,conflicting: difference-stationary / level shifts
+461,-7.965442486412211,1e-05,2020-08-18,unit root (both agree)
+462,-4.511232581441395,0.11618385325123849,2021-02-22,unit root (both agree)
+463,-9.63012795189672,1e-05,2022-02-23,unit root (both agree)
+464,-9.077677229261655,1e-05,2020-09-06,stationary (both agree)
+465,-8.660399881270559,1e-05,2020-10-04,conflicting: difference-stationary / level shifts
+466,-4.143778440511766,0.26824992571803447,2021-01-11,stationary (both agree)
+467,-9.209725851074193,1e-05,2022-06-05,conflicting: difference-stationary / level shifts
+468,-5.476739347599498,0.0045800582984916564,2020-08-02,conflicting: difference-stationary / level shifts
+469,-7.42033605537873,1e-05,2021-11-29,unit root (both agree)
+470,-5.414989902533635,0.005692324623292929,2021-06-29,unit root (both agree)
+471,-7.263313359622133,1e-05,2022-05-29,stationary (both agree)
+472,-8.121170577397919,1e-05,2021-01-13,conflicting: difference-stationary / level shifts
+473,-7.963515634687783,1e-05,2022-03-06,conflicting: difference-stationary / level shifts
+474,-10.414931871894376,1e-05,2020-06-28,stationary (both agree)
+475,-9.139258719102488,1e-05,2020-11-29,conflicting: difference-stationary / level shifts
+476,-5.1375331904941195,0.018573083206831015,2021-10-17,unit root (both agree)
+477,-3.5706695866404674,0.6335213446591124,2021-09-19,unit root (both agree)
+478,-5.833559815753077,0.0009982956245716055,2022-03-07,conflicting: difference-stationary / level shifts
+479,-9.783832086831497,1e-05,2021-12-06,stationary (both agree)
+480,-11.167024846353165,1e-05,2020-12-08,conflicting: difference-stationary / level shifts
+481,-5.839326112251118,0.0009923023085263967,2020-07-16,conflicting: difference-stationary / level shifts
+482,-7.305307489602106,1e-05,2021-09-05,conflicting: difference-stationary / level shifts
+483,-10.169873258947117,1e-05,2021-07-27,conflicting: difference-stationary / level shifts
+484,-10.510586822455368,1e-05,2022-03-29,stationary (both agree)
+485,-9.248921194744865,1e-05,2021-09-01,stationary (both agree)
+486,-3.5182955078716023,0.6677861433835992,2021-12-12,unit root (both agree)
+487,-5.362436455503595,0.006943438720748654,2021-04-18,conflicting: difference-stationary / level shifts
+488,-3.708784314474683,0.5411441434783301,2022-06-29,conflicting: difference-stationary / level shifts
+489,-6.642129076858611,0.00015789292798947536,2022-06-29,unit root (both agree)
+490,-4.0556398372387,0.318288648487836,2020-08-04,unit root (both agree)
+491,-9.39824024533494,1e-05,2022-04-25,conflicting: difference-stationary / level shifts
+492,-7.1413813445838406,1e-05,2021-11-28,conflicting: difference-stationary / level shifts
+493,-7.808979232812572,1e-05,2022-05-22,conflicting: difference-stationary / level shifts
+494,-6.502952718955476,0.00030254867006202483,2021-03-21,conflicting: difference-stationary / level shifts
+495,-8.216998868837798,1e-05,2021-02-03,conflicting: difference-stationary / level shifts
+496,-3.4211903109348865,0.7284363734606817,2022-07-05,conflicting: difference-stationary / level shifts
+497,-8.416583023416615,1e-05,2020-08-23,conflicting: difference-stationary / level shifts
+498,-3.934805819537171,0.391376156211774,2021-11-28,conflicting: difference-stationary / level shifts
+499,-9.102803928839798,1e-05,2020-07-06,stationary (both agree)
+500,-10.130115753102894,1e-05,2020-06-14,conflicting: difference-stationary / level shifts

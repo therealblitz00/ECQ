@@ -1,0 +1,5 @@
+levels_class,% rejecting a unit root once a break is allowed,accounts
+conflicting: difference-stationary / level shifts,87.9,239
+inconclusive,28.6,7
+stationary (both agree),95.3,107
+unit root (both agree),59.9,147

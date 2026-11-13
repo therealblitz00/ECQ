@@ -1,0 +1,8 @@
+,value
+"recurring (account, amount) pairs (>= 6 months)",1344.0
+accounts with at least one recurring amount,398.0
+share of transactions that are recurring,0.068
+recurring pairs that are inflows,162.0
+recurring pairs on a fixed day of month (std <= 2 days),275.0
+median gap between occurrences (days),60.0
+median std of the day of month,7.5

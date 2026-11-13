@@ -8,6 +8,9 @@ Master's course project (EQC, FEP × Millennium BCP): forecast each account's da
 - **Code must scale to the large dataset** (final evaluation; not yet in the repo; run on the group's ThinkStation PGX — ARM64 Linux, NVIDIA GB10, 128 GB). Vectorise over the accounts × days matrix; no per-account Python loops in pandas where avoidable; per-account models run in parallel; N×N or per-account plots use a fixed random sample.
 - **MAPE treatment of zero/near-zero actuals is unspecified** by the organisers — any choice must be explicit and justified in the notebook.
 
+- **Every notebook is written as storytelling**, not as an AI-style report: plain prose in first person plural ("we"), each section opens with the question it answers and ends with what we learned and why it matters for the next step; sections connect to each other. Avoid "**Findings.**" labels, walls of bullets and bold, arrows (⇒), and long em-dash chains. Tables only where they genuinely help the reader.
+- **After finishing any piece of work, check `README.md` and update it**: tick/add items in the Project Plan checklists, refresh "Key findings" if results changed, keep structure/setup sections accurate. Then commit and push to the `case-study-iii` branch (data is fictitious — pushing outputs is fine).
+
 ## Notebook workflow
 1. Develop as a percent-format script `notebooks/NN_name.py` (`# %%` code cells, `# %% [markdown]` text cells).
 2. Run it as a script on the small dataset, then medium.

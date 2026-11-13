@@ -20,6 +20,9 @@ Forecast each client's daily account balance for the **next 30 days**, evaluated
 - **MAPE risk:** 22% of balances negative, 17% with |balance| < €100, 358/500 accounts change sign.
 - **Calendar:** activity on business days only; inflows peak at month end (salaries) and on day 8 (pensions); outflows early in the month.
 - **Dynamics:** levels ≈ random walk with level shifts; first differences stationary (d = 1); weak cross-account correlation.
+- **Paydays:** largest inflows on the 8th (moved to the next business day at weekends; 8 Jan 2023 is a Sunday → 9 Jan) and on the 28th–30th; ~1 in 5 recurring amounts falls on a fixed day of the month.
+- **Structure:** monthly cycle ≈30.4 days with harmonics (15.2, 10.1); frequent level shifts (half the accounts changed level in the last ~2 months); January dips like a deep ordinary month; accounts independent (no transfers/duplicates); no credit-limit floors; daily changes anti-persistent (Hurst ≈ 0.37).
+- **Oracle:** the best constant level per account reaches an official MAPE of ~44% vs ~1 300% for the naive forecast — most of the error is choosing the wrong level for near-zero accounts.
 - **Baselines (mean of 5 folds):** median of last 30 days → 71.5% MAPE on |actual| ≥ €100; official pooled MAPE > 1 000% for all baselines (dominated by near-zero actuals).
 
 All Sprint 1 results are saved as CSV in `data/sprint1/` (start with `00_index.csv` and `00_account_features.csv`).
@@ -82,11 +85,11 @@ Done:
 - [x] Validation scheme (rolling origin, 5 folds incl. January 2022) and baseline MAPE
 - [x] All analysis results saved as CSV in `data/sprint1/`
 
+- [x] Advanced analyses (Part D): transaction forensics (Benford, cents, round amounts), recurring payments, paydays and the weekend rule for the 8th, overdraft floors, transfers/duplicates (permutation test), spectral analysis, change points, January paths, oracle bounds, error drivers, zero-crossing risk, Hurst exponent
+- [x] Notebook rewritten as storytelling, with a short summary at the top
+
 To do:
-- [ ] Deeper analyses (see "Advanced analyses" below)
-- [ ] Executive summary at the top of the notebook
 - [ ] Group review of the notebook and its conclusions
-- [ ] Re-run on the large dataset when available and check that the findings (and the Aug-2022 fix) still hold
 
 ### Sprint 2 — Modelling: Forecasting Models (due 2026-11-26)
 - [x] Baselines: naive (last value), seasonal naive, mean/median (done in Sprint 1, §17)

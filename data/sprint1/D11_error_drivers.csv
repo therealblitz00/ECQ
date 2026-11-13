@@ -1,0 +1,6 @@
+,Spearman rho with naive MAPE
+spectral_entropy,-0.16625484485609746
+activity,0.16946715921673164
+share_near_zero,0.7652362911050876
+share_negative,0.6631494323175221
+cv,0.7319690398761595

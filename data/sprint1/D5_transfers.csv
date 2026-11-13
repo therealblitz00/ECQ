@@ -1,0 +1,4 @@
+,value
+"candidate transfers (same day, opposite exact amount >= EUR 50)",87.0
+expected by chance (mean of 5 date shuffles),90.0
+account pairs with >= 3 transfers,0.0

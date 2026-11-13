@@ -2,6 +2,11 @@
 # jupyter:
 #   jupytext:
 #     formats: py:percent,ipynb
+#     text_representation:
+#       extension: .py
+#       format_name: percent
+#       format_version: '1.3'
+#       jupytext_version: 1.19.6
 #   kernelspec:
 #     display_name: Python 3
 #     language: python
@@ -9,22 +14,28 @@
 # ---
 
 # %% [markdown]
-# # Sprint 1 — Data Preparation & Exploratory Data Analysis
-# **Millennium BCP × FEP — Predicting Daily Account Balances**
+# # Sprint 1 · Getting to know the balances
+# **Millennium BCP × FEP · Predicting daily account balances**
 #
-# Goal of the case study: forecast the daily balance of every account for the next **30 days**, evaluated with **MAPE**.
+# The bank wants to know, for every client account, what the balance will be on each of the next 30 days. We will be
+# judged by the Mean Absolute Percentage Error, so what matters is how far our forecast is from the real balance,
+# relative to that balance.
 #
-# Goal of this sprint: understand the time series, find what has to be corrected before modelling, and define how models
-# will be validated. The notebook is organised in four parts:
+# Before choosing any model we need to understand what we were given. This notebook is the story of that first
+# encounter with the data. We start with the basics (what the file contains, what is missing), run into a surprise in
+# the calendar that changes how every later result should be read, and then follow the balances through their weekly
+# and monthly rhythm, their relationship with each other and the details hidden in the individual transactions. We end
+# with the decisions this evidence supports and with the benchmark that the models of Sprint 2 will have to beat.
 #
-# - **Part A — Getting to know the data:** structure, missing values, a calendar audit (which uncovered a change in how
-#   dates are recorded), descriptive statistics, the zero/near-zero problem for MAPE, and extreme values.
-# - **Part B — Temporal structure:** calendar effects, decomposition, stationarity, autocorrelation, volatility and
-#   structural changes.
-# - **Part C — Relationships between accounts:** cross-account correlation and segmentation.
-# - **Part D — Decisions:** data-preparation decisions, validation scheme and baseline MAPE for Sprint 2.
+# **The short version.** The file looked clean but was not: until August 2022 every column held the previous day's
+# balance, and one day in August 2022 holds the sum of two balances. Once both are corrected, the balances follow a
+# business-day week and a saw-tooth month, with salaries at the end of the month, pensions on the 8th and debits at the
+# start. Accounts behave independently, jump to new levels from time to time and remember little beyond yesterday's
+# level. The hard part is the metric: one balance in six is within €100 of zero, and an oracle experiment shows that
+# most of the official error comes from choosing the wrong level for those accounts. That is where Sprint 2 will win or
+# lose.
 #
-# The notebook is self-contained: it only needs the CSV file given by the professor (set `DATA_PATH` below).
+# The notebook only needs the CSV file provided by the professor, set in `DATA_PATH` below.
 
 # %% [markdown]
 # ## 0. Setup
@@ -39,6 +50,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import holidays
 from scipy import stats
+from scipy.signal import periodogram
 from statsmodels.tsa.stattools import adfuller, kpss, acf, pacf
 from statsmodels.tsa.seasonal import MSTL, STL
 from statsmodels.stats.diagnostic import acorr_ljungbox, het_arch
@@ -96,11 +108,13 @@ def save_result(obj, name, description, index=True):
                         "rows": df.shape[0], "columns": df.shape[1]})
 
 # %% [markdown]
-# # Part A — Getting to know the data
-# ## 1. Loading and structure
-# The file is in *wide* format: one row per account (`ACCOUNT_ID`) and one column per calendar day.
-# We keep it as an accounts × days matrix — all operations below are vectorised over that matrix, so the same code
-# scales to the large dataset.
+# # Part A · First contact
+#
+# ## 1. What we were given
+#
+# The file has one row per account and one column per calendar day, each cell holding the balance in euros. We keep it
+# in this shape, as an accounts × days matrix, because every computation below can then be done for all accounts at
+# once. That matters: the final evaluation will use a much larger dataset.
 
 # %%
 raw = pd.read_csv(resolve_path(DATA_PATH)).set_index("ACCOUNT_ID")
@@ -129,13 +143,16 @@ save_result(structure.astype(str).rename("value"), "01_structure", "Dataset stru
 structure.to_frame("value")
 
 # %% [markdown]
-# The panel is complete at the date level: every calendar day (including weekends and holidays) has a column, there
-# are no duplicated accounts or dates, and balances are recorded in euro cents.
+# The basic structure is clean. Every day of the three years has a column, weekends and holidays included, no account
+# or date appears twice, and every balance is a whole number of cents. Nothing here needs fixing, so we move on to what
+# is *not* in the file.
 
 # %% [markdown]
-# ## 2. Missing values
-# Missing values can mean very different things depending on *where* they are:
-# **leading** (the account did not exist yet), **trailing** (the account was closed) or **interior** (recording gaps).
+# ## 2. Accounts that arrive late
+#
+# Empty cells can tell very different stories. If they sit at the beginning of a series, the account probably did not
+# exist yet; at the end, it may have been closed; in the middle, something went wrong in the recording. So before
+# counting them we ask where they are.
 
 # %%
 na = np.isnan(values)
@@ -174,17 +191,20 @@ axes[1].tick_params(axis="x", rotation=45)
 plt.tight_layout(); plt.show()
 
 # %% [markdown]
-# **Finding.** All missing values are *leading*: a small group of accounts simply starts later (they were opened during
-# the period). There are no interior gaps and no closed accounts.
+# The answer is simple and reassuring. Every missing value sits at the beginning of a series: a small group of accounts
+# was opened during the period and has no history before that. There are no gaps in the middle and no account was
+# closed.
 #
-# **Decision.** Missing values are **not imputed** — inventing balances for an account that did not exist would only
-# add noise. Each account's history starts at its first observation. Every account has at least several months of
-# history before the forecast origin, so all of them can be forecast.
+# This settles our first decision. We will not fill these cells in, because inventing balances for an account that did
+# not exist would only add noise. Each account simply starts on its first day, and even the youngest one has months of
+# history before the end of the data, enough to be forecast.
 
 # %% [markdown]
-# ## 3. Calendar audit — on which days do balances change?
-# Balances only move when there is a transaction, so the share of accounts whose balance changes on a given day is a
-# fingerprint of the bank's posting calendar. We look at it by weekday and over time.
+# ## 3. A calendar that changes its rules
+#
+# A balance only moves when money comes in or goes out. If we count, for each day, how many accounts saw their balance
+# change, we get a fingerprint of when the bank books transactions. We expected that fingerprint to say "weekdays", and
+# we looked at it by weekday and by month to confirm it.
 
 # %%
 def change_share(wide):
@@ -212,20 +232,17 @@ ax.set(title="Share of accounts whose balance changes, by weekday and month (raw
 plt.tight_layout(); plt.show()
 
 # %% [markdown]
-# **Finding — the date convention changes in August 2022.**
+# It did not say weekdays, and it did not say the same thing all the time. Until the beginning of August 2022 the
+# balances move from Tuesday to Saturday and never on Sundays or Mondays. From August 2022 onwards they move from Monday
+# to Friday and stay still at weekends.
 #
-# | Period (raw labels) | Balances change on | Flat on |
-# |---|---|---|
-# | until 2022-08-06 | Tuesday – Saturday | Sunday, Monday |
-# | from 2022-08-07 | Monday – Friday | Saturday, Sunday |
+# The most natural explanation is that, in the first period, the balance written under day *D* is the closing balance
+# of the day before. Monday's transactions then appear on Tuesday's column and Friday's on Saturday's, which is exactly
+# the pattern we see. In August 2022 the convention switches to the closing balance of the same day.
 #
-# Until August 2022, the balance labelled with day *D* is the closing balance of day *D − 1* (Monday's transactions
-# appear on Tuesday's label, Friday's on Saturday's, and nothing happens on Sunday's and Monday's labels).
-# From August 2022 the label is the closing balance of the same day. The forecast period (the 30 days after the data
-# ends) follows the **new** convention, so if we leave the history as it is, models would learn a weekly pattern that is
-# shifted by one day for ~85% of the sample.
-#
-# Two further checks support the *D − 1* reading and identify the exact switch.
+# This matters a lot. The 30 days we have to forecast follow the new convention, but 85% of our history follows the old
+# one. Left as it is, any model would learn a weekly rhythm shifted by one day. Before acting on this explanation we
+# looked for more evidence and for the exact moment of the switch.
 
 # %%
 # (a) Holidays: if label D = close of D-1, activity should drop on labels that FOLLOW a holiday (old convention).
@@ -250,22 +267,20 @@ display(change_share(raw.loc[:, "2022-08-01":"2022-08-10"]).round(2).to_frame("s
         .assign(weekday=lambda t: t.index.day_name()))
 
 # %% [markdown]
-# - Under the old convention, activity drops on the label *after* a holiday, not on the holiday itself — consistent
-#   with "label D = close of D − 1".
-# - Around the switch, the label **2022-08-05 is corrupted**: it changes for 100% of accounts, and its value is the
-#   **sum of two consecutive closing balances** (e.g. account 1: 17 541.92 = 8 770.96 + 8 770.96). It is the Thursday
-#   close (old label 2022-08-05) added to the Friday close (old label 2022-08-06) during the migration. The Thursday
-#   close can be recovered exactly as `label(08-05) − label(08-06)`.
-# - The label 2022-08-07 (a Sunday, new convention) is identical to label 2022-08-06 for every account, as expected
-#   (no activity between Friday's close and Sunday).
+# Two pieces of evidence support the explanation. Under the old convention, activity drops on the day *after* a public
+# holiday rather than on the holiday itself, which is what we would expect if each column describes the previous day.
+# And around the switch the data shows exactly how it happened.
 #
-# **Decision — realign the calendar.**
-# 1. Repair the corrupted label: `label(2022-08-05) ← label(2022-08-05) − label(2022-08-06)`.
-# 2. Shift every label up to 2022-08-06 back by one day (label *D* → date *D − 1*).
-# 3. The resulting gap on Saturday 2022-08-06 is filled with Sunday's balance (no transactions happen on weekends
-#    under the new convention).
+# Looking at the first accounts in early August 2022, the column of 5 August stands out: every single account changes,
+# and the values are roughly twice as large as their neighbours. Account 1 shows 17 541.92, which is exactly 8 770.96
+# plus 8 770.96. That day holds the sum of two closing balances, Thursday's and Friday's, probably written twice during
+# the migration. Since Friday's balance is the next column, Thursday's can be recovered exactly by subtraction. The
+# column of Sunday 7 August, already under the new convention, equals Saturday's for every account, as it should when
+# nothing happens over a weekend.
 #
-# After this, every value is the **closing balance of its own date**, consistently over the whole sample.
+# With this we can rebuild a consistent calendar in three steps. We repair 5 August by subtracting the next day, we
+# move every column before the switch back by one day, and we fill the one empty Saturday this creates with Sunday's
+# balance. From here on every value is the closing balance of its own date.
 
 # %%
 SWITCH_FIRST_NEW_LABEL = pd.Timestamp("2022-08-07")   # first label recorded with the same-day convention
@@ -311,13 +326,17 @@ compare.plot.bar(figsize=(9, 3.5), rot=0, title="Share of accounts changing by w
 plt.ylabel("share"); plt.tight_layout(); plt.show()
 
 # %% [markdown]
-# After realignment, balances change Monday–Friday and are flat on weekends throughout the whole sample, and the
-# repaired Thursday looks like any other weekday. **All the analysis below uses the realigned data (`bal`).**
+# After realignment the fingerprint is the one we expected from the start: balances change from Monday to Friday and
+# rest at weekends, over the whole three years, and the repaired Thursday looks like any other weekday. Everything that
+# follows uses this corrected data.
 
 # %% [markdown]
-# ## 4. Descriptive statistics
-# Accounts are very heterogeneous in scale, so we describe them **per account** and look at the cross-section of those
-# statistics. Daily *changes* are analysed separately from *levels*.
+# ## 4. What a typical account looks like
+#
+# With a calendar we can trust, we can describe the accounts themselves. They differ so much in size that a single
+# average would hide almost everything, so we describe each account separately and then look at how those descriptions
+# are spread across accounts. We treat the level of the balance and its daily changes separately, since they behave
+# very differently.
 
 # %%
 B = bal.to_numpy()
@@ -348,8 +367,8 @@ axes[2].set(title="Share of days with a balance change")
 plt.tight_layout(); plt.show()
 
 # %% [markdown]
-# **Normality of daily changes.** Models such as ARIMA assume (approximately) Gaussian innovations. We test daily
-# changes (on business days, where they can be non-zero) with Jarque–Bera.
+# Many classical models, ARIMA among them, assume that the shocks hitting a series are roughly normal. We check that
+# assumption on the daily changes of each account, on business days only, with the Jarque–Bera test.
 
 # %%
 test_ids = sample_accounts(bal.index, MAX_TEST_ACCOUNTS)
@@ -369,18 +388,19 @@ print(f"Jarque-Bera rejects normality of daily changes (p < 0.05) for {100 * (jb
       f"of {len(test_ids)} accounts")
 
 # %% [markdown]
-# **Findings.**
-# - Scales span several orders of magnitude (median balances from a few euros to hundreds of thousands), so any
-#   cross-account model must work on a **scaled** target (e.g. divided by each account's typical level).
-# - Levels are strongly skewed with heavy tails, and daily changes are **not Gaussian** for practically every account:
-#   most days have a change of exactly zero and a few days carry large jumps (salaries, transfers).
-# - Many accounts are inactive on most days — balances are *piecewise constant*, which favours simple level-based
-#   forecasts (naive, recent mean/median) as strong baselines.
+# The accounts span several orders of magnitude: some typical balances are a few euros, others hundreds of thousands.
+# Any model that learns from many accounts at once will therefore have to work on a scaled version of the balance. The
+# levels are skewed with heavy tails, and the daily changes are far from normal for every account we tested. That is
+# not surprising once we remember what a daily change is: on most days nothing happens and the change is exactly zero,
+# and on a few days a salary or a large transfer produces a big jump. Balances are piecewise constant, which already
+# suggests that simply carrying the recent level forward will be a strong benchmark.
 
 # %% [markdown]
-# ## 5. Zeros, negative and near-zero balances — the MAPE problem
-# MAPE divides each error by the actual value: it is **undefined for a zero balance** and explodes when the balance is
-# close to zero. The organisers did not specify how these cases are handled, so we quantify them here.
+# ## 5. The zero problem
+#
+# The evaluation metric divides each error by the true balance. That is harmless for a balance of €5 000, but it is
+# undefined when the balance is exactly zero and explodes when it is close to zero. Since the organisers did not tell
+# us how they handle those cases, we need to know how often they occur.
 
 # %%
 obs = B[~np.isnan(B)]
@@ -408,28 +428,27 @@ illus["APE (%)"] = (100 * (illus["actual"] - illus["forecast"]).abs() / illus["a
 illus
 
 # %% [markdown]
-# **Findings.**
-# - Exact zeros are rare, but a large share of balances is **close to zero**, and most accounts **cross zero** at some
-#   point (overdrafts / credit lines). Negative balances are legitimate and must be allowed in the forecasts.
-# - A €50 error is 1% on a €5 000 balance but 1 000% on a €5 balance: the official MAPE will be **dominated by a
-#   handful of near-zero points**.
+# Exact zeros are rare, but balances close to zero are not: about one in six is within €100 of zero, about one in five
+# is negative, and most accounts cross zero at some point. These are overdrafts and credit lines, perfectly legitimate,
+# so our forecasts must be allowed to go negative.
 #
-# **Decision — evaluation protocol.** Since the treatment is unspecified, every model will be reported with three
-# numbers, defined once in Section 16:
-# 1. **MAPE (official)** — the formula of the brief, pooled over all accounts and days; exact zeros are excluded
-#    because the formula is undefined there. *This is the primary metric.*
-# 2. **Median per-account MAPE** — robust view of the typical account.
-# 3. **MAPE on |actual| ≥ €100** — the error on "meaningful" balances.
+# The small table above shows why this dominates everything. The same €50 error is 1% on a €5 000 balance and 1 000% on
+# a €5 balance. A handful of near-zero days can therefore outweigh thousands of well-forecast ones in the official
+# score.
 #
-# This also has a modelling consequence for Sprint 2: under MAPE, forecasts should be biased towards *smaller absolute
-# values* when uncertain (MAPE penalises over-forecasting a small balance much more than under-forecasting a big one).
+# We will keep the official MAPE as the number that decides between models. To understand it, we will always report two
+# companions: the median MAPE across accounts, which describes the typical account, and the MAPE computed only on
+# balances of at least €100. When the official number is far above both, we will know the near-zero balances are to
+# blame. This also hints at a modelling idea for Sprint 2: when a balance might be close to zero, a smaller forecast in
+# absolute value is the safer bet, because over-forecasting a small balance is punished far more than the opposite.
 
 # %% [markdown]
-# ## 6. Extreme values
-# Extremes are looked for in **daily changes** and in levels. Since most days have no change at all, the robust
-# z-score (distance from the median in MAD units) is computed on the **non-zero changes** of each account.
-# We distinguish **spikes** (a jump that is reversed within the next days — e.g. money in and straight out) from
-# **level shifts** (a permanent new level).
+# ## 6. Big moves
+#
+# Heavy tails mean big jumps. We want to know whether they are errors to remove or behaviour to keep. Because most days
+# show no change at all, we measure how extreme a move is relative to the account's other, non-zero moves. We also
+# separate spikes, where money comes in and leaves again within a few days, from shifts that leave the balance at a
+# new level.
 
 # %%
 nonzero = np.where((dB != 0) & ~np.isnan(dB), dB, np.nan)
@@ -476,21 +495,25 @@ for ax, acc in zip(axes, top.index[:3]):
 plt.tight_layout(); plt.show()
 
 # %% [markdown]
-# **Findings.**
-# - Daily changes are extremely **heavy-tailed**: a sizeable share of non-zero moves lies more than 10 robust standard
-#   deviations from the typical move. Only a small fraction are reversed spikes: most are **permanent level shifts**
-#   (salary arrivals, large transfers, account re-purposing). These are real behaviour, not data errors, so they are
-#   **not removed** — removing them would make the history look calmer than reality.
-# - A single account can dominate the aggregate (one account grows from thousands to millions of euros). Any analysis of
-#   the total balance must be read with that in mind, and the aggregate is **not** a good proxy for the typical account.
-#   Per-account MAPE is scale-free, so these accounts do not dominate the metric — but they do dominate any
-#   unscaled pooled model, which is another reason to scale per account.
+# Big moves are everywhere: almost every account has some, and they are a sizeable share of all non-zero changes. Very
+# few are reversed spikes, though. Most of them move the account to a new level and stay there: a salary, a large
+# transfer, an account starting to be used differently. This is real behaviour, so we keep it. Removing it would make
+# the history look calmer than the future will be.
+#
+# The largest accounts deserve a word. One of them grows from a few thousand euros to several million, and on its own
+# it changes the shape of the total balance of all accounts. The total is therefore a poor picture of the typical
+# client, and it is one more reason to scale each account before letting a model learn from many of them together.
 
 # %% [markdown]
-# # Part B — Temporal structure
-# ## 7. Calendar effects
-# We relate balance *changes* to the day of the week, the day of the month, the month and Portuguese public holidays.
-# Changes are scaled by each account's median absolute balance so that accounts are comparable.
+# # Part B · The rhythm of the balances
+#
+# ## 7. Weeks, months and holidays
+#
+# Money moves to a calendar: salaries at the end of the month, pensions on fixed days, debits at the beginning, nothing
+# at weekends. We relate the daily changes to the day of the week, the day of the month, the month and the Portuguese
+# public holidays. To compare accounts of very different sizes we express each change relative to the account's typical
+# balance, and we count a "large inflow" or "large outflow" when the balance moves by more than 20% of that level in a
+# single day.
 
 # %%
 typical = np.nanmedian(np.abs(B), 1, keepdims=True)
@@ -527,8 +550,8 @@ sns.heatmap(heat, cmap="mako_r", ax=ax, cbar_kws={"label": "share with large inf
 ax.set(title="Large inflows by month × day of month (business days)"); plt.tight_layout(); plt.show()
 
 # %% [markdown]
-# **Are the differences statistically significant?** Kruskal–Wallis test (non-parametric ANOVA, appropriate given the
-# non-normal changes) of the relative change across groups, on business days.
+# The pictures suggest clear patterns, and we check that they are not chance with the Kruskal–Wallis test, a
+# comparison of groups that does not assume normal data.
 
 # %%
 pts = pd.DataFrame({"rel": rel.ravel(),
@@ -556,23 +579,23 @@ save_result(kw, "07_kruskal_wallis", "Kruskal-Wallis tests of relative daily cha
 save_result(holiday_effect, "07_holiday_effect", "Activity on Portuguese public holidays vs normal business days")
 
 # %% [markdown]
-# **Findings.**
-# - **Weekly cycle:** after realignment, transactions happen on business days only; Saturdays and Sundays are flat.
-#   Monday is the most active day (it absorbs the weekend's card payments and transfers), followed by Friday.
-# - **Monthly cycle:** large inflows peak at the **end of the month** (days 28–31, salaries) and on **day 8**
-#   (consistent with the payment date of Social Security pensions); large outflows peak in the **first days of the
-#   month** (direct debits, rents, loan instalments). Day-of-month is highly significant.
-# - **Holidays** have clearly less activity than normal business days.
-# - **Month of year** is statistically significant but weak in magnitude (slightly more inflows in December,
-#   fewest in January).
+# The weekly rhythm is now the expected one: money moves on business days only. Monday is the busiest day, because it
+# absorbs everything that happened over the weekend, and Friday comes second.
 #
-# **Implication for modelling:** the useful seasonalities are **weekly (7)** and **monthly (~30 days: end-of-month
-# salaries, day-8 pensions, early-month debits)**, plus a business-day/holiday calendar. The forecast window
-# (January) starts right after the Christmas period and contains a turn of the month.
+# The monthly rhythm is richer. Large inflows peak in the last days of the month, which is when most salaries are
+# paid, and there is a second, sharp peak on the 8th, which matches the date on which Social Security pensions are
+# usually paid in Portugal. Large outflows cluster in the first days of the month, when rents, loan instalments and
+# direct debits leave the accounts. Holidays are quieter than ordinary business days. The month of the year matters
+# much less: December brings slightly more inflows and January the fewest.
+#
+# So the calendar our models need is a weekly one (business days against weekends and holidays) and a monthly one
+# (end of month, the 8th, the first days). The window we will forecast starts right after Christmas and includes a turn
+# of the month, so both rhythms will be at work.
 
 # %% [markdown]
-# ## 8. Example series
-# A random sample of accounts, to see the typical shapes.
+# ## 8. A few accounts up close
+#
+# Statistics summarise; pictures show. Here are nine accounts chosen at random.
 
 # %%
 examples = sample_accounts(bal.index, 9)
@@ -586,13 +609,17 @@ for ax in axes[-1]:
 plt.tight_layout(); plt.show()
 
 # %% [markdown]
-# Typical shapes: step-like series (salary in, gradual spending out — a "saw-tooth" with a monthly period), long
-# flat periods, occasional permanent level shifts, and accounts that oscillate around zero.
+# A few shapes keep appearing. Some accounts draw a saw-tooth, rising on payday and sliding down as the month's
+# spending goes out. Others stay flat for long stretches, jump to a new level and stay there. Some live around zero,
+# moving in and out of overdraft. These shapes will come back when we group the accounts in section 15.
 
 # %% [markdown]
-# ## 9. Decomposition (MSTL)
-# Multi-seasonal STL with weekly (7) and monthly (30) periods. Because a few large accounts dominate the total, we
-# decompose the **cross-sectional median balance** (the "typical account") and a few individual accounts.
+# ## 9. Separating trend from cycles
+#
+# To measure how much of the movement belongs to each rhythm we decompose the series with MSTL, which splits a series
+# into a trend, a weekly cycle, a monthly cycle and what is left. Because a few very large accounts dominate the total,
+# we decompose the median balance across accounts, a stand-in for the typical client, and then repeat the exercise
+# account by account to measure the strength of each component.
 
 # %%
 typical_series = bal.median(axis=0)
@@ -628,14 +655,18 @@ save_result(pd.DataFrame({"observed": typical_series, "trend": mstl.trend, "seas
             "09_mstl_median_account", "MSTL decomposition of the cross-sectional median balance")
 
 # %% [markdown]
-# **Findings.** The trend component dominates; the monthly component is clearly stronger than the weekly one (the
-# weekly pattern is mostly "flat on weekends", which matters for daily forecasts but explains little variance).
-# Per account the seasonal strengths vary a lot — some accounts have a clear monthly salary cycle, others none —
-# which argues for **per-account (or per-segment) seasonal models**.
+# The trend carries most of the movement. The monthly cycle is clearly stronger than the weekly one, which makes sense:
+# the weekly effect is mostly "nothing happens at weekends", important for daily forecasts but small in size. Account
+# by account the strength of the monthly cycle varies a lot. Some clients follow it closely and others not at all,
+# which argues for models fitted to each account, or at least to each group of accounts, rather than one seasonal
+# pattern for everyone.
 
 # %% [markdown]
-# ## 10. Stationarity
-# ADF (H0: unit root) and KPSS (H0: stationary) are complementary, so we run both, on levels and on first differences.
+# ## 10. Is there a stable mean?
+#
+# Many forecasting models need a stationary series, one that fluctuates around a stable mean. Two tests look at this
+# from opposite sides: ADF starts by assuming the series wanders without a fixed mean, KPSS starts by assuming it is
+# stationary. We run both, on the balances and on their daily changes.
 
 # %%
 def stationarity_tests(x):
@@ -671,14 +702,19 @@ save_result(st, "10_stationarity_per_account", "Per account: ADF and KPSS p-valu
 save_result(st_summary, "10_stationarity_summary", "% of accounts per stationarity class, levels vs first differences")
 
 # %% [markdown]
-# **Findings.** In levels the two tests disagree for a large share of accounts — the signature of series with
-# **level shifts** (stationary between jumps, but not around a single mean). After **one difference**, practically
-# all accounts are stationary according to both tests. ⇒ For ARIMA-type models, **d = 1** is the natural choice;
-# models in levels must allow the mean to move (e.g. local level / exponential smoothing).
+# On the balances themselves the two tests disagree for about half of the accounts. That is the typical signature of a
+# series that is stable for a while and then jumps to a new level, exactly what we saw in sections 6 and 8. On the
+# daily changes the verdict is unanimous: practically every account is stationary once differenced.
+#
+# For ARIMA models this means one difference (d = 1). For models working on the level itself, the level must be allowed
+# to move, as in exponential smoothing.
 
 # %% [markdown]
-# ## 11. Autocorrelation
-# ACF/PACF of the median-account series, and the distribution of the ACF of daily changes across accounts.
+# ## 11. How much does yesterday tell us about today?
+#
+# The autocorrelation function measures how strongly a series is related to its own past; the partial autocorrelation
+# removes the intermediate days. We look at both for the median balance and then at the daily changes of every
+# account.
 
 # %%
 fig, axes = plt.subplots(2, 2, figsize=(14, 7))
@@ -723,17 +759,21 @@ print(f"Ljung-Box rejects 'no autocorrelation' in daily changes: lag 7 -> {100 *
       f"of accounts, lag 30 -> {100 * np.mean(np.array(lb30) < 0.05):.1f}%")
 
 # %% [markdown]
-# **Findings.** The level is highly persistent (slowly decaying ACF; PACF with a large spike at lag 1 and a small one
-# at lag 2 → close to a random walk). For the typical account, daily changes have a slightly negative short-lag
-# autocorrelation (partial reversals) and a **positive peak around lag 28–31 (monthly cycle)**; there is no clear
-# weekly peak in the changes themselves (the weekly effect is "no movement at weekends", not a repeated amount).
-# Ljung–Box confirms there is structure left after differencing for most accounts.
-# ⇒ Candidate models in Sprint 2: **ARIMA(p,1,q)** with short AR/MA terms, with the monthly cycle captured by a
-# 30-day seasonal component or calendar regressors, and the weekly effect by a business-day calendar.
+# The balance has a long memory: today's level is very close to yesterday's, and the partial autocorrelation is almost
+# entirely at the first lag, the classic picture of a random walk. The daily changes, by contrast, carry little memory:
+# a slight tendency to reverse in the following days, and a small bump around 28 to 31 days that is the monthly cycle
+# showing through. There is no clear weekly bump in the changes, because the weekly effect is an absence of movement
+# rather than a repeated amount. The Ljung–Box test confirms that most accounts keep some structure after
+# differencing.
+#
+# This points to ARIMA models with one difference and short AR or MA terms, with the monthly cycle brought in through
+# the calendar rather than through a seasonal lag of 7.
 
 # %% [markdown]
-# ## 12. Volatility
-# Does the size of daily changes cluster in time (calm and agitated periods)? Engle's ARCH-LM test on daily changes.
+# ## 12. Calm and agitated periods
+#
+# Some series alternate between calm weeks and agitated ones. The ARCH test checks whether large changes tend to follow
+# large changes.
 
 # %%
 arch_p = []
@@ -751,13 +791,15 @@ monthly_vol.plot(title="Median (across accounts) of mean |daily change| per mont
 plt.ylabel("EUR"); plt.tight_layout(); plt.show()
 
 # %% [markdown]
-# **Finding.** About a third of the accounts show significant volatility clustering. For point forecasts this matters
-# mainly for **prediction intervals** and for weighting recent data more than old data; it does not justify
-# GARCH-type models for this task.
+# About a third of the accounts show this clustering. It matters for the width of prediction intervals and it is one
+# more argument to give recent data more weight, but it is not strong enough to justify volatility models such as GARCH
+# for a point forecast.
 
 # %% [markdown]
-# ## 13. Structural changes over the sample
-# Comparison of the three years: level, activity and the share of accounts with negative balances.
+# ## 13. Three years in comparison
+#
+# The data covers 2020, 2021 and 2022: a pandemic year, a recovery year and a year of high inflation. We compare them
+# on a few simple measures.
 
 # %%
 yearly = pd.DataFrame({
@@ -770,16 +812,19 @@ save_result(yearly, "13_yearly_summary", "Per year: typical balance, share negat
 yearly
 
 # %% [markdown]
-# **Findings.** Balances of the typical account grow from 2020 to 2022, the share of negative balances falls
-# markedly, and activity increases every year (2020 was the first COVID year). The most important structural break is not economic but the **August 2022 change in the date
-# convention** found in Section 3, already corrected. For the forecast, the **most recent months are the most
-# representative**.
+# The typical account grows over the three years, the share of negative balances falls clearly, and the accounts
+# become more active every year. The economy left its mark, but the biggest break we found is not economic at all: it
+# is the change in the date convention of section 3, which we have already corrected. For forecasting, the most recent
+# months are the most representative.
 
 # %% [markdown]
-# # Part C — Relationships between accounts
-# ## 14. Cross-account correlation
-# Correlating **levels** of trending series produces spurious correlation (two unrelated accounts that both grow look
-# correlated). We therefore correlate **daily changes**, and show levels only for contrast.
+# # Part C · Accounts side by side
+#
+# ## 14. Do accounts move together?
+#
+# If accounts moved together, the history of one could help forecast another. Comparing balances directly would be
+# misleading, because any two accounts that both grow over time look correlated even if they have nothing in common. We
+# therefore compare their daily changes, showing the balances only as a contrast.
 
 # %%
 corr_ids = sample_accounts(bal.index, MAX_CORR_ACCOUNTS)
@@ -810,17 +855,20 @@ save_result(corr_summary, "14_correlation_summary", "Distribution of pairwise co
 save_result(top_pairs, "14_top_correlated_pairs", "50 account pairs with the strongest correlation of daily changes", index=False)
 
 # %% [markdown]
-# **Findings.** Correlations between accounts are **weak**: the median pairwise correlation of daily changes is close
-# to zero, with only a few strongly correlated pairs (possibly accounts of the same client or linked accounts).
-# Correlation in levels is spread in both directions — mostly spurious, driven by trends.
-# ⇒ A full multivariate model (e.g. VAR across accounts) is **not justified**. Accounts share a *common calendar*
-# (salaries, weekends, holidays), not common shocks, so information is best shared through **global models with
-# calendar features**, while dynamics stay per account.
+# The accounts barely move together. The typical correlation between the daily changes of two accounts is practically
+# zero, with only a few pairs standing out. The correlations between balances spread widely in both directions, which
+# is mostly the illusion we were warned about.
+#
+# A model that ties accounts together, such as a VAR, has nothing to work with here. What accounts share is the
+# calendar, not their shocks. The useful way to learn across accounts is a global model fed with calendar information,
+# while each account keeps its own dynamics.
 
 # %% [markdown]
-# ## 15. Segmentation of accounts
-# Simple, interpretable rules based on the features computed above (last 12 months, i.e. the most representative
-# period), to be used in Sprint 2 to choose or tune models per segment.
+# ## 15. Four kinds of accounts
+#
+# We saw several shapes in section 8. To make them usable we group the accounts with a few simple rules applied to their
+# last twelve months, the period closest to what we will forecast: how often the balance moves, how often it is near
+# zero or negative, and how much it varies relative to its level.
 
 # %%
 recent = bal.loc[:, bal.columns > bal.columns.max() - pd.Timedelta(days=365)]
@@ -862,50 +910,402 @@ for ax, seg in zip(np.atleast_1d(axes), seg_summary.index):
 plt.tight_layout(); plt.show()
 
 # %% [markdown]
-# **Findings.** The **near-zero / overdraft** segment is where MAPE will be decided: those accounts produce the huge
-# percentage errors. Dormant accounts are trivially forecast by their last value. Stable and volatile positive
-# accounts are where seasonal/ARIMA models should add value over the naive forecast.
+# The grouping already shows where the difficulty lies. Accounts that live near zero or in overdraft are where the
+# percentage errors will explode. Dormant accounts barely move, but they too can sit close to zero, where even a tiny
+# change becomes a huge percentage. Stable positive accounts should be easy, and volatile positive accounts are where
+# seasonal and ARIMA models have the most room to add value.
 
 # %% [markdown]
-# # Part D — Decisions
-# ## 16. Data-preparation decisions
+# # Part D · Looking closer
 #
-# | # | Issue (evidence) | Decision |
-# |---|---|---|
-# | 1 | Date convention changes in Aug 2022: before, label *D* = close of *D − 1* (§3) | **Realign**: shift pre-switch labels back one day; fill the single resulting weekend gap |
-# | 2 | Label 2022-08-05 is the sum of two closing balances (§3) | **Repair** exactly: `label(08-05) − label(08-06)` |
-# | 3 | Missing values are all leading — accounts opened later (§2) | **No imputation**; each account starts at its first observation |
-# | 4 | Negative balances are frequent and legitimate (§5) | **Keep**; forecasts must allow negative values; no log transform of levels |
-# | 5 | Zero / near-zero balances make MAPE explode (§5) | Report 3 metrics (official MAPE as primary); handle near-zero accounts explicitly in Sprint 2 |
-# | 6 | Extreme moves are mostly permanent level shifts (§6) | **Keep** (real behaviour); revisit as anomalies in Sprint 3 |
-# | 7 | Scales differ by orders of magnitude (§4) | **Scale per account** for any cross-account model |
-# | 8 | Weekly + monthly seasonality, holidays (§7, §9) | Use calendar features: weekday, day of month, end-of-month, PT holidays |
-# | 9 | Level shifts, unit roots in levels (§10–11) | Models on differences (d = 1) or local-level models; weight recent data |
-# | 10 | Weak cross-account correlation (§14) | No VAR across accounts; global model + per-account dynamics |
+# What we have so far describes the balances. In this part we dig into the details, looking for structure a forecast
+# could exploit and for an honest idea of how much room for improvement there is. We take apart the daily movements
+# into the transactions behind them, look for recurring payments, paydays, credit limits and links between accounts,
+# measure the exact cycles, find when each account last changed behaviour, study January (the month we will forecast)
+# and finally ask how good a forecast could possibly be.
 #
-# The prepared dataset is `bal`: the realigned, repaired accounts × days matrix with leading NaNs preserved.
+# Some of these analyses work at the level of individual transactions and use a fixed random sample of accounts, which
+# includes every account in the development data.
+
+# %% [markdown]
+# ## D1. The transactions behind the balances
+#
+# When a balance changes, the size of the change is the net amount of that day's transactions. Looking at those amounts
+# tells us something about how the data was produced. A classic tool from auditing and fraud detection is Benford's
+# law: in naturally occurring amounts the first digit is 1 about 30% of the time and 9 less than 5% of the time. We also
+# look at the cents and at round amounts, since cash withdrawals of €20 or €50 would show up as round numbers.
 
 # %%
-prepared = bal.copy()
-save_result(prepared.rename(columns=lambda c: c.strftime("%Y-%m-%d")), "16_prepared_balances",
-            "PREPARED DATASET (wide, same layout as the raw file): realigned calendar, repaired 2022-08-05, leading NaN kept")
-display(pd.Series({
-    "accounts": prepared.shape[0],
-    "days": prepared.shape[1],
-    "first date": prepared.columns.min().date(),
-    "last date": prepared.columns.max().date(),
-    "missing (leading only)": int(prepared.isna().sum().sum()),
-}).to_frame("prepared dataset"))
+tx_ids = sample_accounts(bal.index, MAX_TEST_ACCOUNTS)
+D = dB[bal.index.get_indexer(tx_ids)]
+nz_mask = ~np.isnan(D) & (D != 0)
+ai, ti = np.nonzero(nz_mask)
+tx = pd.DataFrame({"ACCOUNT_ID": tx_ids.to_numpy()[ai], "date": cd[ti], "amount": np.round(D[nz_mask], 2)})
+tx["month"] = tx.date.dt.to_period("M")
+tx["day"] = tx.date.dt.day
+
+cents = np.rint(np.abs(tx.amount.to_numpy()) * 100).astype(np.int64)
+cents = cents[cents > 0]
+n_digits = np.floor(np.log10(cents) + 1e-9).astype(np.int64)
+first_digit = cents // 10 ** n_digits
+benford = pd.DataFrame({"observed": np.bincount(first_digit, minlength=10)[1:] / len(first_digit),
+                        "Benford": np.log10(1 + 1 / np.arange(1, 10))}, index=pd.Index(range(1, 10), name="first digit"))
+benford_mad = float((benford.observed - benford.Benford).abs().mean())
+last_digit = np.bincount(cents % 10, minlength=10) / len(cents)
+chi_last = stats.chisquare(np.bincount(cents % 10, minlength=10))
+
+forensics = pd.Series({
+    "net daily amounts analysed": len(tx),
+    "share inflows (> 0)": round((tx.amount > 0).mean(), 3),
+    "Benford MAD (first digit; < 0.006 = close conformity)": round(benford_mad, 4),
+    "last cent digit: chi-square p-value (uniform?)": round(chi_last.pvalue, 4),
+    "share whole euros (expected 1% if cents random)": round(np.mean(cents % 100 == 0), 4),
+    "share multiples of EUR 10 (expected 0.1%)": round(np.mean(cents % 1000 == 0), 4),
+    "share multiples of EUR 20 (expected 0.05%)": round(np.mean(cents % 2000 == 0), 4),
+})
+display(forensics.to_frame("value"))
+top_amounts = tx.amount.value_counts().head(20).rename("occurrences")
+
+fig, axes = plt.subplots(1, 3, figsize=(16, 3.8))
+axes[0].bar(benford.index, benford.observed, label="observed"); axes[0].plot(benford.index, benford.Benford, "ro-", label="Benford")
+axes[0].set(title="First digit of transaction amounts", xlabel="first digit"); axes[0].legend()
+axes[1].bar(range(10), last_digit); axes[1].axhline(0.1, color="red"); axes[1].set(title="Last cent digit", xlabel="digit")
+axes[2].hist(tx.amount.clip(-5000, 5000), bins=200); axes[2].set_yscale("log")
+axes[2].set(title="Net daily amounts (clipped ±5 000, log count)", xlabel="EUR")
+plt.tight_layout(); plt.show()
+save_result(forensics.rename("value"), "D1_amount_forensics", "Forensic tests on net daily amounts: Benford, cents, round amounts")
+save_result(benford, "D1_benford", "First-digit distribution of amounts vs Benford's law")
+save_result(top_amounts, "D1_top_amounts", "Most frequent exact net daily amounts")
 
 # %% [markdown]
-# ## 17. Validation scheme and baselines
-# **Rolling-origin backtesting.** Each fold trains on everything up to an origin and forecasts the next 30 days,
-# mimicking the real task. Folds:
-# - the last four 30-day windows of 2022 (most recent behaviour, new date convention);
-# - January 2022 — the **same season** as the real forecast window (right after Christmas, salary at month end).
+# The amounts follow Benford's law closely and the cents are spread evenly, just as real amounts would be. There are no
+# round amounts beyond what chance predicts, so no cash withdrawals in multiples of €10 or €20. Whoever generated this
+# data did it carefully: there is no artificial shortcut to exploit, and we can treat it as real. The most frequent
+# exact amounts, on the other hand, repeat suspiciously often, and they are the subject of the next section.
+
+# %% [markdown]
+# ## D2. Payments that come back
 #
-# **Metrics** (see §5): official MAPE (pooled, exact zeros excluded) — primary; median per-account MAPE;
-# MAPE on |actual| ≥ €100.
+# Rent, subscriptions and loan instalments show up as the same exact amount, in the same account, month after month. If
+# they also fall on the same date, we could place them in the forecast almost with certainty.
+
+# %%
+txs = tx[tx.amount.abs() >= 5].sort_values(["ACCOUNT_ID", "amount", "date"])
+same = (txs.ACCOUNT_ID.values[1:] == txs.ACCOUNT_ID.values[:-1]) & (txs.amount.values[1:] == txs.amount.values[:-1])
+gap_days = np.where(same, (txs.date.values[1:] - txs.date.values[:-1]) / np.timedelta64(1, "D"), np.nan)
+txs["gap_days"] = np.r_[np.nan, gap_days]
+rec = txs.groupby(["ACCOUNT_ID", "amount"]).agg(
+    occurrences=("date", "size"), months=("month", "nunique"), first=("date", "min"), last=("date", "max"),
+    day_of_month_median=("day", "median"), day_of_month_std=("day", "std"),
+    gap_median=("gap_days", "median"), gap_std=("gap_days", "std"))
+recurring = rec[rec.months >= 6].copy()
+recurring["fixed_date"] = recurring.day_of_month_std <= 2
+recurring["direction"] = np.where(recurring.index.get_level_values("amount") > 0, "inflow", "outflow")
+
+is_rec = pd.MultiIndex.from_frame(txs[["ACCOUNT_ID", "amount"]]).isin(recurring.index)
+rec_summary = pd.Series({
+    "recurring (account, amount) pairs (>= 6 months)": len(recurring),
+    "accounts with at least one recurring amount": recurring.index.get_level_values(0).nunique(),
+    "share of transactions that are recurring": round(is_rec.mean(), 3),
+    "recurring pairs that are inflows": int((recurring.direction == "inflow").sum()),
+    "recurring pairs on a fixed day of month (std <= 2 days)": int(recurring.fixed_date.sum()),
+    "median gap between occurrences (days)": recurring.gap_median.median(),
+    "median std of the day of month": round(recurring.day_of_month_std.median(), 1),
+})
+display(rec_summary.to_frame("value"))
+display(recurring.sort_values("occurrences", ascending=False).head(10).round(1))
+
+fig, axes = plt.subplots(1, 2, figsize=(14, 3.6))
+axes[0].hist(recurring.gap_median.clip(0, 60), bins=60); axes[0].set(title="Median gap between repetitions (days)")
+axes[1].hist(recurring.day_of_month_std.dropna(), bins=40); axes[1].set(title="Std of the day of month of repetitions")
+plt.tight_layout(); plt.show()
+save_result(rec_summary.rename("value"), "D2_recurring_summary", "Recurring transactions: counts and regularity")
+save_result(recurring.reset_index(), "D2_recurring_amounts", "Every (account, amount) pair repeating in >= 6 months", index=False)
+
+# %% [markdown]
+# Most accounts have amounts that come back over many months, mostly outgoing ones. The majority behave like habits
+# rather than schedules: the same purchase, on any day of the month. About one in five of these recurring amounts,
+# however, falls on the same day every month, and those can be projected into the forecast window. Recurring amounts are
+# only a small share of all transactions, so they will refine the forecast of some accounts rather than explain the
+# balances as a whole.
+
+# %% [markdown]
+# ## D3. Paydays
+#
+# For each account and month we take the largest inflow and note its day. If an account is paid on a fixed day, that day
+# will dominate. We also check whether paydays follow the calendar (the 30th) or a business-day rule (the last business
+# day of the month), and what happens to the busy 8th when it falls on a weekend.
+
+# %%
+inflows = tx[tx.amount > 0]
+top_in = inflows.loc[inflows.groupby(["ACCOUNT_ID", "month"]).amount.idxmax()].copy()
+bdays = pd.bdate_range(bal.columns.min(), bal.columns.max() + pd.Timedelta(days=40))
+bday_rank_from_end = pd.Series(
+    pd.Series(bdays).groupby(pd.Series(bdays).dt.to_period("M")).rank(ascending=False).to_numpy(), index=bdays)
+top_in["bdays_to_month_end"] = top_in.date.map(bday_rank_from_end)
+
+
+def mode_share(s):
+    return s.value_counts(normalize=True).iloc[0] if len(s) else np.nan
+
+
+payday = top_in.groupby("ACCOUNT_ID").agg(
+    payday_mode=("day", lambda s: s.mode().iloc[0]),
+    calendar_day_concentration=("day", mode_share),
+    business_day_concentration=("bdays_to_month_end", mode_share),
+    months=("month", "size"))
+payday["regular_payday"] = payday.calendar_day_concentration >= 0.5
+display(pd.Series({
+    "accounts analysed": len(payday),
+    "accounts with a regular payday (same day in >= 50% of months)": int(payday.regular_payday.sum()),
+    "median concentration on the modal calendar day": round(payday.calendar_day_concentration.median(), 3),
+    "median concentration on the modal business-day-to-month-end": round(payday.business_day_concentration.median(), 3),
+}).to_frame("value"))
+display(top_in.day.value_counts(normalize=True).head(10).round(3).to_frame("share of accounts' largest monthly inflow"))
+
+# Day 8: what happens when the 8th falls on a weekend?
+li = cal["large_inflow"]
+rows = []
+for m in pd.period_range(cd.min(), cd.max(), freq="M"):
+    d8 = pd.Timestamp(year=m.year, month=m.month, day=8)
+    row = {"weekday of the 8th": weekday_names[d8.dayofweek]}
+    for k in range(5, 12):
+        dk = pd.Timestamp(year=m.year, month=m.month, day=k)
+        row[f"day {k}"] = li.get(dk, np.nan)
+    rows.append(row)
+day8 = pd.DataFrame(rows).groupby("weekday of the 8th").mean().reindex(weekday_names).round(3)
+display(day8)
+save_result(payday, "D3_payday_per_account", "Per account: modal day of the largest monthly inflow and its concentration")
+save_result(day8, "D3_day8_weekend_rule", "Share of accounts with a large inflow on days 5-11, by weekday of the 8th")
+
+# %% [markdown]
+# The 8th is the most common day for an account's largest inflow, followed by the 28th to the 30th. Account by account
+# the picture is looser: only about a fifth of the accounts are paid on the same day in most months. A business-day rule
+# does not describe paydays better than the plain calendar day.
+#
+# The weekend table is the most useful result. When the 8th falls on a Saturday the money arrives on Monday the 10th,
+# and when it falls on a Sunday it arrives on Monday the 9th. The inflow is simply moved to the next business day. This
+# has a direct consequence for our forecast: 8 January 2023 is a Sunday, so those inflows should be expected on Monday
+# 9 January.
+
+# %% [markdown]
+# ## D4. Is there a floor?
+#
+# An account with an authorised overdraft cannot go below its limit, so its balance should keep touching the same
+# minimum. If that happened, a forecast should never go below it. We count, for every account with negative balances,
+# how many separate times it came within 2% of its lowest value.
+
+# %%
+floor_rows = []
+for acc in bal.index:
+    s = bal.loc[acc].dropna()
+    m = s.min()
+    if m >= 0:
+        continue
+    near_min = (s <= m + 0.02 * abs(m)).astype(int)
+    floor_rows.append({"ACCOUNT_ID": acc, "minimum": m, "days_near_minimum": int(near_min.sum()),
+                       "episodes_near_minimum": int((near_min.diff() == 1).sum() + near_min.iloc[0]),
+                       "minimum_is_round_100": abs(m) % 100 < 1})
+floors = pd.DataFrame(floor_rows).set_index("ACCOUNT_ID")
+display(pd.Series({
+    "accounts with negative balances": len(floors),
+    "accounts touching their minimum in >= 3 separate episodes": int((floors.episodes_near_minimum >= 3).sum()),
+    "accounts whose minimum is a round multiple of EUR 100": int(floors.minimum_is_round_100.sum()),
+}).to_frame("value"))
+save_result(floors, "D4_overdraft_floors", "Per account with negatives: minimum, days and episodes near the minimum")
+
+# %% [markdown]
+# Very few accounts return repeatedly to their minimum, and almost no minimum is a round number such as −€500. We find
+# no sign of hard credit limits, so our forecasts do not need a floor.
+
+# %% [markdown]
+# ## D5. Are accounts linked?
+#
+# Section 14 found weak correlations, but two specific links could still exist. One is a transfer: money leaving one
+# account and arriving, with exactly the same amount, in another on the same day. The other is a duplicated account. To
+# know whether matches are real or coincidence, we compare them with the matches we get after shuffling the dates at
+# random.
+
+# %%
+big_tx = tx[tx.amount.abs() >= 50][["ACCOUNT_ID", "date", "amount"]]
+
+
+def count_matches(t):
+    m = t.merge(t.assign(amount=-t.amount), on=["date", "amount"], suffixes=("_out", "_in"))
+    return m[(m.ACCOUNT_ID_out != m.ACCOUNT_ID_in) & (m.amount < 0)]
+
+
+matches = count_matches(big_tx)
+shuffled = [len(count_matches(big_tx.assign(date=rng.permutation(big_tx.date.values)))) for _ in range(5)]
+
+dup_ids = sample_accounts(bal.index, MAX_CORR_ACCOUNTS)
+Zc = np.nan_to_num(dB[bal.index.get_indexer(dup_ids)])
+dup_rows = []
+for lag in range(4):
+    A, Bm = Zc[:, lag:], Zc[:, :Zc.shape[1] - lag]
+    same_moves = np.zeros((len(dup_ids), len(dup_ids)), dtype=np.int32)
+    for i in range(len(dup_ids)):
+        same_moves[i] = ((A[i] == Bm) & (A[i] != 0)).sum(1)
+    np.fill_diagonal(same_moves, 0)
+    i, j = np.unravel_index(same_moves.argmax(), same_moves.shape)
+    dup_rows.append({"lag (days)": lag, "max identical non-zero changes": int(same_moves.max()),
+                     "account": dup_ids[i], "other account": dup_ids[j]})
+links = pd.Series({
+    "candidate transfers (same day, opposite exact amount >= EUR 50)": len(matches),
+    "expected by chance (mean of 5 date shuffles)": float(np.mean(shuffled)),
+    "account pairs with >= 3 transfers": int((matches.groupby(["ACCOUNT_ID_out", "ACCOUNT_ID_in"]).size() >= 3).sum()),
+})
+display(links.to_frame("value"))
+display(pd.DataFrame(dup_rows))
+save_result(links.rename("value"), "D5_transfers", "Transfer detection vs permutation baseline")
+save_result(pd.DataFrame(dup_rows), "D5_duplicates", "Max identical non-zero changes between two different accounts, by lag", index=False)
+
+# %% [markdown]
+# We find exactly as many "transfers" as chance produces, no pair of accounts that exchanges money repeatedly, and no
+# two accounts sharing more than a couple of identical moves. The accounts are independent of each other, which
+# confirms what section 14 suggested.
+
+# %% [markdown]
+# ## D6. The exact cycles
+#
+# In section 9 we told the decomposition to look for cycles of 7 and 30 days. The periodogram lets the data speak for
+# itself: it splits the variance of the daily changes across all possible frequencies. We average it across accounts to
+# see which periods stand out.
+
+# %%
+spec_ids = sample_accounts(bal.index, MAX_TEST_ACCOUNTS)
+N_SPEC = 1000
+spectra, spec_entropy = [], {}
+for acc in spec_ids:
+    x = np.diff(bal.loc[acc].dropna().to_numpy())[-N_SPEC:]
+    if len(x) < N_SPEC or np.std(x) == 0:
+        continue
+    freqs, power = periodogram(x - x.mean())
+    p = power[1:] / power[1:].sum()
+    spectra.append(p)
+    spec_entropy[acc] = float(-(p * np.log(p + 1e-300)).sum() / np.log(len(p)))
+mean_spec = pd.Series(np.mean(spectra, 0), index=1 / freqs[1:])
+top_periods = mean_spec.sort_values(ascending=False).head(10)
+display(pd.DataFrame({"period (days)": top_periods.index.round(2), "share of variance (%)": (100 * top_periods.values).round(2)}))
+
+fig, ax = plt.subplots(figsize=(12, 3.8))
+ax.plot(freqs[1:], mean_spec.values, lw=0.8)
+for per_, lab in [(30.44, "30.4"), (15.22, "15.2"), (10.15, "10.1"), (7, "7"), (3.5, "3.5")]:
+    ax.axvline(1 / per_, color="red", ls="--", lw=0.6); ax.text(1 / per_, ax.get_ylim()[1] * 0.9, lab, color="red", fontsize=8)
+ax.set(title="Mean normalised periodogram of daily changes", xlabel="frequency (cycles per day)", ylabel="share of variance")
+plt.tight_layout(); plt.show()
+save_result(pd.DataFrame({"period_days": mean_spec.index, "share_of_variance": mean_spec.values}),
+            "D6_mean_periodogram", "Mean normalised periodogram of daily changes across accounts", index=False)
+
+# %% [markdown]
+# The strongest cycle lasts about 30.4 days, the average length of a month, and it is followed by cycles of about 15.2
+# and 10.1 days. Those are not new rhythms but echoes of the monthly one: a saw-tooth (sudden rise, slow decline) is
+# not a smooth wave, and it takes several harmonics to draw it. The weekly cycle is present but weaker.
+#
+# For the models this means describing the month with several Fourier terms of period 30.44, or with day-of-month
+# effects, rather than with a single seasonal lag of 30 days.
+
+# %% [markdown]
+# ## D7. When did each account last change?
+#
+# We saw that accounts jump to new levels and stay there. If an account changed level two months ago, its older history
+# describes a different situation. We detect these change points by comparing the median of the 30 days before and after
+# each date, and flag a change when the difference is larger than half the account's typical balance and larger than
+# €100.
+
+# %%
+CP_WINDOW = 30
+
+
+def level_change_points(s, w=CP_WINDOW):
+    x = s.dropna()
+    v = x.to_numpy()
+    n = len(v)
+    if n < 3 * w:
+        return []
+    before = pd.Series(v).rolling(w).median().to_numpy()                 # median of v[t-w+1 .. t]
+    after = pd.Series(v[::-1]).rolling(w).median().to_numpy()[::-1]      # median of v[t .. t+w-1]
+    shift = np.full(n, np.nan)
+    shift[w - 1:n - w] = after[w:n - w + 1] - before[w - 1:n - w]
+    threshold = max(0.5 * np.median(np.abs(v)), 100.0)
+    candidates = np.flatnonzero(np.abs(np.nan_to_num(shift)) > threshold)
+    points = []
+    for t in candidates[np.argsort(-np.abs(shift[candidates]))]:            # strongest first, at least w apart
+        if all(abs(t - p) >= w for p in points):
+            points.append(t)
+    return sorted(x.index[p + 1] for p in points)
+
+
+cp_ids = sample_accounts(bal.index, MAX_TEST_ACCOUNTS)
+cps = {acc: level_change_points(bal.loc[acc]) for acc in cp_ids}
+end = bal.columns.max()
+cp_table = pd.DataFrame({
+    "change_points": {a: len(v) for a, v in cps.items()},
+    "last_change_point": {a: (v[-1] if v else pd.NaT) for a, v in cps.items()},
+})
+cp_table["days_since_last_change_point"] = (end - cp_table.last_change_point).dt.days
+display(cp_table[["change_points", "days_since_last_change_point"]].describe().round(1))
+
+fig, axes = plt.subplots(1, 2, figsize=(15, 3.8))
+axes[0].hist(cp_table.days_since_last_change_point.dropna(), bins=40)
+axes[0].set(title="Days since the last change point (at the end of the data)")
+example = cp_table.change_points.idxmax()
+axes[1].plot(bal.columns, bal.loc[example], lw=0.8)
+for p in cps[example]:
+    axes[1].axvline(p, color="red", lw=0.8, ls="--")
+axes[1].set_title(f"Change points detected — account {example}"); axes[1].tick_params(axis="x", rotation=45)
+plt.tight_layout(); plt.show()
+save_result(cp_table, "D7_change_points_per_account", "Per account: number of level change points and the last one")
+
+# %% [markdown]
+# The exact counts depend on the window and the threshold we chose, so we read them as indicative. Most accounts change
+# level several times over three years, and for half of them the last change happened less than two months before the
+# end of the data. Estimating a level from the full three years would mix regimes; the models should focus on the recent
+# past, or at least give it more weight.
+
+# %% [markdown]
+# ## D8. January
+#
+# We will forecast the 30 days that follow 31 December. We have already lived through that period twice, in 2021 and
+# 2022, so we can look at how balances moved after New Year's Eve and compare it with what happens after an ordinary
+# month end.
+
+# %%
+def relative_path(start):
+    base = bal[start]
+    window = bal.loc[:, start + pd.Timedelta(days=1): start + pd.Timedelta(days=HORIZON)]
+    rel_path = window.sub(base, axis=0).div(base.abs().clip(lower=NEAR_ZERO), axis=0)
+    return rel_path.median(axis=0).to_numpy()
+
+
+paths = {}
+for y in sorted(set(bal.columns.year))[1:]:
+    paths[f"January {y}"] = relative_path(pd.Timestamp(f"{y - 1}-12-31"))
+month_ends = [d for d in bal.columns[bal.columns.is_month_end] if d.month != 12 and d + pd.Timedelta(days=HORIZON) <= end]
+paths["average of other months"] = np.mean([relative_path(d) for d in month_ends], axis=0)
+paths = pd.DataFrame(paths, index=pd.Index(range(1, HORIZON + 1), name="days after month end"))
+
+paths.plot(figsize=(12, 3.8), marker=".", title="Median relative change of the balance after the month end")
+plt.axhline(0, color="grey", lw=0.8); plt.ylabel("(balance - balance at month end) / |balance at month end|")
+plt.tight_layout(); plt.show()
+display(paths.iloc[[4, 9, 14, 19, 24, 29]].round(3))
+save_result(paths, "D8_january_paths", "Median relative balance path after Dec 31 (each January) vs after other month ends")
+
+# %% [markdown]
+# After 31 December the typical balance goes down during the first weeks of January and recovers at the end of the
+# month, when the next salary arrives. It is the familiar saw-tooth, but the January dip is at least as deep as in an
+# ordinary month, probably because of post-Christmas spending. A forecast that simply repeats the 31 December balance
+# will be too high for most of the month. The forecast needs to follow the within-month profile, and the January folds
+# of our validation are the right place to calibrate it.
+
+# %% [markdown]
+# ## D9. How we will keep score
+#
+# Before asking how good a forecast can be, we fix the scoring rules used from now on. The decision metric is the
+# official MAPE, computed over all accounts and days, leaving out the few exact zeros where it is undefined. Next to it
+# we report the median MAPE across accounts and the MAPE on balances of at least €100, so that we can always tell
+# whether a bad score comes from the typical account or from the near-zero ones. We also define the validation folds
+# here: four recent 30-day windows at the end of 2022 and January 2022, each forecast using only the data before it.
 
 # %%
 def mape_official(actual, forecast):
@@ -922,14 +1322,230 @@ def mape_per_account(actual, forecast, min_abs=0.0):
     return 100 * np.nanmean(ape, axis=1)
 
 
-def evaluate(actual, forecast):
+def evaluate(actual, forecast, train=None):
+    """Official MAPE plus the two explanatory MAPE variants for an (accounts x horizon) forecast."""
     a, f = np.asarray(actual, float), np.asarray(forecast, float)
+    f = np.broadcast_to(f, a.shape)
     ok = np.isfinite(a) & np.isfinite(f) & (np.abs(a) >= NEAR_ZERO)
-    return {"MAPE (official)": mape_official(a, f),
-            "median per-account MAPE": np.nanmedian(mape_per_account(a, f)),
-            f"MAPE |actual|>={NEAR_ZERO:.0f}": 100 * np.mean(np.abs((a[ok] - f[ok]) / a[ok]))}
+    return {
+        "MAPE (official)": mape_official(a, f),
+        "median per-account MAPE": np.nanmedian(mape_per_account(a, f)),
+        f"MAPE |actual|>={NEAR_ZERO:.0f}": 100 * np.mean(np.abs((a[ok] - f[ok]) / a[ok])),
+    }
 
 
+METRICS = ["MAPE (official)", "median per-account MAPE", f"MAPE |actual|>={NEAR_ZERO:.0f}"]
+
+# Validation folds (used in D10 and §17): train up to the origin, forecast the next HORIZON days
+last_day = bal.columns.max()
+origins = [pd.Timestamp("2021-12-31")] + [last_day - pd.Timedelta(days=HORIZON * k) for k in (4, 3, 2, 1)]
+
+
+def split(data, origin):
+    train = data.loc[:, :origin]
+    test = data.loc[:, origin + pd.Timedelta(days=1): origin + pd.Timedelta(days=HORIZON)]
+    return train, test
+
+# %% [markdown]
+# ## D10. How good could a forecast be?
+#
+# An oracle is a forecast that is allowed to peek at the future. It is not a model, only a yardstick: it tells us how
+# much of the error could disappear in the best case. We use the simplest oracle, one constant value per account for the
+# whole window, chosen to minimise MAPE. That value is a weighted median of the true balances in which each balance
+# counts in inverse proportion to its size. Comparing it with our simple forecasts shows how much of the error comes
+# from choosing the wrong level and how much from missing the movement inside the month.
+
+# %%
+def mape_optimal_constant(A):
+    """Per row: the constant c minimising sum |a - c| / |a| (weighted median, weights 1/|a|)."""
+    out = np.full(A.shape[0], np.nan)
+    for i, row in enumerate(A):
+        a = row[np.isfinite(row) & (row != 0)]
+        if len(a) == 0:
+            continue
+        o = np.argsort(a); w = 1 / np.abs(a[o]); cw = np.cumsum(w)
+        out[i] = a[o][np.searchsorted(cw, cw[-1] / 2)]
+    return out
+
+
+oracle_rows = []
+for origin in origins:
+    train, test = split(bal, origin)
+    A = test.to_numpy(); T = train.to_numpy()
+    fold = (origin + pd.Timedelta(days=1)).date()
+    candidates = {
+        "naive (last value)": T[:, -1:],
+        "median of last 30 days": np.nanmedian(T[:, -30:], 1, keepdims=True),
+        "ORACLE: best constant per account": mape_optimal_constant(A)[:, None],
+        "ORACLE: actual mean of the window": np.nanmean(A, 1, keepdims=True),
+    }
+    for name, fc in candidates.items():
+        oracle_rows.append({"fold (test start)": fold, "forecast": name, **evaluate(A, fc, T)})
+oracle = pd.DataFrame(oracle_rows)
+oracle_summary = oracle.groupby("forecast")[METRICS].mean().sort_values("MAPE (official)")
+display(oracle_summary.round(2))
+save_result(oracle, "D10_oracle_by_fold", "Baselines vs oracle constant forecasts, all metrics per fold", index=False)
+save_result(oracle_summary, "D10_oracle_summary", "Baselines vs oracle constant forecasts, averaged over folds")
+
+# %% [markdown]
+# The gap is enormous. A constant at the right level reaches an official MAPE more than twenty times lower than the
+# simple forecasts. In other words, most of the official error is not about the daily ups and downs: it is about
+# choosing the wrong level for the accounts that sit near zero. The oracle constant also beats the true average of the
+# window by far, which confirms the asymmetry we found in section 5: MAPE rewards forecasts that lean towards zero.
+#
+# This is the most important lesson for Sprint 2. The largest gains will come from getting the level right for the
+# near-zero and sign-changing accounts, and from pulling forecasts towards zero when we are unsure, more than from
+# modelling the within-month movement in great detail.
+
+# %% [markdown]
+# ## D11. Which accounts are hard to forecast, and why?
+#
+# For every account we compute the error of the simplest forecast, carrying the last balance forward, and relate it to
+# the account's characteristics: how often it moves, how close to zero it lives, how variable it is, and its spectral
+# entropy, a measure of how close its daily changes are to pure noise.
+
+# %%
+per_acc_err = []
+for origin in origins:
+    train, test = split(bal, origin)
+    per_acc_err.append(mape_per_account(test.to_numpy(), train.to_numpy()[:, -1:]))
+naive_mape_acc = pd.Series(np.nanmean(per_acc_err, axis=0), index=bal.index, name="naive_MAPE")
+drivers = pd.DataFrame({
+    "naive_MAPE": naive_mape_acc,
+    "spectral_entropy": pd.Series(spec_entropy),
+    "activity": feat.activity,
+    "share_near_zero": feat.share_near_zero,
+    "share_negative": feat.share_negative,
+    "cv": feat.cv,
+})
+driver_corr = drivers.corr(method="spearman")["naive_MAPE"].drop("naive_MAPE").rename("Spearman rho with naive MAPE")
+display(driver_corr.round(3).to_frame())
+display(drivers.groupby(feat.segment).naive_MAPE.median().round(1).to_frame("median naive MAPE by segment"))
+save_result(drivers, "D11_predictability_per_account", "Per account: naive MAPE and candidate drivers (entropy, activity, near-zero, ...)")
+save_result(driver_corr, "D11_error_drivers", "Spearman correlation of account characteristics with naive MAPE")
+
+# %% [markdown]
+# The error follows closely how near zero an account lives and how much it varies relative to its level. Whether its
+# daily changes look like noise matters much less. The groups from section 15 tell the same story: stable positive
+# accounts are easy, while accounts that live near zero, the dormant ones included, carry the highest errors.
+
+# %% [markdown]
+# ## D12. The risk of crossing zero
+#
+# If the near-zero accounts are the problem, we would like to spot them in advance. We measure, over many past moments,
+# how often a balance crossed zero in the following 30 days, depending on how far it was from zero, measured in units of
+# its own recent volatility.
+
+# %%
+zc_rows = []
+for o in range(400, B.shape[1] - HORIZON, HORIZON):
+    last_b = B[:, o]
+    window = B[:, o + 1:o + 1 + HORIZON]
+    vol = np.nanstd(B[:, o - 30:o], axis=1)
+    crosses = ((np.nanmin(window, 1) < 0) & (np.nanmax(window, 1) > 0)) | \
+              ((np.nanmin(window, 1) < 0) & (last_b > 0)) | ((np.nanmax(window, 1) > 0) & (last_b < 0))
+    zc_rows.append(pd.DataFrame({"distance_in_vols": np.abs(last_b) / np.where(vol > 0, vol, np.nan), "crosses": crosses}))
+zc = pd.concat(zc_rows).dropna()
+zc["distance band"] = pd.cut(zc.distance_in_vols, [0, 0.5, 1, 2, 3, 5, np.inf])
+zero_cross = zc.groupby("distance band", observed=True).agg(observations=("crosses", "size"), p_cross=("crosses", "mean"))
+display(zero_cross.round(3))
+save_result(zero_cross.rename(index=str), "D12_zero_crossing_risk", "P(balance crosses zero within 30 days) by |balance| / recent volatility")
+
+# %% [markdown]
+# The relationship is steep. An account within one volatility of zero crosses it in the next month most of the time,
+# while one more than five volatilities away almost never does. This gives Sprint 2 a simple warning sign: a low ratio
+# of balance to volatility marks the accounts where MAPE can explode and where a dedicated strategy is worth the
+# effort.
+
+# %% [markdown]
+# ## D13. Long memory?
+#
+# The Hurst exponent measures memory in a different way from the autocorrelation. A value of 0.5 means no memory, above
+# 0.5 movements tend to continue, below 0.5 they tend to reverse. We compute it on the daily changes of every account.
+
+# %%
+def hurst_rs(x, windows=(16, 32, 64, 128, 256)):
+    x = x[np.isfinite(x)]
+    rs = []
+    for n in windows:
+        k = len(x) // n
+        seg = x[:k * n].reshape(k, n)
+        y = np.cumsum(seg - seg.mean(1, keepdims=True), axis=1)
+        R, S = y.max(1) - y.min(1), seg.std(1)
+        rs.append(np.mean(R[S > 0] / S[S > 0]) if np.any(S > 0) else np.nan)
+    return np.polyfit(np.log(windows), np.log(rs), 1)[0] if np.all(np.isfinite(rs)) else np.nan
+
+
+hurst = pd.Series({acc: hurst_rs(np.diff(bal.loc[acc].dropna().to_numpy())) for acc in spec_ids}, name="hurst_changes")
+display(hurst.describe(percentiles=[0.1, 0.5, 0.9]).round(3).to_frame())
+hurst.plot.hist(bins=40, title="Hurst exponent of daily changes per account"); plt.axvline(0.5, color="red")
+plt.tight_layout(); plt.show()
+save_result(hurst, "D13_hurst_per_account", "Per account: Hurst exponent (R/S) of daily changes")
+
+# %% [markdown]
+# Almost every account has a value below 0.5. Movements tend to reverse: money that comes in is soon spent. This is the
+# saw-tooth again, seen from another angle, and it matches the slight negative autocorrelation of section 11. There is
+# no long memory, so long-memory models such as ARFIMA are not needed.
+
+# %% [markdown]
+# ## D14. What the closer look taught us
+#
+# The deeper analyses did not overturn the picture from Parts A to C; they sharpened it. The data looks like real money
+# (D1) and the accounts are independent of each other (D5), so we model them as separate series that share a calendar.
+# That calendar is more precise than we thought: inflows come at the end of the month and on the 8th, moved to the next
+# business day at weekends (D3), and the monthly cycle needs several harmonics to be drawn (D6). Some payments return on
+# fixed days and can be projected (D2), while there are no credit limits to respect (D4).
+#
+# Two findings will shape Sprint 2 more than any other. Accounts change level often, so the recent past matters most
+# (D7), and January behaves like a deep version of an ordinary month (D8). Above all, the oracle showed that most of the
+# official error comes from choosing the wrong level for accounts that live near zero (D10 to D12). Getting those
+# accounts right is worth more than any refinement of the daily dynamics.
+
+# %% [markdown]
+# # Part E · From evidence to decisions
+#
+# ## 16. How we prepare the data
+#
+# Each decision below comes from something we saw earlier in the notebook.
+#
+# | Evidence | Decision |
+# |---|---|
+# | Until August 2022 each column holds the previous day's closing balance (§3) | Move those columns back one day and fill the single resulting weekend gap |
+# | 5 August 2022 holds the sum of two closing balances (§3) | Repair it exactly by subtracting the next day |
+# | Missing values only mark accounts opened later (§2) | No imputation; each account starts on its first day |
+# | Negative balances are frequent and legitimate (§5) | Keep them; forecasts may be negative; no log transform |
+# | Near-zero balances make MAPE explode (§5, D10–D12) | Report the official MAPE with its two companions; treat near-zero accounts separately in Sprint 2 |
+# | Big moves are mostly permanent level shifts (§6, D7) | Keep them; focus models on the recent regime |
+# | Account sizes differ by orders of magnitude (§4) | Scale each account before any model that learns across accounts |
+# | Weekly and monthly rhythms, holidays, the 8th (§7, D3, D6) | Calendar information: business days, day of month, end of month, the 8th moved to the next business day, holidays |
+# | Random-walk levels, stationary differences (§10, §11) | One difference for ARIMA, or models whose level can move |
+# | Accounts are independent (§14, D5) | No VAR; separate or global models with calendar information |
+#
+# The prepared dataset keeps the shape of the original file: one row per account, one column per day, realigned and
+# repaired, with the late-starting accounts still empty before their first day.
+
+# %%
+prepared = bal.copy()
+save_result(prepared.rename(columns=lambda c: c.strftime("%Y-%m-%d")), "16_prepared_balances",
+            "PREPARED DATASET (wide, same layout as the raw file): realigned calendar, repaired 2022-08-05, leading NaN kept")
+display(pd.Series({
+    "accounts": prepared.shape[0],
+    "days": prepared.shape[1],
+    "first date": prepared.columns.min().date(),
+    "last date": prepared.columns.max().date(),
+    "missing (leading only)": int(prepared.isna().sum().sum()),
+}).to_frame("prepared dataset"))
+
+# %% [markdown]
+# ## 17. The benchmark to beat
+#
+# The last step of this sprint is to set the bar for Sprint 2. We mimic the real task with rolling-origin validation:
+# for each fold we keep only the data up to a cut-off date and forecast the next 30 days. The folds are the four last
+# 30-day windows of 2022, which reflect the most recent behaviour, and January 2022, the same season as the real
+# forecast. We score four simple forecasts: the last balance, last week repeated, and the mean and median of the last 30
+# days.
+
+# %%
 def baselines(train):
     """Simple forecasts from the training matrix (accounts x days) for HORIZON days."""
     T = train.to_numpy()
@@ -944,52 +1560,53 @@ def baselines(train):
     }
 
 
-last_day = prepared.columns.max()
-origins = [last_day - pd.Timedelta(days=HORIZON * k) for k in (4, 3, 2, 1)]       # end of training data
-origins = [pd.Timestamp("2021-12-31")] + origins
 results = []
 for origin in origins:
-    train = prepared.loc[:, :origin]
-    test = prepared.loc[:, origin + pd.Timedelta(days=1): origin + pd.Timedelta(days=HORIZON)]
+    train, test = split(prepared, origin)
     for name, fc in baselines(train).items():
         results.append({"fold (test start)": (origin + pd.Timedelta(days=1)).date(), "model": name,
-                        **evaluate(test.to_numpy(), fc)})
+                        **evaluate(test.to_numpy(), fc, train.to_numpy())})
 results = pd.DataFrame(results)
 display(results.pivot(index="model", columns="fold (test start)", values="MAPE (official)").round(1))
-summary = results.groupby("model")[[c for c in results.columns if "MAPE" in c]].mean().sort_values(f"MAPE |actual|>={NEAR_ZERO:.0f}")
-save_result(results, "17_baselines_by_fold", "Baseline forecasts: three MAPE metrics per fold and model", index=False)
+summary = results.groupby("model")[METRICS].mean().sort_values(f"MAPE |actual|>={NEAR_ZERO:.0f}")
+save_result(results, "17_baselines_by_fold", "Baseline forecasts: all metrics per fold and model", index=False)
 save_result(summary, "17_baselines_summary", "Baseline forecasts: metrics averaged over folds (reference for Sprint 2)")
 summary.round(1)
 
 # %% [markdown]
-# **Findings.**
-# - The official (pooled) MAPE is **one order of magnitude larger** than the other two metrics and very unstable across
-#   folds — it is driven by a few near-zero actuals, exactly as anticipated in §5.
-# - The ranking depends on the metric: on the official MAPE the naive last value is best on average, while on the
-#   robust metrics the **median of the last 30 days** is best — balances fluctuate around a level within the month,
-#   so a robust average helps on normal balances but hurts when the actual balance is near zero.
-# - The seasonal naive is never the best — repeating last week's exact path propagates noise.
-# - These numbers are the **reference to beat in Sprint 2**, and the disagreement between metrics confirms that the
-#   near-zero accounts need a dedicated strategy.
+# The official MAPE is huge for every simple forecast and jumps from fold to fold, driven by a few near-zero balances, as
+# section 5 predicted. The two companion measures are far lower and much more stable. The ranking also depends on the
+# measure: the last balance does best on the official score, while the median of the last 30 days does best on the
+# typical account and on balances above €100. Repeating last week's path is never the best, since it copies last
+# week's noise.
+#
+# These numbers are the benchmark for Sprint 2. The disagreement between measures is itself a result: it confirms that
+# the near-zero accounts need their own strategy.
 
 # %% [markdown]
-# ## 18. Conclusions and inputs for Sprint 2
-# 1. **Data corrections:** the history mixes two date conventions and contains one corrupted day; both are fixed by
-#    realigning the calendar and repairing the doubled balance. Without this fix, any weekly pattern would be wrong.
-# 2. **Missing values** only reflect accounts opened during the period — no imputation needed.
-# 3. **The metric is the main difficulty:** frequent near-zero and sign-changing balances make MAPE explode. Sprint 2
-#    must treat near-zero accounts explicitly and consider MAPE-aware forecasts (biased towards smaller |values|).
-# 4. **Seasonality:** weekly (business days vs weekends) and monthly (turn-of-month inflows), plus holidays.
-# 5. **Dynamics:** levels behave like random walks with level shifts; first differences are stationary (d = 1), with
-#    short-memory autocorrelation and volatility clustering.
-# 6. **Cross-section:** accounts are nearly independent and very heterogeneous in scale → per-account models, or a
-#    global model on scaled data with calendar features; segment-specific strategies.
-# 7. **Validation:** rolling-origin backtesting with 30-day horizons including January 2022; baselines to beat are in
-#    §17.
+# ## 18. What we take into Sprint 2
+#
+# We started with a clean-looking file and found that it hid two problems: a change in the date convention in August
+# 2022 and one corrupted day. Both are now corrected, and without that correction every weekly pattern would have been
+# learned one day off. The missing values turned out to be accounts opened late, and need no treatment.
+#
+# The balances follow a business-day week and a month shaped like a saw-tooth, with salaries at the end of the month,
+# pensions on the 8th and debits at the beginning. They behave like random walks that jump to new levels from time to
+# time, their daily changes have little memory, and accounts are essentially independent of each other. All of this
+# points towards models fitted to the recent history of each account, or global models with good calendar information,
+# evaluated on folds that include January.
+#
+# The real difficulty, however, lies in the metric. A large share of balances lives near zero, and the oracle showed
+# that most of the official error comes from choosing the wrong level for those accounts. Sprint 2 will therefore have to
+# do two things well: model the rhythm of the ordinary accounts, and find a careful strategy for the ones that live
+# close to zero. The benchmark to beat is in section 17.
 
 # %% [markdown]
-# ## 19. Saved results
-# One table per account combining every per-account result, and the index of all CSV files written to `data/sprint1/`.
+# ## 19. Where the results are saved
+#
+# Every table in this notebook is also saved as a CSV file in `data/sprint1/`, so the results can be consulted without
+# running the notebook again. The file `00_index.csv` lists them all, and `00_account_features.csv` gathers every
+# per-account result in a single table, one row per account.
 
 # %%
 account_features = (per_account

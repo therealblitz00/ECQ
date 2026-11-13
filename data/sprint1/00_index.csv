@@ -36,7 +36,26 @@ file,description,rows,columns
 14_top_correlated_pairs.csv,50 account pairs with the strongest correlation of daily changes,50,4
 15_segments_per_account.csv,Per account: last-12-month features and segment,500,6
 15_segment_summary.csv,Per segment: number of accounts and median features,4,7
+D1_amount_forensics.csv,"Forensic tests on net daily amounts: Benford, cents, round amounts",7,1
+D1_benford.csv,First-digit distribution of amounts vs Benford's law,9,2
+D1_top_amounts.csv,Most frequent exact net daily amounts,20,1
+D2_recurring_summary.csv,Recurring transactions: counts and regularity,7,1
+D2_recurring_amounts.csv,"Every (account, amount) pair repeating in >= 6 months",1344,12
+D3_payday_per_account.csv,Per account: modal day of the largest monthly inflow and its concentration,500,5
+D3_day8_weekend_rule.csv,"Share of accounts with a large inflow on days 5-11, by weekday of the 8th",7,7
+D4_overdraft_floors.csv,"Per account with negatives: minimum, days and episodes near the minimum",358,4
+D5_transfers.csv,Transfer detection vs permutation baseline,3,1
+D5_duplicates.csv,"Max identical non-zero changes between two different accounts, by lag",4,4
+D6_mean_periodogram.csv,Mean normalised periodogram of daily changes across accounts,500,2
+D7_change_points_per_account.csv,Per account: number of level change points and the last one,500,3
+D8_january_paths.csv,Median relative balance path after Dec 31 (each January) vs after other month ends,30,3
+D10_oracle_by_fold.csv,"Baselines vs oracle constant forecasts, all metrics per fold",20,5
+D10_oracle_summary.csv,"Baselines vs oracle constant forecasts, averaged over folds",4,3
+D11_predictability_per_account.csv,"Per account: naive MAPE and candidate drivers (entropy, activity, near-zero, ...)",500,6
+D11_error_drivers.csv,Spearman correlation of account characteristics with naive MAPE,5,1
+D12_zero_crossing_risk.csv,P(balance crosses zero within 30 days) by |balance| / recent volatility,6,2
+D13_hurst_per_account.csv,Per account: Hurst exponent (R/S) of daily changes,500,1
 16_prepared_balances.csv,"PREPARED DATASET (wide, same layout as the raw file): realigned calendar, repaired 2022-08-05, leading NaN kept",500,1096
-17_baselines_by_fold.csv,Baseline forecasts: three MAPE metrics per fold and model,20,5
+17_baselines_by_fold.csv,Baseline forecasts: all metrics per fold and model,20,5
 17_baselines_summary.csv,Baseline forecasts: metrics averaged over folds (reference for Sprint 2),4,3
 00_account_features.csv,"ONE ROW PER ACCOUNT: all per-account statistics, tests and segment",500,31

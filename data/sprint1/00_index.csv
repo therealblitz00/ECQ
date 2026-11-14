@@ -23,17 +23,25 @@ file,description,rows,columns
 09_mstl_strength_summary.csv,MSTL component strengths: median-account series and per-account median,3,2
 09_mstl_strength_per_account.csv,"Per account (sample): strength of trend, weekly and monthly components",500,3
 09_mstl_median_account.csv,MSTL decomposition of the cross-sectional median balance,1096,5
+09_stl_outliers_per_account.csv,"Per account: number of days flagged as outliers by robust STL (period 30, 3 IQR)",500,1
+09_stl_outlier_days.csv,"Days beyond 3 IQR of the robust STL remainder (reference only: flags >10% of days, not an anomaly list)",86689,4
 10_stationarity_per_account.csv,"Per account: ADF and KPSS p-values (levels, differences) and classification",500,6
 10_stationarity_summary.csv,"% of accounts per stationarity class, levels vs first differences",4,2
 11_acf_changes_per_account.csv,"Per account: ACF of daily changes, lags 0-35",500,36
 11_acf_changes_summary.csv,Median and IQR across accounts of the ACF of daily changes,36,3
 11_ljung_box_per_account.csv,Per account: Ljung-Box p-values on daily changes (lags 7 and 30),500,2
 11_acf_pacf_median_account.csv,"ACF/PACF of the median-account series, levels and first differences",41,4
-12_arch_per_account.csv,Per account: ARCH-LM p-value on daily changes (7 lags),500,1
+12_arch_per_account.csv,"Per account: ARCH-LM p-value on the RAW daily changes, not prewhitened (7 lags); see 12_arch_prewhitened_per_account",500,1
 12_monthly_volatility.csv,Per month: median across accounts of the mean absolute daily change,36,1
+12_arch_prewhitened_per_account.csv,"Per account: AR order (AIC), Ljung-Box p of AR residuals, ARCH-LM p on the prewhitened residuals (7 lags)",500,3
+12_arch_raw_vs_prewhitened.csv,"ARCH-LM: share of accounts with ARCH effects, raw changes vs prewhitened residuals",5,1
 13_yearly_summary.csv,"Per year: typical balance, share negative, activity, active accounts",3,4
+13_monthly_activity.csv,"Per month: activity, large inflows/outflows (business days) and median balance",36,4
+13_lockdown_same_months.csv,March-April of each year: activity and large moves (first lockdown in 2020),3,3
 14_correlation_summary.csv,Distribution of pairwise correlations: levels vs daily changes (sample),8,2
 14_top_correlated_pairs.csv,50 account pairs with the strongest correlation of daily changes,50,4
+14_ccf_prewhitened_pairs.csv,"Sample of account pairs: CCF lags -10..10, raw vs prewhitened (AR filter by AIC)",300,11
+14_ccf_prewhitened_summary.csv,"Share of significant cross-correlations, raw vs prewhitened, against the 5% chance level",10,1
 15_segments_per_account.csv,Per account: last-12-month features and segment,500,6
 15_segment_summary.csv,Per segment: number of accounts and median features,4,7
 D1_amount_forensics.csv,"Forensic tests on net daily amounts: Benford, cents, round amounts",7,1
@@ -43,6 +51,10 @@ D2_recurring_summary.csv,Recurring transactions: counts and regularity,7,1
 D2_recurring_amounts.csv,"Every (account, amount) pair repeating in >= 6 months",1344,12
 D3_payday_per_account.csv,Per account: modal day of the largest monthly inflow and its concentration,500,5
 D3_day8_weekend_rule.csv,"Share of accounts with a large inflow on days 5-11, by weekday of the 8th",7,7
+D3_day8_by_month.csv,"Per month: weekday of the 8th, holiday flag, peak day of large inflows on days 5-11",36,4
+D3_pension_like_per_account.csv,Per account: share of months with a large inflow on days 5-11 and pension-like flag,500,2
+D3_pension_ratio_by_month.csv,"Pension-like accounts: amount around the 8th / ordinary month, by month of the year",12,1
+D3_pension_annual_update.csv,Pension-like accounts: yearly change of the ordinary amount received around the 8th,2,1
 D4_overdraft_floors.csv,"Per account with negatives: minimum, days and episodes near the minimum",358,4
 D5_transfers.csv,Transfer detection vs permutation baseline,3,1
 D5_duplicates.csv,"Max identical non-zero changes between two different accounts, by lag",4,4
@@ -75,4 +87,5 @@ D22_matrix_profile_per_account.csv,Per account (sample): motif and discord (most
 16_prepared_balances.csv,"PREPARED DATASET (wide, same layout as the raw file): realigned calendar, repaired 2022-08-05, leading NaN kept",500,1096
 17_baselines_by_fold.csv,Baseline forecasts: all metrics per fold and model,20,5
 17_baselines_summary.csv,Baseline forecasts: metrics averaged over folds (reference for Sprint 2),4,3
-00_account_features.csv,"ONE ROW PER ACCOUNT: all per-account statistics, tests and segment",500,50
+19_small_vs_all_accounts.csv,Key facts of the notebook: all accounts vs the first 50 (= the small dataset),19,2
+00_account_features.csv,"ONE ROW PER ACCOUNT: all per-account statistics, tests and segment",500,55

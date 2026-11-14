@@ -58,6 +58,7 @@ from sklearn.metrics import silhouette_score
 import stumpy
 from statsmodels.tsa.seasonal import MSTL, STL
 from statsmodels.stats.diagnostic import acorr_ljungbox, het_arch
+from statsmodels.tsa.ar_model import AutoReg, ar_select_order
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 
 warnings.filterwarnings("ignore")
@@ -666,6 +667,80 @@ save_result(pd.DataFrame({"observed": typical_series, "trend": mstl.trend, "seas
 # pattern for everyone.
 
 # %% [markdown]
+# MSTL is an extension of the STL decomposition taught in the course, which handles a single seasonal period. We also
+# run the course version, one account at a time, for a second reason: STL has a robust mode in which unusual
+# observations get a low weight, so that they end up in the remainder instead of distorting the trend and the seasonal
+# pattern. Large values of the remainder then point to outliers. We use the monthly period, the strongest cycle, and
+# flag a day as an outlier when its remainder lies more than three interquartile ranges beyond the quartiles of that
+# account's remainder.
+
+# %%
+STL_PERIOD = 30
+STL_IQR_K = 3.0
+
+
+def stl_outliers(series, period=STL_PERIOD, k=STL_IQR_K):
+    """Robust STL; returns the fit and the dates whose remainder is beyond k IQR of the quartiles."""
+    res = STL(series, period=period, robust=True).fit()
+    q1, q3 = np.percentile(res.resid, [25, 75])
+    iqr = q3 - q1
+    out = (res.resid < q1 - k * iqr) | (res.resid > q3 + k * iqr) if iqr > 0 else np.zeros(len(series), bool)
+    return res, series.index[np.asarray(out)]
+
+
+stl_counts, stl_days, stl_fits = {}, [], {}
+for acc in test_ids:
+    s = bal.loc[acc].dropna()
+    if len(s) < 4 * STL_PERIOD or s.std() == 0:
+        continue
+    res, out_dates = stl_outliers(s)
+    stl_counts[acc] = len(out_dates)
+    stl_fits[acc] = res
+    stl_days += [{"ACCOUNT_ID": acc, "date": d, "balance": s[d], "remainder": res.resid[d]} for d in out_dates]
+stl_counts = pd.Series(stl_counts, name="stl_outlier_days")
+stl_days = pd.DataFrame(stl_days, columns=["ACCOUNT_ID", "date", "balance", "remainder"])
+display(pd.Series({
+    "accounts decomposed": len(stl_counts),
+    "accounts with at least one outlier day": int((stl_counts > 0).sum()),
+    "median outlier days per account": stl_counts.median(),
+    "median % of an account's days flagged": round(100 * (stl_counts / bal.loc[stl_counts.index].notna().sum(1)).median(), 1),
+    "outlier days in total": len(stl_days),
+}).to_frame("robust STL (period 30)"))
+if len(stl_days):
+    display(stl_days.groupby(stl_days.date.dt.year).size().rename("outlier days").to_frame())
+
+    acc = stl_counts.idxmax()
+    res = stl_fits[acc]
+    fig, axes = plt.subplots(2, 1, figsize=(14, 6), sharex=True)
+    axes[0].plot(res.observed.index, res.observed, lw=0.8, label="balance")
+    axes[0].plot(res.trend.index, res.trend, lw=1.2, label="trend")
+    od = stl_days[stl_days.ACCOUNT_ID == acc]
+    axes[0].scatter(od.date, od.balance, color="red", s=15, zorder=3, label="outlier day")
+    axes[0].set(title=f"Robust STL of account {acc} (the account with most outlier days)"); axes[0].legend()
+    axes[1].plot(res.resid.index, res.resid, lw=0.6, color="grey"); axes[1].set(title="Remainder")
+    plt.tight_layout(); plt.show()
+save_result(stl_counts, "09_stl_outliers_per_account", "Per account: number of days flagged as outliers by robust STL (period 30, 3 IQR)")
+save_result(stl_days, "09_stl_outlier_days", "Days beyond 3 IQR of the robust STL remainder (reference only: flags >10% of days, not an anomaly list)", index=False)
+
+# %% [markdown]
+# The result is not what an outlier filter should produce. Every account gets flagged days, and a typical account has
+# well over a hundred of them, more than one day in ten. We checked that this is not a matter of the threshold: asking
+# in addition that the remainder exceed both €100 and half the account's typical balance, or using the days to which
+# the robust fit itself gave zero weight, still leaves more than a hundred days for a typical account.
+#
+# The reason lies in the data, and it connects with what we found elsewhere. STL needs one fixed, whole-number period,
+# but months last 28 to 31 days and paydays move with weekends (D3), so a 30-day seasonal pattern drifts out of step
+# with the real month and much of the monthly rhythm ends up in the remainder. On top of that, the balances move in
+# lumps and jump to new levels (section 6, D15), and every lump that the smooth trend cannot follow also lands in the
+# remainder. Large remainders are therefore the normal state of these series, not the exception.
+#
+# So robust STL, the course's standard tool for this job, does not separate anomalies from ordinary behaviour here.
+# This is useful to know for two reasons. It is one more argument, next to D6, for describing the month with calendar
+# regressors or Fourier terms of period 30.44 rather than with a fixed seasonal period. And it tells Sprint 3 that
+# anomalies should be looked for with tools built for these series, such as the extreme moves of section 6 and the
+# discords of D22. We keep the STL list in the results for reference, but not as a list of anomalies.
+
+# %% [markdown]
 # ## 10. Is there a stable mean?
 #
 # Many forecasting models need a stationary series, one that fluctuates around a stable mean. Two tests look at this
@@ -712,6 +787,33 @@ save_result(st_summary, "10_stationarity_summary", "% of accounts per stationari
 #
 # For ARIMA models this means one difference (d = 1). For models working on the level itself, the level must be allowed
 # to move, as in exponential smoothing.
+
+# %% [markdown]
+# The course also recommends a visual check before trusting the tests: plot the rolling mean and the rolling standard
+# deviation and see whether they stay put. We do it for four of the accounts of section 8, on the balance and on its
+# daily changes, with a 30-day window.
+
+# %%
+ROLL = 30
+fig, axes = plt.subplots(2, 4, figsize=(18, 6.5), sharex=True)
+for j, acc in enumerate(examples[:4]):
+    s = bal.loc[acc].dropna()
+    ds = s.diff().dropna()
+    for i, (x, label) in enumerate(((s, "balance"), (ds, "daily change"))):
+        ax = axes[i, j]
+        ax.plot(x.index, x, lw=0.5, color="lightgrey", label=label)
+        ax.plot(x.index, x.rolling(ROLL).mean(), lw=1.2, label=f"rolling mean ({ROLL}d)")
+        ax.plot(x.index, x.rolling(ROLL).std(), lw=1.2, label=f"rolling std ({ROLL}d)")
+        ax.set_title(f"Account {acc}: {label}", fontsize=10)
+        ax.tick_params(axis="x", rotation=45)
+axes[0, 0].legend(fontsize=8)
+plt.tight_layout(); plt.show()
+
+# %% [markdown]
+# The pictures agree with the tests. On the balances the rolling mean wanders and jumps, so there is no stable mean to
+# return to over three years. On the daily changes the rolling mean stays close to zero, which is what differencing
+# buys us, but the rolling standard deviation still rises and falls: calm stretches alternate with agitated ones. The
+# changes are stationary in the mean, not obviously in the variance, which is the question section 12 takes up.
 
 # %% [markdown]
 # ## 11. How much does yesterday tell us about today?
@@ -785,19 +887,77 @@ for acc in test_ids:
     x = np.diff(bal.loc[acc].dropna().to_numpy())
     arch_p.append(het_arch(x, nlags=7)[1] if np.std(x) > 0 else np.nan)
 arch_p = pd.Series(arch_p, index=test_ids)
-print(f"ARCH-LM rejects homoscedasticity for {100 * (arch_p < 0.05).mean():.1f}% of accounts")
+print(f"ARCH-LM on the raw daily changes rejects homoscedasticity for {100 * (arch_p < 0.05).mean():.1f}% of accounts")
 
 monthly_vol = pd.DataFrame(np.abs(dB), columns=cd).T.groupby(cd.to_period("M")).mean().median(axis=1)
-save_result(arch_p.rename("arch_lm_p"), "12_arch_per_account", "Per account: ARCH-LM p-value on daily changes (7 lags)")
+save_result(arch_p.rename("arch_lm_p"), "12_arch_per_account",
+            "Per account: ARCH-LM p-value on the RAW daily changes, not prewhitened (7 lags); see 12_arch_prewhitened_per_account")
 save_result(monthly_vol.rename(index=str).rename("median_mean_abs_change"), "12_monthly_volatility",
             "Per month: median across accounts of the mean absolute daily change")
 monthly_vol.plot(title="Median (across accounts) of mean |daily change| per month", marker="o")
 plt.ylabel("EUR"); plt.tight_layout(); plt.show()
 
 # %% [markdown]
-# About a third of the accounts show this clustering. It matters for the width of prediction intervals and it is one
-# more argument to give recent data more weight, but it is not strong enough to justify volatility models such as GARCH
-# for a point forecast.
+# On the raw daily changes about a third of the accounts show this clustering. That first reading has a limitation.
+# Cowpertwait and Metcalfe (2009, section 7.4) recommend applying the ARCH test to a prewhitened series, one from which
+# the autocorrelation, trend and seasonality have already been removed, such as the residuals of a satisfactory
+# ARIMA model. Section 11 showed that the daily changes still carry some autocorrelation, so part of what the test
+# sees as clustering may be ordinary linear dependence. We keep the raw result above for comparison and repeat the test
+# the way the literature asks.
+#
+# To prewhiten each account we fit an autoregressive model AR(p) to its daily changes, with the order p chosen by AIC
+# up to 10 lags, and check with the Ljung–Box test that the residuals are close to white noise. A full SARIMA for every
+# account belongs to Sprint 2; an AR filter is the prewhitening used in the course for cross-correlations, and it
+# removes the linear dependence the ARCH test should not see.
+
+# %%
+MAX_AR_LAGS = 10
+
+
+def prewhiten(x, maxlag=MAX_AR_LAGS):
+    """AR(p) filter with p chosen by AIC; returns (order, residuals, fitted AutoReg or None)."""
+    sel = ar_select_order(x, maxlag=maxlag, ic="aic", trend="c")
+    lags = sel.ar_lags if sel.ar_lags is not None else []
+    p = int(max(lags)) if len(lags) else 0
+    if p == 0:
+        return 0, x - x.mean(), None
+    fit = AutoReg(x, lags=p, trend="c").fit()
+    return p, fit.resid, fit
+
+
+arch_w = {}
+for acc in test_ids:
+    x = np.diff(bal.loc[acc].dropna().to_numpy())
+    if np.std(x) == 0 or len(x) < 120:
+        continue
+    p, e, _ = prewhiten(x)
+    arch_w[acc] = {"ar_order": p,
+                   "ljung_box_p_resid_lag10": acorr_ljungbox(e, lags=[10])["lb_pvalue"].iloc[0],
+                   "arch_lm_p_prewhitened": het_arch(e, nlags=7)[1]}
+arch_w = pd.DataFrame(arch_w).T
+arch_compare = pd.Series({
+    "accounts tested": len(arch_w),
+    "median AR order chosen by AIC": arch_w.ar_order.median(),
+    "% residuals still autocorrelated (Ljung-Box lag 10, p < 0.05)": round(100 * (arch_w.ljung_box_p_resid_lag10 < 0.05).mean(), 1),
+    "% ARCH effects, raw daily changes": round(100 * (arch_p.reindex(arch_w.index) < 0.05).mean(), 1),
+    "% ARCH effects, prewhitened residuals": round(100 * (arch_w.arch_lm_p_prewhitened < 0.05).mean(), 1),
+}).to_frame("value")
+display(arch_compare)
+save_result(arch_w, "12_arch_prewhitened_per_account",
+            "Per account: AR order (AIC), Ljung-Box p of AR residuals, ARCH-LM p on the prewhitened residuals (7 lags)")
+save_result(arch_compare, "12_arch_raw_vs_prewhitened", "ARCH-LM: share of accounts with ARCH effects, raw changes vs prewhitened residuals")
+
+# %% [markdown]
+# The AR filter does its job: AIC picks a fairly long filter, about a week of lags for a typical account, and the
+# residuals of almost every account pass the Ljung–Box test. On those residuals the share of accounts with ARCH effects
+# falls from about a third to about a quarter. Part of what looked like volatility clustering was ordinary linear
+# dependence, but a real core remains: for roughly one account in four, agitated days tend to follow agitated days even
+# after the linear structure is removed.
+#
+# The practical conclusion does not change. Clustering of this size matters for the width of prediction intervals and
+# is one more argument to give recent data more weight, but it does not justify volatility models such as GARCH for a
+# point forecast scored by MAPE. Following the literature, the prewhitened result is the one to cite; the raw one is
+# kept above only for comparison.
 
 # %% [markdown]
 # ## 13. Three years in comparison
@@ -820,6 +980,61 @@ yearly
 # become more active every year. The economy left its mark, but the biggest break we found is not economic at all: it
 # is the change in the date convention of section 3, which we have already corrected. For forecasting, the most recent
 # months are the most representative.
+
+# %% [markdown]
+# The pandemic deserves a closer look, because the course materials include a paper on exactly this problem: Hyndman
+# and Rostami-Tabar, *Forecasting interrupted time series*, which compares ways of forecasting a series that was
+# disrupted by COVID-19. Before choosing one we need to know whether our series were disrupted at all. Portugal had two
+# general lockdowns in our period: the first state of emergency, from 19 March to 2 May 2020, and the second general
+# lockdown, from 15 January 2021 until the gradual reopening that started on 15 March 2021. We follow the activity of
+# the accounts month by month and compare the lockdown months with the same months of the other years.
+
+# %%
+LOCKDOWNS = [(pd.Timestamp("2020-03-19"), pd.Timestamp("2020-05-02")),
+             (pd.Timestamp("2021-01-15"), pd.Timestamp("2021-03-15"))]
+bd_cal = cal[cal.weekday < 5]
+monthly_activity = bd_cal.groupby(bd_cal.index.to_period("M"))[["share_changing", "large_inflow", "large_outflow"]].mean()
+monthly_activity["median balance (median account)"] = bal.median(0).groupby(bal.columns.to_period("M")).mean()
+in_lockdown = np.zeros(len(bd_cal), bool)
+for a, b in LOCKDOWNS:
+    in_lockdown |= (bd_cal.index >= a) & (bd_cal.index <= b)
+same_months = pd.DataFrame({
+    f"{y}": bd_cal[(bd_cal.index.year == y) & bd_cal.index.month.isin([3, 4])][["share_changing", "large_inflow", "large_outflow"]].mean()
+    for y in sorted(set(bd_cal.index.year))}).round(3)
+same_months.columns.name = "March-April of"
+display(same_months)
+
+fig, axes = plt.subplots(1, 2, figsize=(16, 3.8))
+ts_idx = monthly_activity.index.to_timestamp()
+axes[0].plot(ts_idx, monthly_activity.share_changing, marker="o", label="share of accounts changing")
+axes[0].plot(ts_idx, monthly_activity.large_inflow, marker="o", label="large inflow")
+axes[0].plot(ts_idx, monthly_activity.large_outflow, marker="o", label="large outflow")
+axes[1].plot(ts_idx, monthly_activity["median balance (median account)"], marker="o", color="tab:purple")
+for ax in axes:
+    for a, b in LOCKDOWNS:
+        ax.axvspan(a, b, color="red", alpha=0.12)
+axes[0].set(title="Activity per business day, by month (red: general lockdowns)"); axes[0].legend(fontsize=8)
+axes[1].set(title="Median balance across accounts, by month", ylabel="EUR")
+plt.tight_layout(); plt.show()
+save_result(monthly_activity.rename(index=str), "13_monthly_activity", "Per month: activity, large inflows/outflows (business days) and median balance")
+save_result(same_months, "13_lockdown_same_months", "March-April of each year: activity and large moves (first lockdown in 2020)")
+
+# %% [markdown]
+# The first lockdown left a clear mark. In April 2020 the share of accounts whose balance moved on a business day fell
+# to about one half, from about 0.61 in January and February, large outflows dropped, and the typical balance rose, as
+# it would when people cannot spend. By the summer activity was back to its earlier level. The second lockdown, in early
+# 2021, shows a smaller dip in January and February that fades in March. Comparing March and April across years is
+# not enough on its own, because activity grows every year (the table above); the month-by-month picture is what
+# separates the lockdown from the trend.
+#
+# The paper discusses several ways of dealing with such an interruption: highly adaptive models that forget it
+# quickly, intervention models, marking the period as missing, forecasting what would have happened without it,
+# down-weighting it, and ensembles. For us the choice is less pressing than in the paper, because the interruption is
+# short, ended almost two years before the window we forecast, and our models will be estimated on the recent regime
+# anyway (D7). Our decision is therefore explicit but light. Models that only use the recent history need no treatment.
+# Models that learn from the whole history, such as global models with yearly patterns, should not learn spring 2020 as
+# a normal spring: in Sprint 2 we will mark March to May 2020 and January to February 2021 with an interruption flag,
+# or down-weight them, and check on the validation folds whether it helps.
 
 # %% [markdown]
 # # Part C · Accounts side by side
@@ -866,6 +1081,110 @@ save_result(top_pairs, "14_top_correlated_pairs", "50 account pairs with the str
 # A model that ties accounts together, such as a VAR, has nothing to work with here. What accounts share is the
 # calendar, not their shocks. The useful way to learn across accounts is a global model fed with calendar information,
 # while each account keeps its own dynamics.
+
+# %% [markdown]
+# The correlation above only compares two accounts on the same day. The course looks at two series through the
+# cross-correlation function (CCF), which also compares one series with the other a few days earlier or later, and it
+# warns that the autocorrelation of each series can create cross-correlations that are not there. The remedy shown in
+# the course is prewhitening: fit an autoregressive filter to the first series, apply the same filter to both, and only
+# then compute the CCF. With white-noise inputs, a cross-correlation is significant at the 5% level when it is larger
+# than about 1.96 divided by the square root of the number of days.
+#
+# We apply this to a fixed random sample of pairs of accounts, using the business-day changes of the analysis above
+# and lags from −10 to +10 business days.
+
+# %%
+N_CCF_PAIRS = 300
+CCF_LAGS = 10
+pair_rng = np.random.default_rng(RANDOM_STATE + 14)      # separate generator, so earlier samples are not disturbed
+
+
+def ccf_lags(x, y, max_lag):
+    """corr(x_t, y_{t-k}) for k = -max_lag..max_lag (k > 0: y leads x)."""
+    x = (x - x.mean()) / x.std(); y = (y - y.mean()) / y.std(); n = len(x)
+    return np.array([np.sum(x[k:] * y[:n - k]) / n if k >= 0 else np.sum(x[:n + k] * y[-k:]) / n
+                     for k in range(-max_lag, max_lag + 1)])
+
+
+def ar_filter(z, fit):
+    """Apply the AR filter of a fitted AutoReg (same coefficients) to another series."""
+    if fit is None:
+        return z - z.mean()
+    phi = np.asarray(fit.params)[1:]
+    zc = z - z.mean()
+    p = len(phi)
+    return zc[p:] - sum(phi[k] * zc[p - k - 1:len(zc) - k - 1] for k in range(p))
+
+
+n_ids = len(corr_ids)
+cand = pair_rng.integers(0, n_ids, size=(N_CCF_PAIRS * 3, 2))
+cand = cand[cand[:, 0] != cand[:, 1]][:N_CCF_PAIRS]
+ccf_rows, lag_grid = [], np.arange(-CCF_LAGS, CCF_LAGS + 1)
+for i, j in cand:
+    a, b = corr_ids[i], corr_ids[j]
+    xy = changes[[a, b]].dropna()
+    x, y = xy[a].to_numpy(), xy[b].to_numpy()
+    if len(xy) < 120 or x.std() == 0 or y.std() == 0:
+        continue
+    raw = ccf_lags(x, y, CCF_LAGS)
+    _, _, fit = prewhiten(x)
+    xf, yf = ar_filter(x, fit), ar_filter(y, fit)
+    if xf.std() == 0 or yf.std() == 0:
+        continue
+    white = ccf_lags(xf, yf, CCF_LAGS)
+    bound = 1.96 / np.sqrt(len(xf))
+    ccf_rows.append({"account_a": a, "account_b": b, "days": len(xf), "bound": bound,
+                     "max_abs_ccf_raw": np.abs(raw).max(), "max_abs_ccf_prewhitened": np.abs(white).max(),
+                     "lags_significant_raw": int(np.sum(np.abs(raw) > 1.96 / np.sqrt(len(x)))),
+                     "lags_significant_prewhitened": int(np.sum(np.abs(white) > bound)),
+                     "lag_of_max_prewhitened": int(lag_grid[np.argmax(np.abs(white))]),
+                     "ccf_lag0_prewhitened": white[CCF_LAGS],
+                     "lag0_significant_prewhitened": bool(np.abs(white[CCF_LAGS]) > bound)})
+ccf_pairs = pd.DataFrame(ccf_rows)
+n_cells = len(ccf_pairs) * len(lag_grid)
+ccf_summary = pd.Series({
+    "pairs analysed": len(ccf_pairs),
+    "lags per pair": len(lag_grid),
+    "% (pair, lag) significant, raw changes": round(100 * ccf_pairs.lags_significant_raw.sum() / n_cells, 2),
+    "% (pair, lag) significant, prewhitened": round(100 * ccf_pairs.lags_significant_prewhitened.sum() / n_cells, 2),
+    "% expected by chance alone": 5.0,
+    "% pairs significant at lag 0, prewhitened": round(100 * ccf_pairs.lag0_significant_prewhitened.mean(), 1),
+    "median CCF at lag 0, prewhitened": round(ccf_pairs.ccf_lag0_prewhitened.median(), 3),
+    "% pairs with positive CCF at lag 0": round(100 * (ccf_pairs.ccf_lag0_prewhitened > 0).mean(), 1),
+    "median max |CCF| per pair, prewhitened": round(ccf_pairs.max_abs_ccf_prewhitened.median(), 3),
+    "pairs with max |CCF| > 0.2, prewhitened": int((ccf_pairs.max_abs_ccf_prewhitened > 0.2).sum()),
+}).to_frame("value")
+display(ccf_summary)
+
+# The most correlated pair of the analysis above, raw and prewhitened
+a, b = top_pairs.account_a.iloc[0], top_pairs.account_b.iloc[0]
+xy = changes[[a, b]].dropna(); x, y = xy[a].to_numpy(), xy[b].to_numpy()
+_, _, fit = prewhiten(x)
+xf, yf = ar_filter(x, fit), ar_filter(y, fit)
+fig, axes = plt.subplots(1, 2, figsize=(14, 3.5), sharey=True)
+for ax, (u, v, title) in zip(axes, ((x, y, "raw daily changes"), (xf, yf, "prewhitened"))):
+    ax.bar(lag_grid, ccf_lags(u, v, CCF_LAGS), width=0.6)
+    ax.axhline(1.96 / np.sqrt(len(u)), color="red", ls="--", lw=0.8); ax.axhline(-1.96 / np.sqrt(len(u)), color="red", ls="--", lw=0.8)
+    ax.set(title=f"CCF accounts {a} and {b}: {title}", xlabel="lag (business days)")
+plt.tight_layout(); plt.show()
+save_result(ccf_pairs, "14_ccf_prewhitened_pairs", "Sample of account pairs: CCF lags -10..10, raw vs prewhitened (AR filter by AIC)", index=False)
+save_result(ccf_summary, "14_ccf_prewhitened_summary", "Share of significant cross-correlations, raw vs prewhitened, against the 5% chance level")
+
+# %% [markdown]
+# Prewhitening does not reveal hidden links. More cross-correlations cross the 5% bound than chance alone would
+# produce, about one in eight instead of one in twenty, but the excess has none of the features of a real lead-lag
+# relationship: it is spread over all lags instead of concentrating on one, the cross-correlation at lag 0 is centred on
+# zero and is positive for only about half of the pairs, and the typical largest value is small. A few dozen pairs do reach a
+# cross-correlation above 0.2 at some lag; they are saved with the results and are worth a look in Sprint 3, but they
+# are exceptions, not a pattern. The most likely
+# reason is that the bound of 1.96 divided by the square root of the sample size assumes homoscedastic white noise,
+# while our changes are lumpy and their large moves happen on the same calendar days for everyone (section 7, D3). When
+# two series are agitated on the same days, their sample cross-correlations spread more widely even if their shocks are
+# unrelated.
+#
+# The conclusion of the correlation analysis therefore stands, now checked the way the course recommends: accounts
+# share a calendar, not their shocks, and a VAR has nothing to work with. The calendar belongs in the models as
+# regressors or features.
 
 # %% [markdown]
 # ## 15. Four kinds of accounts
@@ -1094,6 +1413,112 @@ save_result(day8, "D3_day8_weekend_rule", "Share of accounts with a large inflow
 # and when it falls on a Sunday it arrives on Monday the 9th. The inflow is simply moved to the next business day. This
 # has a direct consequence for our forecast: 8 January 2023 is a Sunday, so those inflows should be expected on Monday
 # 9 January.
+
+# %% [markdown]
+# ### Who is paid on the 8th?
+#
+# In Portugal the 8th is the day on which the Social Security pays old-age pensions by bank transfer, moved to the next
+# business day when it falls on a weekend. That is knowledge from outside the data, so we should not simply assume it.
+# If the inflows of the 8th really are pensions, the data should show three more things. The money should arrive on
+# the 8th every month, or on the following Monday at weekends, without exception. The same accounts should receive it
+# month after month. And the amount should double in July and in December, because Portuguese pensions are paid
+# fourteen times a year, with an extra payment in each of those months, and it should only change once a year, in
+# January, when pensions are updated.
+#
+# We test these three predictions. The first table follows the 8th through all 36 months, the second looks for the
+# accounts that are paid on it in almost every month, and the chart compares the amount of each month with the amount
+# of an ordinary month of the same year.
+
+# %%
+PENSION_MIN_SHARE = 0.8      # an account is "paid on the 8th" if it has a large inflow on days 5-11 in >= 80% of its months
+window_days = (cd.day >= 5) & (cd.day <= 11)       # the 8th and every day it could be moved to
+
+# (a) Where the large inflows of the 8th land, month by month
+rows = []
+for m in pd.period_range(cd.min(), cd.max(), freq="M"):
+    d8 = pd.Timestamp(year=m.year, month=m.month, day=8)
+    win = li.loc[pd.Timestamp(year=m.year, month=m.month, day=5):pd.Timestamp(year=m.year, month=m.month, day=11)]
+    rows.append({"month": str(m), "weekday of the 8th": weekday_names[d8.dayofweek],
+                 "8th is a public holiday": d8 in pt_holidays,
+                 "peak day": f"{win.idxmax().day} {weekday_names[win.idxmax().dayofweek]}",
+                 "share with a large inflow on the peak day": round(win.max(), 3)})
+day8_by_month = pd.DataFrame(rows).set_index("month")
+ordinary_bday = li[(li.index.dayofweek < 5) & ~window_days].median()
+display(day8_by_month)
+print(f"For comparison, a business day outside days 5-11 has a median share of {ordinary_bday:.3f}")
+
+# (b) Accounts paid on the 8th: the largest large inflow on days 5-11 of each month
+mask8 = (rel > 0.2) & window_days[None, :]
+amount8 = pd.DataFrame(np.where(mask8, dB, np.nan), index=bal.index, columns=cd)
+amount8 = amount8.T.groupby(cd.to_period("M")).max().T                     # accounts x months
+months_observed = pd.DataFrame(~np.isnan(dB), index=bal.index, columns=cd).T.groupby(cd.to_period("M")).any().T
+share_months8 = amount8.notna().sum(1) / months_observed.sum(1)
+pension_like = share_months8 >= PENSION_MIN_SHARE
+
+P = amount8.loc[pension_like]
+p_year, p_month = P.columns.year, P.columns.month
+ratio = pd.DataFrame(np.nan, index=P.index, columns=P.columns)
+normal_amount = {}
+for y in np.unique(p_year):
+    in_year = p_year == y
+    normal_amount[y] = P.loc[:, in_year & ~np.isin(p_month, [7, 12])].median(axis=1)   # an ordinary month of year y
+    ratio.loc[:, in_year] = P.loc[:, in_year].div(normal_amount[y], axis=0).to_numpy()
+ratio_by_month = ratio.T.groupby(p_month).median().median(axis=1).rename("median ratio to an ordinary month")
+ratio_by_month.index.name = "month of the year"
+years = sorted(normal_amount)
+annual_update = pd.Series({f"{years[i]} vs {years[i - 1]}": 100 * ((normal_amount[years[i]] / normal_amount[years[i - 1]]).median() - 1)
+                           for i in range(1, len(years))}, name="median change of the ordinary amount (%)")
+
+pension_summary = pd.Series({
+    "accounts paid on days 5-11 in >= 80% of their months": int(pension_like.sum()),
+    "% of all accounts": round(100 * pension_like.mean(), 1),
+    "July amount / ordinary month (median)": round(ratio_by_month.get(7, np.nan), 2),
+    "December amount / ordinary month (median)": round(ratio_by_month.get(12, np.nan), 2),
+    "January amount / ordinary month (median)": round(ratio_by_month.get(1, np.nan), 2),
+})
+display(pension_summary.to_frame("value"))
+display(annual_update.round(2).to_frame())
+
+fig, axes = plt.subplots(1, 2, figsize=(16, 4), gridspec_kw={"width_ratios": [3, 2]})
+heat8 = pd.DataFrame({k: [li.get(pd.Timestamp(year=m.year, month=m.month, day=k), np.nan)
+                          for m in pd.period_range(cd.min(), cd.max(), freq="M")] for k in range(5, 12)},
+                     index=[f"{m} ({weekday_names[pd.Timestamp(year=m.year, month=m.month, day=8).dayofweek]})"
+                            for m in pd.period_range(cd.min(), cd.max(), freq="M")])
+sns.heatmap(heat8.T, cmap="mako_r", ax=axes[0], cbar_kws={"label": "share with a large inflow"})
+axes[0].set(title="Large inflows on days 5-11, month by month (weekday of the 8th in brackets)", ylabel="day of month")
+axes[0].set_yticklabels([f"day {k}" for k in range(5, 12)], rotation=0)
+axes[1].bar(ratio_by_month.index, ratio_by_month.values, color=["tab:red" if m in (7, 12) else "tab:blue" for m in ratio_by_month.index])
+for level in (1, 2):
+    axes[1].axhline(level, color="grey", lw=0.8, ls="--")
+axes[1].set(title=f"Amount received around the 8th / amount of an ordinary month\n({int(pension_like.sum())} accounts paid on the 8th)",
+            xlabel="month of the year", ylabel="ratio", xticks=range(1, 13))
+plt.tight_layout(); plt.show()
+
+save_result(day8_by_month, "D3_day8_by_month", "Per month: weekday of the 8th, holiday flag, peak day of large inflows on days 5-11")
+save_result(pd.DataFrame({"share_months_paid_days_5_11": share_months8, "pension_like": pension_like}),
+            "D3_pension_like_per_account", "Per account: share of months with a large inflow on days 5-11 and pension-like flag")
+save_result(ratio_by_month, "D3_pension_ratio_by_month", "Pension-like accounts: amount around the 8th / ordinary month, by month of the year")
+save_result(annual_update, "D3_pension_annual_update", "Pension-like accounts: yearly change of the ordinary amount received around the 8th")
+
+# %% [markdown]
+# All three predictions hold. In every one of the 36 months the large inflows peak on the 8th when it is a business day,
+# on Monday the 10th when it is a Saturday and on Monday the 9th when it is a Sunday, at roughly two to three and a half
+# times the level of an ordinary business day. About one account in eight receives this money in almost every month. For those accounts the
+# amount of July and December is twice that of an ordinary month, while January is an ordinary month, and from one year
+# to the next the ordinary amount rises by only about one percent. This is the signature of a pension: fourteen
+# payments a year and a small annual update.
+#
+# Two notes of caution. A doubling in July and December would also appear in salaries, which in Portugal carry holiday
+# and Christmas allowances, so it is the combination with the day of the 8th and the next-business-day rule that points
+# to pensions rather than wages. And on the public holiday of 8 December the payment still arrives on the 8th in these
+# data, while in practice the Social Security brings it forward when the 8th is a holiday. The data therefore follow the
+# simple rule of the 8th or the next business day, and our calendar should follow the data.
+#
+# The most useful consequence is for the window we have to forecast. 8 January 2023 is a Sunday, so the pension-like
+# accounts should receive their money on Monday 9 January, and the amount should be that of an ordinary month, about
+# half of what they received in December. A model that copies the last monthly cycle into January would therefore
+# expect twice the real inflow on those accounts. Sprint 2 has to treat July and December as special months for the
+# inflow of the 8th.
 
 # %% [markdown]
 # ## D4. Is there a floor?
@@ -1493,6 +1918,13 @@ save_result(hurst, "D13_hurst_per_account", "Per account: Hurst exponent (R/S) o
 # Almost every account has a value below 0.5. Movements tend to reverse: money that comes in is soon spent. This is the
 # saw-tooth again, seen from another angle, and it matches the slight negative autocorrelation of section 11. There is
 # no long memory, so long-memory models such as ARFIMA are not needed.
+#
+# We read the values below 0.5 with caution. In the course references the Hurst exponent appears as a tool to detect
+# long memory, with H between 0.5 and 1 (Cowpertwait and Metcalfe, 2009, chapter 8); the reading of H below 0.5 as
+# anti-persistence is common in the wider literature but is not covered there, and the R/S estimator is known to be
+# biased in samples of this length. The safe conclusion is the one that matters for modelling: there is no evidence of
+# long memory. That movements tend to reverse is a possible interpretation, consistent with section 11 and D18, not a
+# result established by this statistic alone.
 
 # %% [markdown]
 # ## D14. A map of all the accounts
@@ -1935,7 +2367,7 @@ save_result(mp, "D22_matrix_profile_per_account", "Per account (sample): motif a
 # The deeper analyses did not overturn the picture from Parts A to C; they sharpened it. The data looks like real money
 # (D1) and the accounts are independent of each other (D5), so we model them as separate series that share a calendar.
 # That calendar is more precise than we thought: inflows come at the end of the month and on the 8th, moved to the next
-# business day at weekends (D3), the monthly cycle needs several harmonics to be drawn (D6), it is stable from year to
+# business day at weekends, and the inflows of the 8th behave like pensions, doubled in July and December (D3), the monthly cycle needs several harmonics to be drawn (D6), it is stable from year to
 # year (D21) and too weak for seasonal differencing in most accounts (D17). Some payments return on fixed days and can
 # be projected (D2), while there are no credit limits to respect (D4).
 #
@@ -2058,11 +2490,84 @@ summary.round(1)
 # value forward, because over a month most of the movement cancels out (D18) and the level is stable between breaks
 # (D7, D16); models should be estimated on the recent regime. Third, the forecasts follow the calendar: business days
 # only, the turn of the month with salaries and early-month debits, and the 8th moved to the next business day when it
-# falls on a weekend (§7, D3), which in the forecast window means Monday 9 January 2023. The benchmark to beat is in
+# falls on a weekend (§7, D3), which in the forecast window means Monday 9 January 2023. For the accounts paid on the
+# 8th, that January inflow should have the amount of an ordinary month, about half of the doubled December payment, so
+# July and December must be treated as special months rather than copied forward (D3). The benchmark to beat is in
 # section 17.
 
 # %% [markdown]
-# ## 19. Where the results are saved
+# ## 19. Does the small dataset tell the same story?
+#
+# We were asked to start from the small dataset, and every result above was computed on the larger file. In the
+# development data the small file is exactly the first 50 accounts of the medium one, so we can check here, without
+# loading anything else, whether those 50 accounts lead to the same conclusions. We compare the key facts of this
+# notebook for all accounts and for the first 50.
+
+# %%
+SMALL_N = 50
+small_ids = bal.index[:SMALL_N]
+
+
+def key_facts(ids):
+    """The headline numbers of this notebook for a subset of accounts."""
+    rows_idx = bal.index.get_indexer(ids)
+    Bs = B[rows_idx]; obs_s = Bs[~np.isnan(Bs)]
+    sh = change_share(bal.loc[ids])
+    wk = sh.groupby(sh.index.dayofweek).mean()
+    r = rel[rows_idx]
+    li_s = pd.Series(np.nanmean(np.where(np.isnan(r), np.nan, r > 0.2), 0), index=cd)
+    li_bd = li_s[li_s.index.dayofweek < 5]
+    by_dom = li_bd.groupby(li_bd.index.day).mean()
+    stx = st.reindex(ids)
+    seg = feat.segment.reindex(ids).value_counts(normalize=True)
+    facts = {
+        "accounts": len(ids),
+        "% accounts opened late (leading missing)": 100 * np.mean(n_leading[rows_idx] > 0),
+        "% balances negative": 100 * np.mean(obs_s < 0),
+        f"% balances with |x| < {NEAR_ZERO:.0f} EUR": 100 * np.mean(np.abs(obs_s) < NEAR_ZERO),
+        "% accounts that change sign": 100 * np.mean(sign_type[rows_idx] == "changes sign"),
+        "share changing on Saturdays and Sundays": wk.reindex([5, 6]).mean(),
+        "share changing on Mondays": wk.get(0, np.nan),
+        "day of month with most large inflows": int(by_dom.idxmax()),
+        "large inflows on the 8th / ordinary business day": li_bd[li_bd.index.day == 8].mean() / li_bd[~li_bd.index.day.isin(range(5, 12))].median(),
+        "% accounts paid on the 8th (D3)": 100 * pension_like.reindex(ids).mean(),
+        "% levels with conflicting ADF/KPSS": 100 * np.mean(stx["levels"] == "conflicting: difference-stationary / level shifts"),
+        "% differences stationary (both agree)": 100 * np.mean(stx["first differences"] == "stationary (both agree)"),
+        "% segment near-zero / overdraft": 100 * seg.get("near-zero / overdraft", 0),
+        "% segment stable positive": 100 * seg.get("stable positive", 0),
+        "% segment volatile positive": 100 * seg.get("volatile positive", 0),
+    }
+    for name in ("naive (last value)", "median of last 30 days"):
+        vals = []
+        for origin in origins:
+            train, test = split(prepared.loc[ids], origin)
+            vals.append(evaluate(test.to_numpy(), baselines(train)[name]))
+        vals = pd.DataFrame(vals).mean()
+        facts[f"{name}: median per-account MAPE"] = vals["median per-account MAPE"]
+        facts[f"{name}: MAPE |actual|>={NEAR_ZERO:.0f}"] = vals[f"MAPE |actual|>={NEAR_ZERO:.0f}"]
+    return pd.Series(facts)
+
+
+small_check = pd.DataFrame({"all accounts": key_facts(bal.index),
+                            f"first {SMALL_N} accounts (small dataset)": key_facts(small_ids)}).round(3)
+display(small_check)
+save_result(small_check, "19_small_vs_all_accounts", "Key facts of the notebook: all accounts vs the first 50 (= the small dataset)")
+
+# %% [markdown]
+# The small dataset tells the same story where the story is about structure. Its accounts change sign as often, live
+# near zero as often, never move at weekends, are busiest on Mondays and split into the same kinds of accounts in
+# similar proportions. Had we started from it, we would have found the same calendar, the same zero problem and the
+# same groups.
+#
+# Two things, however, it cannot show well, and they are the reason we built the analysis on the larger file. With only
+# 50 accounts, the few that are paid on the 8th are not enough for the pension pattern of D3 to stand out, and the
+# end of the month takes its place as the busiest day for large inflows. And the baseline scores of section 17 move by
+# many points when a handful of accounts behave differently, so they are too noisy to serve as a benchmark. The small
+# dataset is a good place to develop and test code quickly; the conclusions and the numbers to beat come from all the
+# accounts.
+
+# %% [markdown]
+# ## 20. Where the results are saved
 #
 # Every table in this notebook is also saved as a CSV file in `data/sprint1/`, so the results can be consulted without
 # running the notebook again. The file `00_index.csv` lists them all, and `00_account_features.csv` gathers every
@@ -2086,7 +2591,10 @@ account_features = (per_account
                     .join(za[["za_p", "break_date"]].rename(columns={"za_p": "zivot_andrews_p", "break_date": "zivot_andrews_break"}))
                     .join(vr[["VR 1 month (21)", "z 1 month (21)"]].rename(columns=lambda c: "variance_ratio_" + c))
                     .join(payday[["payday_mode", "calendar_day_concentration", "regular_payday"]])
-                    .join(cp_table[["change_points", "days_since_last_change_point"]]))
+                    .join(cp_table[["change_points", "days_since_last_change_point"]])
+                    .join(stl_counts)
+                    .join(arch_w[["ar_order", "arch_lm_p_prewhitened"]].rename(columns={"ar_order": "prewhitening_ar_order"}))
+                    .join(pd.DataFrame({"share_months_paid_days_5_11": share_months8, "pension_like": pension_like})))
 save_result(account_features, "00_account_features", "ONE ROW PER ACCOUNT: all per-account statistics, tests and segment")
 
 index = pd.DataFrame(saved_files)

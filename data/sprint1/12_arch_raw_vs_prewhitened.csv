@@ -1,0 +1,6 @@
+,value
+accounts tested,500.0
+median AR order chosen by AIC,7.0
+"% residuals still autocorrelated (Ljung-Box lag 10, p < 0.05)",2.4
+"% ARCH effects, raw daily changes",36.8
+"% ARCH effects, prewhitened residuals",27.0

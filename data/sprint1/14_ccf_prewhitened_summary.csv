@@ -1,0 +1,11 @@
+,value
+pairs analysed,300.0
+lags per pair,21.0
+"% (pair, lag) significant, raw changes",10.13
+"% (pair, lag) significant, prewhitened",11.98
+% expected by chance alone,5.0
+"% pairs significant at lag 0, prewhitened",16.7
+"median CCF at lag 0, prewhitened",0.005
+% pairs with positive CCF at lag 0,55.3
+"median max |CCF| per pair, prewhitened",0.114
+"pairs with max |CCF| > 0.2, prewhitened",42.0

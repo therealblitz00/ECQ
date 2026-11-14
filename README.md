@@ -19,9 +19,14 @@ Forecast each client's daily account balance for the **next 30 days**, evaluated
 - **Missing values (~1%) are all leading** — 25 accounts opened later; no imputation.
 - **MAPE risk:** 22% of balances negative, 17% with |balance| < €100, 358/500 accounts change sign.
 - **Calendar:** activity on business days only; inflows peak at month end (salaries) and on day 8 (pensions); outflows early in the month.
-- **Dynamics:** levels ≈ random walk with level shifts; first differences stationary (d = 1); weak cross-account correlation.
+- **Dynamics:** levels ≈ random walk with level shifts; first differences stationary (d = 1); weak cross-account correlation, confirmed by prewhitened CCFs (no lead-lag pattern).
+- **Volatility:** ARCH effects in ~37% of accounts on raw changes but ~27% on AR(p)-prewhitened residuals (the version to cite, per Cowpertwait & Metcalfe §7.4); not enough to justify GARCH for point forecasts.
+- **COVID:** the first lockdown (Mar–May 2020) shows a clear dip in activity and outflows; the second (Jan–Feb 2021) a smaller one. Decision: no treatment for models on the recent regime; interruption flag or down-weighting to be tested in Sprint 2 for models that use the whole history.
+- **Small vs medium:** the first 50 accounts (= small dataset) give the same structural picture; too few accounts to show the pension pattern or stable baseline scores.
 - **Paydays:** largest inflows on the 8th (moved to the next business day at weekends; 8 Jan 2023 is a Sunday → 9 Jan) and on the 28th–30th; ~1 in 5 recurring amounts falls on a fixed day of the month.
-- **Structure:** monthly cycle ≈30.4 days with harmonics (15.2, 10.1); frequent level shifts (half the accounts changed level in the last ~2 months); January dips like a deep ordinary month; accounts independent (no transfers/duplicates); no credit-limit floors; daily changes anti-persistent (Hurst ≈ 0.37).
+- **The 8th behaves like pensions:** in all 36 months the large inflows of days 5–11 peak on the 8th, or on Monday 10th/9th when the 8th is a Saturday/Sunday (the payment is not brought forward on the 8 December holiday). ~13% of accounts are paid there in ≥ 80% of their months; for them the July and December amounts are ~2× an ordinary month (14 payments a year) and the ordinary amount rises ~1%/year.
+- **January 2023 insight:** for those accounts the January inflow should arrive on **Monday 9 Jan 2023** with the amount of an **ordinary month, about half of December's** — a model that copies the last monthly cycle would forecast twice the real inflow. July and December are special months.
+- **Structure:** monthly cycle ≈30.4 days with harmonics (15.2, 10.1); frequent level shifts (half the accounts changed level in the last ~2 months); January dips like a deep ordinary month; accounts independent (no transfers/duplicates); no credit-limit floors; no long memory (Hurst ≈ 0.37; reading it as anti-persistence is a possible interpretation, not covered by the course references).
 - **Dynamics, refined:** random walk day to day, but strong mean reversion over a month (variance ratio ≈ 0.24 at 21 business days); once one level break is allowed (Zivot–Andrews) most accounts are stationary → forecast the level the balance oscillates around.
 - **Two kinds of accounts:** the feature map splits accounts mainly by distance from zero — ~230 stable positive accounts (naive median MAPE ≈ 26%) vs ~270 accounts living around zero (≈ 260%).
 - **Modelling hints:** flows are lumpy (Syntetos–Boylan) → forecast levels, not flows; seasonal patterns stable across years but too weak for seasonal differencing → calendar regressors/Fourier terms; asinh scaling for global models; ~40% of accounts keep non-linear structure (BDS) → room for tree-based ML.
@@ -91,13 +96,19 @@ Done:
 - [x] Advanced analyses (Part D): transaction forensics (Benford, cents, round amounts), recurring payments, paydays and the weekend rule for the 8th, overdraft floors, transfers/duplicates (permutation test), spectral analysis, change points, January paths, oracle bounds, error drivers, zero-crossing risk, Hurst exponent
 - [x] Specialist pattern-finding tools (Part D, D14–D22): feature map of all accounts (PCA + clustering), Syntetos–Boylan flow classification, Zivot–Andrews unit-root test with a break, seasonal-differencing rule, Lo–MacKinlay variance ratios, asinh/Yeo–Johnson transformations, BDS non-linearity test, seasonal subseries and lag plots, matrix profile (motifs and discords)
 - [x] Notebook rewritten as storytelling, with a short summary at the top
+- [x] Course-method additions: robust STL per account (§9: flags >10% of a typical account's days, so not usable as an anomaly filter here — fixed 30-day period drifts against real months, lumpy flows), rolling mean/std plots (§10), ARCH-LM on AR(p)-prewhitened residuals next to the raw test (§12), COVID lockdowns as an interrupted series (§13, Hyndman & Rostami-Tabar), prewhitened cross-correlations (§14), caution note on the Hurst exponent (D13)
+- [x] Pension evidence for the 8th: month-by-month table, weekend/holiday rule, pension-like accounts, July/December doubling, January 2023 consequence (D3)
+- [x] Small dataset check: key facts for the first 50 accounts vs all accounts (§19)
 
 To do:
+- [ ] Re-run the notebook after the additions above: build the `.ipynb` from the `.py` with jupytext, execute it and refresh `data/sprint1/` (the committed `.ipynb` and CSVs predate them)
 - [ ] Group review of the notebook and its conclusions
 
 ### Sprint 2 — Modelling: Forecasting Models (due 2026-11-26)
 - [x] Baselines: naive (last value), seasonal naive, mean/median (done in Sprint 1, §17)
 - [ ] Statistical models: ETS, ARIMA/SARIMA
+- [ ] Inflow of the 8th: July/December as special months; January 2023 inflow on Monday 9 with an ordinary amount (D3)
+- [ ] COVID interruption: test an interruption flag or down-weighting (Mar–May 2020, Jan–Feb 2021) for models that use the whole history (§13)
 - [ ] ML / global models (e.g. LightGBM with lags and calendar features)
 - [ ] Compare models by MAPE under the defined validation scheme
 

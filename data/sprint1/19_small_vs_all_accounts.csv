@@ -1,0 +1,20 @@
+,all accounts,first 50 accounts (small dataset)
+accounts,500.0,50.0
+% accounts opened late (leading missing),5.0,8.0
+% balances negative,22.121,18.253
+% balances with |x| < 100 EUR,17.017,17.716
+% accounts that change sign,71.6,68.0
+share changing on Saturdays and Sundays,0.0,0.0
+share changing on Mondays,0.801,0.82
+day of month with most large inflows,8.0,31.0
+large inflows on the 8th / ordinary business day,2.594,1.288
+% accounts paid on the 8th (D3),13.0,6.0
+% levels with conflicting ADF/KPSS,47.8,42.0
+% differences stationary (both agree),99.0,100.0
+% segment near-zero / overdraft,39.0,42.0
+% segment stable positive,27.6,26.0
+% segment volatile positive,33.2,32.0
+naive (last value): median per-account MAPE,68.831,88.936
+naive (last value): MAPE |actual|>=100,88.702,89.356
+median of last 30 days: median per-account MAPE,66.538,70.232
+median of last 30 days: MAPE |actual|>=100,71.457,114.701

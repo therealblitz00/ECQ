@@ -1,0 +1,10 @@
+segment,system,MAPE (official),median per-account MAPE,MAPE |actual|>=100
+near-zero / overdraft,naive (last value),1450.6526979070368,154.37836003808766,142.17305950937657
+near-zero / overdraft,segment pipeline,100.0987247530052,100.0,87.7977475925017
+near-zero / overdraft,"segment pipeline, no recent-range guard",1618.7665957474176,99.75709756949666,92.07681601733105
+stable positive,naive (last value),2437.472941515279,7.66245220955903,21.924594390238386
+stable positive,segment pipeline,2437.472941515279,7.66245220955903,21.924594390238386
+stable positive,"segment pipeline, no recent-range guard",2437.472941515279,7.66245220955903,21.924594390238386
+volatile positive,naive (last value),298.58277328030334,67.00307228644047,86.0053362320366
+volatile positive,segment pipeline,97.68175135155312,55.17752128516247,52.96812945026973
+volatile positive,"segment pipeline, no recent-range guard",97.68175135155312,55.17752128516247,52.96812945026973

@@ -1,0 +1,3 @@
+,vs naive (last value),vs median of last 30 days,vs zero (forecast 0)
+all accounts,False,False,False
+without the largest contributor,False,False,True

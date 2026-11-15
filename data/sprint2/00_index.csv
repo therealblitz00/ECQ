@@ -11,3 +11,10 @@ file,description,rows,columns
 02_calendar_profile_coverage.csv,Share (%) of near-zero account-days where the gated profile is used instead of zero,5,2
 02_stable_accounts_ending_near_zero.csv,Stable positive accounts: warning features and error contribution per fold,689,10
 02_stable_warning_flag.csv,"Stable positive accounts split by a warning flag (lowest balance below 20% of the median), last-value forecast",3,5
+02_volatile_positive_by_fold.csv,Volatile positive accounts: all candidates by fold,60,6
+02_volatile_positive_summary.csv,Volatile positive accounts: mean over folds,12,3
+02_volatile_positive_decision_rule.csv,Decision-rule verdict for the volatile positive candidates,12,2
+02_stable_revised_summary.csv,"Stable positive accounts (revised rule): level candidates, mean over folds",8,3
+02_pipeline_by_fold.csv,"Segment pipeline vs baselines on all accounts, by fold, with and without the largest contributor",50,6
+02_pipeline_by_segment.csv,"Segment pipeline vs last value, by segment (mean over folds)",9,3
+02_pipeline_decision_rule.csv,Decision-rule verdict of the segment pipeline (rows: all accounts / without the largest contributor),2,3

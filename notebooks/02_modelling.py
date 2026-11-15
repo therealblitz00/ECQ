@@ -618,7 +618,295 @@ save_result(flag_summary, "02_stable_warning_flag", "Stable positive accounts sp
 # contributor, so that one unpredictable event does not decide a comparison between models.
 
 # %% [markdown]
-# ## 10. Index of saved results
+# ## 10. The revised segmentation and the remaining segments
+#
+# Section 9 showed that the stable group of Sprint 1 contains accounts that are not stable: those whose lowest balance of
+# the last year was below 20% of their median. We now add that condition to the rule. A flagged account is handled like
+# a near-zero account, and the stable group keeps only accounts that stayed clear of zero. Nothing else in the rule
+# changes. We then turn to the groups we have not yet studied, the volatile positive accounts and the dormant ones.
+
+# %%
+FLAG_RATIO = 0.2
+
+
+def segments_v2(T):
+    """Sprint 1 rule plus the warning flag: stable accounts whose lowest balance of the last year was below 20% of their
+    median are moved to the near-zero group (strategy group 'near-zero / flagged')."""
+    seg = segments(T).astype(object)
+    R = T[:, -365:]
+    ratio = np.nanmin(R, 1) / np.nanmedian(R, 1)
+    seg[(seg == "stable positive") & (ratio < FLAG_RATIO)] = "near-zero / overdraft"
+    return seg
+
+
+seg2_by_fold = {o: segments_v2(B[:, :cut[o]]) for o in origins}
+display(pd.DataFrame({str((o + pd.Timedelta(days=1)).date()): pd.Series(s).value_counts()
+                      for o, s in seg2_by_fold.items()}).fillna(0).astype(int))
+
+# %% [markdown]
+# The medium dataset has no dormant accounts at all: every account moves on more than 5% of the days. We keep the group
+# in the rule, because the large dataset may contain some, and we give it the simplest strategy, the last balance,
+# which is exact for an account that does not move. We could not test it here, and we say so in the conclusions.
+#
+# For the volatile positive accounts we compare the level candidates of section 4, the calendar profile of section 8
+# and a global gradient-boosted model. The model is trained on the volatile accounts and predicts, for each day of the
+# horizon, the balance relative to the median of the last 30 days and scaled by the typical size of the account, which
+# makes the target stationary and comparable across accounts. Its loss is the MAPE itself: the absolute error on the
+# scaled target, weighted by the typical size over the true balance, with the weight capped to keep a few tiny balances
+# from dominating the fit. Its features describe the recent level and spread of the account, the day of the month and
+# the horizon, and the calendar profile value for that day.
+
+# %%
+WEIGHT_CAP = 10.0
+
+
+def gbm_features(e, ids_mask, M=365, tol=2):
+    """Rows (one per account in mask and horizon day) for cut-off `e`: scaled recent-level features, calendar and profile."""
+    T = B[:, :e]
+    typical = np.maximum(np.nanmedian(np.abs(T[:, -90:]), 1), EPS)
+    ref = fill(np.nanmedian(T[:, -30:], 1), T[:, -1])
+    P, C = profile_parts(e, M, tol)
+    feats = {
+        "last": (T[:, -1] - ref) / typical, "mean30": (np.nanmean(T[:, -30:], 1) - ref) / typical,
+        "med90": (np.nanmedian(T[:, -90:], 1) - ref) / typical, "min30": (np.nanmin(T[:, -30:], 1) - ref) / typical,
+        "max30": (np.nanmax(T[:, -30:], 1) - ref) / typical, "std30": np.nanstd(T[:, -30:], 1) / typical,
+        "pos90": np.nanmean(T[:, -90:] > 0, 1), "ref": ref / typical,
+    }
+    ids = np.where(ids_mask)[0]
+    rows = []
+    for h in range(HORIZON):
+        d = pd.DataFrame({k: v[ids] for k, v in feats.items()})
+        d["horizon"] = h + 1
+        d["dom"] = dom[e + h]
+        d["dow"] = bal.columns[e + h].dayofweek
+        d["profile"] = (P[ids, h] - ref[ids]) / typical[ids]
+        d["agree"] = C[ids, h]
+        d["acct"] = ids
+        rows.append(d)
+    return pd.concat(rows, ignore_index=True), ref, typical
+
+
+def gbm_forecast(e, train_mask, predict_mask, step=15):
+    """Fit on past cut-offs of the accounts in train_mask, predict the HORIZON days after column e for predict_mask."""
+    Xs, ys, ws = [], [], []
+    for j in range(365, e - HORIZON + 1, step):
+        X, ref, typical = gbm_features(j, train_mask)
+        A = B[X["acct"].to_numpy(), j + X["horizon"].to_numpy() - 1]
+        ok = np.isfinite(A) & np.isfinite(X["last"])
+        y = (A - ref[X["acct"]]) / typical[X["acct"]]
+        w = np.minimum(typical[X["acct"]] / np.maximum(np.abs(A), EPS), WEIGHT_CAP)
+        Xs.append(X[ok]); ys.append(y[ok]); ws.append(w[ok])
+    X = pd.concat(Xs); y = np.concatenate(ys); w = np.concatenate(ws)
+    feats = [c for c in X.columns if c != "acct"]
+    model = lgb.LGBMRegressor(objective="l1", n_estimators=300, learning_rate=0.05, num_leaves=15, min_child_samples=50,
+                              subsample=0.8, subsample_freq=1, colsample_bytree=0.8, random_state=RANDOM_STATE, verbose=-1)
+    model.fit(X[feats], y, sample_weight=w)
+    Xp, ref, typical = gbm_features(e, predict_mask)
+    pred = model.predict(Xp[feats]) * typical[Xp["acct"]] + ref[Xp["acct"]]
+    out = np.full((B.shape[0], HORIZON), np.nan)
+    out[Xp["acct"].to_numpy(), Xp["horizon"].to_numpy() - 1] = pred
+    return out
+
+
+ZERO_GRID = [0.0, 0.05, 0.1, 0.2, 0.3, 0.5]      # forecasts smaller than this share of the typical size are set to zero
+
+
+def zero_small(F, T, c):
+    typical = np.maximum(np.nanmedian(np.abs(T[:, -90:]), 1), EPS)
+    return np.where(np.abs(F) < c * typical[:, None], 0.0, F)
+
+
+vol_rows = []
+vol_fc = {}
+vol_c = {}
+for o in origins:
+    e = cut[o]
+    T = B[:, :e]; A = B[:, e:e + HORIZON]
+    m = seg2_by_fold[o] == "volatile positive"
+    last = T[:, -1]
+    P, C = profile_parts(e)
+    # threshold for zeroing small forecasts, tuned on the last 30 days before the cut-off with a model fitted before them
+    F_in = gbm_forecast(e - HORIZON, m, m)
+    A_in = B[:, e - HORIZON:e]
+    # the official MAPE is minimised, but the typical-account MAPE may not get more than 10% worse than without zeroing
+    scored = {c: evaluate(A_in[m], zero_small(F_in, B[:, :e - HORIZON], c)[m]) for c in ZERO_GRID}
+    allowed = [c for c in ZERO_GRID if scored[c]["median per-account MAPE"] <= 1.10 * scored[0.0]["median per-account MAPE"]]
+    c_best = min(allowed, key=lambda c: scored[c]["MAPE (official)"])
+    vol_c[str((o + pd.Timedelta(days=1)).date())] = c_best
+    F_gbm = gbm_forecast(e, m, m)
+    vol_fc[o] = zero_small(F_gbm, T, c_best)
+    cands = {k: np.repeat(v[:, None], HORIZON, 1) for k, v in level_candidates(T).items()}
+    cands["calendar profile"] = P
+    cands["gated calendar profile, q=0.9"] = gated(P, C, 0.9, 1.0)
+    cands["global GBM (MAPE-weighted L1, scaled deviations)"] = F_gbm
+    cands["global GBM, small forecasts zeroed (threshold tuned)"] = vol_fc[o]
+    for name, f in cands.items():
+        vol_rows.append({"fold": str((o + pd.Timedelta(days=1)).date()), "method": name, "accounts": int(m.sum()),
+                         **evaluate(A[m], f[m])})
+vol = pd.DataFrame(vol_rows)
+print("zeroing thresholds chosen (share of typical size):", vol_c)
+vol_summary = vol.groupby("method")[METRICS].mean().sort_values("MAPE (official)")
+display(vol_summary.round(1))
+save_result(vol, "02_volatile_positive_by_fold", "Volatile positive accounts: all candidates by fold", index=False)
+save_result(vol_summary, "02_volatile_positive_summary", "Volatile positive accounts: mean over folds")
+
+# %%
+ref_v = vol_summary.loc["naive (last value)"]
+vol_verdict = pd.DataFrame({
+    f"accepted vs {ref}": {m: passes_decision_rule(vol_summary.loc[m], vol_summary.loc[ref]) for m in vol_summary.index if m != ref}
+    for ref in ("naive (last value)", "median of last 30 days")})
+display(vol_verdict)
+save_result(vol_verdict, "02_volatile_positive_decision_rule", "Decision-rule verdict for the volatile positive candidates")
+
+# %% [markdown]
+# ## 11. Putting the strategies together
+#
+# We now have a strategy for each group. Accounts in the near-zero group, which now includes the flagged ones, get the
+# gated calendar profile of section 8, with its gate tuned on the two windows before each cut-off. Stable accounts get
+# the best simple level, which we pick below. Volatile accounts get the global model with small forecasts set to zero.
+# Dormant accounts, which do not appear in the medium dataset, get the last balance. We score the whole pipeline on all
+# accounts, next to the baselines of Sprint 1 and the zero forecast, and we also report the scores without the single
+# account that contributes most to the error in each fold, since section 9 showed that one account can decide a fold.
+
+# %%
+stable_rows = []
+for o in origins:
+    e = cut[o]
+    T = B[:, :e]; A = B[:, e:e + HORIZON]
+    m = seg2_by_fold[o] == "stable positive"
+    for name, lvl in level_candidates(T).items():
+        stable_rows.append({"fold": str((o + pd.Timedelta(days=1)).date()), "method": name,
+                            **evaluate(A[m], np.broadcast_to(lvl[m, None], A[m].shape))})
+stable2 = pd.DataFrame(stable_rows).groupby("method")[METRICS].mean().sort_values("median per-account MAPE")
+display(stable2.round(1))
+save_result(stable2, "02_stable_revised_summary", "Stable positive accounts (revised rule): level candidates, mean over folds")
+
+# %% [markdown]
+# For the revised stable group the last balance is the best simple level on the typical account, so we keep it. The
+# weighted medians that helped near zero would only add error here.
+
+# %%
+def tune_gate(e, m):
+    """Gate threshold and profile factor for the cut-off e, tuned on the two windows before it using accounts in m."""
+    inner = [(e - 60, profile_parts(e - 60)), (e - 30, profile_parts(e - 30))]
+    scores = {(q, sh): sum(mape_official(B[m, ie:ie + HORIZON], gated(P, C, q, sh)[m]) for ie, (P, C) in inner)
+              for q in Q_GRID for sh in S_GRID}
+    return min(scores, key=scores.get)
+
+
+def recent_range_guard(G, T, days=30):
+    """Keep non-zero forecasts inside the range of the last `days` balances. A profile built on the last year knows
+    nothing about a level shift that has just happened."""
+    lo, hi = np.nanmin(T[:, -days:], 1)[:, None], np.nanmax(T[:, -days:], 1)[:, None]
+    return np.where(G != 0, np.clip(G, lo, hi), 0.0)
+
+
+def level_shift_guard(G, T, low=0.2, high=5.0):
+    """Forecast zero for accounts whose balance of the last 7 days is far from the median of the last year (ratio below
+    `low` or above `high`): a level shift has just happened and the yearly profile is stale."""
+    ratio = np.abs(np.nanmedian(T[:, -7:], 1)) / np.maximum(np.abs(np.nanmedian(T[:, -365:], 1)), EPS)
+    return np.where(((ratio < low) | (ratio > high))[:, None], 0.0, G)
+
+
+def pipeline_forecast(o, guard=True):
+    e = cut[o]
+    T = B[:, :e]
+    seg = seg2_by_fold[o]
+    F = np.repeat(T[:, -1:], HORIZON, 1).astype(float)                 # stable and dormant: last balance
+    near = seg == "near-zero / overdraft"
+    q, sh = tune_gate(e, near)
+    P, C = profile_parts(e)
+    G = gated(P, C, q, sh)
+    F[near] = (level_shift_guard(recent_range_guard(G, T), T) if guard else G)[near]
+    vol_m = seg == "volatile positive"
+    F[vol_m] = vol_fc[o][vol_m]
+    return F
+
+
+def metrics_without_top(A, F):
+    """Scores after removing the account with the largest total percentage error."""
+    ape = np.abs(A - F) / np.where(A == 0, np.nan, np.abs(A))
+    keep = np.arange(len(A)) != np.nanargmax(np.nansum(ape, 1))
+    return evaluate(A[keep], F[keep])
+
+
+all_rows, seg_rows = [], []
+for o in origins:
+    e = cut[o]
+    T = B[:, :e]; A = B[:, e:e + HORIZON]
+    fold = str((o + pd.Timedelta(days=1)).date())
+    F_pipe = pipeline_forecast(o)
+    systems = {"zero (forecast 0)": np.zeros_like(A),
+               "naive (last value)": np.repeat(T[:, -1:], HORIZON, 1),
+               "median of last 30 days": np.repeat(fill(np.nanmedian(T[:, -30:], 1), T[:, -1])[:, None], HORIZON, 1),
+               "segment pipeline": F_pipe,
+               "segment pipeline, no recent-range guard": pipeline_forecast(o, guard=False)}
+    for name, F in systems.items():
+        all_rows.append({"fold": fold, "system": name, "version": "all accounts", **evaluate(A, F)})
+        all_rows.append({"fold": fold, "system": name, "version": "without the largest contributor", **metrics_without_top(A, F)})
+    for sname in ("near-zero / overdraft", "stable positive", "volatile positive"):
+        mm = seg2_by_fold[o] == sname
+        for name in ("naive (last value)", "segment pipeline", "segment pipeline, no recent-range guard"):
+            seg_rows.append({"fold": fold, "segment": sname, "system": name, **evaluate(A[mm], systems[name][mm])})
+overall = pd.DataFrame(all_rows)
+by_segment = pd.DataFrame(seg_rows).groupby(["segment", "system"])[METRICS].mean()
+for v in ("all accounts", "without the largest contributor"):
+    print(f"\n=== {v} ===")
+    display(overall[overall.version == v].groupby("system")[METRICS].mean().sort_values("MAPE (official)").round(1))
+print("\n=== by segment ===")
+display(by_segment.round(1))
+display(overall[overall.version == "all accounts"].pivot(index="fold", columns="system", values="MAPE (official)").round(1))
+save_result(overall, "02_pipeline_by_fold", "Segment pipeline vs baselines on all accounts, by fold, with and without the largest contributor", index=False)
+save_result(by_segment, "02_pipeline_by_segment", "Segment pipeline vs last value, by segment (mean over folds)")
+
+# %%
+verdicts = {}
+for v in ("all accounts", "without the largest contributor"):
+    sm = overall[overall.version == v].groupby("system")[METRICS].mean()
+    verdicts[v] = {f"vs {ref}": passes_decision_rule(sm.loc["segment pipeline"], sm.loc[ref])
+                   for ref in ("naive (last value)", "median of last 30 days", "zero (forecast 0)")}
+pipe_verdict = pd.DataFrame(verdicts).T
+display(pipe_verdict)
+save_result(pipe_verdict, "02_pipeline_decision_rule", "Decision-rule verdict of the segment pipeline (rows: all accounts / without the largest contributor)")
+
+# %% [markdown]
+# ## 12. What the segment pipeline tells us
+#
+# The pipeline is a clear improvement in some places and not in others, and the overall numbers hide this.
+#
+# On the volatile positive accounts the global model is the best candidate by a wide margin. With small forecasts set to
+# zero it brings the official MAPE to 98%, below the zero forecast, and it cuts the typical-account error from 67% (last
+# balance) to 55% and the error on balances of at least €100 from 86% to 53%. Without the zeroing the typical error is
+# 50%, so the zeroing buys the official score at the price of some accuracy, and the threshold we tune keeps that price
+# under 10% on the inner window. It is accepted against both baselines. This is where the ML model earns its place:
+# the weighted medians and the calendar profile alone reached only 63 to 75% on the typical account.
+#
+# On the stable positive accounts nothing beats the last balance (7.7% on the typical account), so we keep it.
+#
+# On the near-zero group, which now includes the flagged accounts, the pipeline gets a typical error of 100% and 88%
+# on balances of at least €100, against 154% and 142% for the last balance, and an official score equal to zero. The
+# recent-range and level-shift guards matter here. Without them, an account that had just lost its whole balance kept
+# a forecast of €62 000 and produced an error of more than 500 000 percentage points on its own.
+#
+# Over all accounts the official MAPE of the pipeline is 628%, against 1 303% for the last balance, and it is dominated by
+# the single account of section 9 that falls from €134 000 to €2 in one fold: the pipeline scores between 76% and 88% in
+# the four other folds. Without the largest contributor of each fold the official MAPE is 73%, and the zero forecast
+# scores 100%. By the decision rule the pipeline is accepted against the zero forecast only when the largest contributor
+# is left out, and it is not accepted against the last balance or the median of the last 30 days in either version. The reason is the typical account: the pipeline's median error of 75% is worse
+# than the 69% of the last balance, because near-zero accounts that the last balance forecast well are now forecast with
+# zero or a gated profile, which costs them about 100%. The official and the large-balance measures improve a lot, but a
+# typical-account guard says that we have traded some accounts that were fine for others that were not.
+#
+# That is a useful result and it points to the next step. The segment is too coarse for the near-zero group: inside it,
+# some accounts are predictable with a simple level and others are not. A per-account choice between the last balance
+# and the zero or profile forecast, made on the inner windows, is the natural refinement, and we leave it for the
+# next iteration together with a proper model for the stable accounts (ETS or ARIMA) that can be compared with the last
+# balance on the same footing. Dormant accounts could not be tested because the medium dataset has none, and they stay
+# on the last balance. We also note that the official MAPE of the whole dataset can be moved by one account in one
+# fold, so every future comparison reports it with and without the largest contributor.
+
+# %% [markdown]
+# ## 12. Index of saved results
 
 # %%
 index = pd.DataFrame(saved_files)

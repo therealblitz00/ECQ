@@ -27,7 +27,7 @@ Each sprint notebook writes every analysis table to `data/sprintN/` via `save_re
 - `*prepared_balances*.csv` is the full prepared dataset (bank data) — git-ignored.
 
 ## Data
-- `data/raw/small_dataset.csv` (50 accounts) — exactly the first 50 rows of `data/raw/medium-dataset.csv` (500 accounts).
+- `data/raw/small-dataset.csv` (50 accounts) — exactly the first 50 rows of `data/raw/medium-dataset.csv` (500 accounts).
 - Wide format: `ACCOUNT_ID` + one column per day, 2020-01-02 → 2022-12-31 (1095 days).
 - Known issues: ~1% missing, ~22% negative balances, a few exact zeros; balances often flat for days.
 

@@ -34,6 +34,7 @@ Forecast each client's daily account balance for the **next 30 days**, evaluated
 - **Baselines (mean of 5 folds):** the ranking depends on the metric. Official MAPE: last value wins (1 303% vs 3 033% for the 30-day median). Median per-account MAPE: 30-day median wins (66.5% vs 68.8%). MAPE on |actual| ≥ €100: 30-day median wins (71.5% vs 88.7%). The official MAPE is dominated by near-zero actuals.
 - **Decision (model selection):** the official MAPE (leaving out only exact zeros) ranks models, but a model is accepted only if it does not get worse than the reference on the median per-account MAPE and on the MAPE for |actual| ≥ €100 (`passes_decision_rule`, notebook §17).
 - **Decision (segmentation):** the four rule-based segments of §15 (near-zero/overdraft, stable positive, volatile positive, dormant). The two-cluster map of D14 (~270 near-zero, ~230 stable positive) is a consistency check, not the segmentation.
+- **Zero floor (Sprint 2):** forecasting exactly 0 gives a MAPE of exactly 100% on every account, so for near-zero accounts every model must beat 100%; no constant level does (weighted median ≈ 100–120% official).
 - **EDA statistics for time series:** levels are random-walk-like, so §4 describes levels only by median, min, max and share negative, and reports mean, std, skewness and kurtosis on the daily changes. Jarque–Bera was removed (changes are autocorrelated and ARCH); normality is tested on model residuals in Sprint 2. §7 reports effect sizes (eta squared on per-date cross-account aggregates) instead of Kruskal–Wallis p-values.
 
 All Sprint 1 results are saved as CSV in `data/sprint1/` (start with `00_index.csv` and `00_account_features.csv`).
@@ -110,6 +111,8 @@ To do:
 
 ### Sprint 2 — Modelling: Forecasting Models (due 2026-11-26)
 - [x] Baselines: naive (last value), seasonal naive, mean/median (done in Sprint 1, §17)
+- [x] Level experiment for near-zero accounts (`notebooks/02_modelling.ipynb`, results in `data/sprint2/`): the MAPE-optimal weighted median cuts the near-zero official MAPE from ~1 600% (last value) to ~120%, but a forecast of exactly 0 scores 100% on every measure and nothing constant beats it. The two-step sign classifier + MAE size (~610%) and + MAPE size (~160%) both lose to the plain weighted median. On stable positive accounts the weighted median is worse than the last value, so segmenting is justified.
+- [ ] Beat the zero floor (100% MAPE) on near-zero accounts with calendar-aware forecasts (day of month, end of month, the 8th)
 - [ ] Statistical models: ETS, ARIMA/SARIMA
 - [ ] Inflow of the 8th: July/December as special months; January 2023 inflow on Monday 9 with an ordinary amount (D3)
 - [ ] COVID interruption: test an interruption flag or down-weighting (Mar–May 2020, Jan–Feb 2021) for models that use the whole history (§13)

@@ -1,0 +1,6 @@
+file,description,rows,columns
+02_level_experiment_by_fold.csv,"Constant-level candidates by fold and segment, all metrics",100,7
+02_tuned_parameters.csv,Parameters chosen on the inner windows for each fold,5,3
+02_level_experiment_summary_near_zero.csv,Mean over folds of each metric for the near-zero / overdraft segment,12,3
+02_level_experiment_summary_stable.csv,Mean over folds of each metric for the stable positive segment,8,3
+02_decision_rule_near_zero.csv,Decision-rule verdict of every near-zero candidate against the two baselines,12,3

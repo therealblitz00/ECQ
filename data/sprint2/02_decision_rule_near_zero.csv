@@ -1,0 +1,13 @@
+,accepted vs naive (last value),accepted vs median of last 30 days,accepted vs zero (forecast 0)
+zero (forecast 0),True,True,
+"weighted median, tuned shrinkage",True,True,False
+"weighted median, tuned sign-uncertainty shrinkage",True,True,False
+"weighted median, N=180",True,True,False
+"weighted median, N=90",True,True,False
+"weighted median, N=365",True,True,False
+two-step: sign classifier + weighted-median size (MAPE),True,True,False
+"weighted median, N=60",True,True,False
+"weighted median, N=30",True,True,False
+two-step: sign classifier + median size (MAE),True,False,False
+median of last 30 days,True,,False
+naive (last value),,False,False

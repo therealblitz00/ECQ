@@ -341,64 +341,58 @@ plt.ylabel("share"); plt.tight_layout(); plt.show()
 # With a calendar we can trust, we can describe the accounts themselves. They differ so much in size that a single
 # average would hide almost everything, so we describe each account separately and then look at how those descriptions
 # are spread across accounts. We treat the level of the balance and its daily changes separately, since they behave
-# very differently.
+# very differently. For the levels we keep only descriptions that stay meaningful when a series wanders: the median, the
+# extremes and the share of negative balances. A mean, a standard deviation, a skewness or a kurtosis of the levels
+# would depend on the period we happen to look at, because a balance that behaves like a random walk has no stable
+# average to estimate. Those four moments are therefore computed on the daily changes, which are stationary.
 
 # %%
 B = bal.to_numpy()
 dB = np.diff(B, axis=1)
 
 per_account = pd.DataFrame({
-    "mean": np.nanmean(B, 1),
     "median": np.nanmedian(B, 1),
-    "std": np.nanstd(B, 1),
     "min": np.nanmin(B, 1),
     "max": np.nanmax(B, 1),
-    "skewness": stats.skew(B, axis=1, nan_policy="omit"),
-    "excess_kurtosis": stats.kurtosis(B, axis=1, nan_policy="omit"),
     "share_negative": np.nanmean(np.where(np.isnan(B), np.nan, B < 0), 1),
     "share_days_changed": np.sum((dB != 0) & ~np.isnan(dB), 1) / np.sum(~np.isnan(dB), 1),
+    "mean_change": np.nanmean(dB, 1),
+    "std_change": np.nanstd(dB, 1),
+    "skewness_changes": stats.skew(dB, axis=1, nan_policy="omit"),
+    "excess_kurtosis_changes": stats.kurtosis(dB, axis=1, nan_policy="omit"),
 }, index=bal.index)
-per_account["cv"] = per_account["std"] / per_account["mean"].abs()
 
 display(per_account.describe(percentiles=[0.05, 0.25, 0.5, 0.75, 0.95]).T.round(2))
 
 fig, axes = plt.subplots(1, 3, figsize=(15, 3.8))
 axes[0].hist(per_account["median"], bins=60, color="tab:blue")
 axes[0].set_xscale("symlog", linthresh=100); axes[0].set(title="Median balance per account (symlog)", xlabel="EUR")
-axes[1].hist(per_account["skewness"].clip(-10, 10), bins=50, color="tab:orange")
-axes[1].set(title="Skewness of levels per account (clipped ±10)")
+axes[1].hist(per_account["skewness_changes"].clip(-10, 10), bins=50, color="tab:orange")
+axes[1].set(title="Skewness of daily changes per account (clipped ±10)")
 axes[2].hist(per_account["share_days_changed"], bins=40, color="tab:green")
 axes[2].set(title="Share of days with a balance change")
 plt.tight_layout(); plt.show()
 
-# %% [markdown]
-# Many classical models, ARIMA among them, assume that the shocks hitting a series are roughly normal. We check that
-# assumption on the daily changes of each account, on business days only, with the Jarque–Bera test.
-
 # %%
 test_ids = sample_accounts(bal.index, MAX_TEST_ACCOUNTS)
-business = (bal.columns[1:].dayofweek < 5)
-jb_p = []
-for acc in test_ids:
-    x = np.diff(bal.loc[acc].dropna().to_numpy())
-    x = x[business[-len(x):]] if len(x) else x
-    jb_p.append(stats.jarque_bera(x).pvalue if len(x) > 30 else np.nan)
-jb_p = pd.Series(jb_p, index=test_ids)
-per_account["jarque_bera_p_changes"] = jb_p
 save_result(per_account, "04_per_account_statistics",
-            "Per account: mean, median, std, min, max, skewness, kurtosis, share negative, activity, CV, JB p-value")
+            "Per account: median, min, max, share negative, activity; mean, std, skewness and kurtosis of the daily changes")
 save_result(per_account.describe(percentiles=[0.05, 0.25, 0.5, 0.75, 0.95]).T, "04_per_account_statistics_summary",
             "Distribution across accounts of the per-account statistics")
-print(f"Jarque-Bera rejects normality of daily changes (p < 0.05) for {100 * (jb_p < 0.05).mean():.1f}% "
-      f"of {len(test_ids)} accounts")
 
 # %% [markdown]
 # The accounts span several orders of magnitude: some typical balances are a few euros, others hundreds of thousands.
 # Any model that learns from many accounts at once will therefore have to work on a scaled version of the balance. The
-# levels are skewed with heavy tails, and the daily changes are far from normal for every account we tested. That is
-# not surprising once we remember what a daily change is: on most days nothing happens and the change is exactly zero,
-# and on a few days a salary or a large transfer produces a big jump. Balances are piecewise constant, which already
-# suggests that simply carrying the recent level forward will be a strong benchmark.
+# daily changes are strongly skewed with very heavy tails. That is not surprising once we remember what a daily change
+# is: on most days nothing happens and the change is exactly zero, and on a few days a salary or a large transfer
+# produces a big jump. Balances are piecewise constant, which already suggests that simply carrying the recent level
+# forward will be a strong benchmark.
+#
+# We deliberately do not test the normality of these changes here. Tests such as Jarque–Bera assume independent
+# observations with constant variance, and sections 11 and 12 show that the changes are autocorrelated and have ARCH
+# effects, so a p-value computed now could not be trusted. Normality is a property of the residuals of a fitted model,
+# so we will test it in Sprint 2 on the residuals of the ARIMA models, which is where it matters. For now the skewness
+# and kurtosis above are only a description.
 
 # %% [markdown]
 # ## 5. The zero problem
@@ -441,10 +435,13 @@ illus
 # a €5 balance. A handful of near-zero days can therefore outweigh thousands of well-forecast ones in the official
 # score.
 #
-# We will keep the official MAPE as the number that decides between models. To understand it, we will always report two
-# companions: the median MAPE across accounts, which describes the typical account, and the MAPE computed only on
-# balances of at least €100. When the official number is far above both, we will know the near-zero balances are to
-# blame. This also hints at a modelling idea for Sprint 2: when a balance might be close to zero, a smaller forecast in
+# We will not let the official MAPE alone decide between models, because a handful of near-zero days can make it
+# unstable (section 17 shows two baselines whose official scores differ by a factor of two while the typical account
+# says the opposite). Our decision rule has two parts. The official MAPE, leaving out only the exact zeros where it is
+# undefined, ranks the models, since it is what the organisers will use. But a model is only accepted if it does not
+# get worse than the reference on the other two measures: the median MAPE across accounts, which describes the typical
+# account, and the MAPE computed only on balances of at least €100. When the official number is far above both, we
+# will know the near-zero balances are to blame. This also hints at a modelling idea for Sprint 2: when a balance might be close to zero, a smaller forecast in
 # absolute value is the safer bet, because over-forecasting a small balance is punished far more than the opposite.
 
 # %% [markdown]
@@ -555,24 +552,29 @@ sns.heatmap(heat, cmap="mako_r", ax=ax, cbar_kws={"label": "share with large inf
 ax.set(title="Large inflows by month × day of month (business days)"); plt.tight_layout(); plt.show()
 
 # %% [markdown]
-# The pictures suggest clear patterns, and we check that they are not chance with the Kruskal–Wallis test, a
-# comparison of groups that does not assume normal data.
+# The pictures suggest clear patterns, and we want to know how strong they are. A significance test such as
+# Kruskal–Wallis is not appropriate here: it assumes independent observations, but the days of one account are
+# correlated and all accounts move on the same days, and with millions of points any difference would come out
+# significant anyway. Instead we measure the size of the effect. We first average each indicator across accounts for
+# every business day, which removes the dependence between accounts, and then ask how much of the variation of that
+# daily series is explained by the weekday, the day of the month or the month (eta squared, between 0 and 1).
 
 # %%
-pts = pd.DataFrame({"rel": rel.ravel(),
-                    "weekday": np.tile(cd.dayofweek, rel.shape[0]),
-                    "day": np.tile(cd.day, rel.shape[0]),
-                    "month": np.tile(cd.month, rel.shape[0])}).dropna()
-pts = pts[pts.weekday < 5]
-if len(pts) > 2_000_000:
-    pts = pts.sample(2_000_000, random_state=RANDOM_STATE)
-kw = {}
-for g in ["weekday", "day", "month"]:
-    groups = [v.to_numpy() for _, v in pts.groupby(g)["rel"]]
-    h, p = stats.kruskal(*groups)
-    kw[g] = {"H statistic": round(h, 1), "p-value": p}
-kw = pd.DataFrame(kw).T
-display(kw)
+bdays = cal[cal.weekday < 5]
+indicators = ["share_changing", "large_inflow", "large_outflow"]
+
+
+def eta_squared(values, groups):
+    """Share of the variance of `values` explained by the group means."""
+    v = np.asarray(values, float)
+    total = np.sum((v - v.mean()) ** 2)
+    between = sum(len(g) * (g.mean() - v.mean()) ** 2 for _, g in pd.Series(v).groupby(np.asarray(groups)))
+    return between / total if total > 0 else np.nan
+
+
+effects = pd.DataFrame({ind: {g: eta_squared(bdays[ind], bdays[g]) for g in ["weekday", "day", "month"]}
+                        for ind in indicators}).round(3)
+display(effects)
 
 # Holidays (business days only)
 bd = cal[cal.weekday < 5]
@@ -580,10 +582,16 @@ is_hol = np.array([d in pt_holidays for d in bd.index])
 holiday_effect = pd.DataFrame({"holiday": bd[is_hol][["share_changing", "large_inflow"]].mean(),
                                "normal business day": bd[~is_hol][["share_changing", "large_inflow"]].mean()}).round(3)
 display(holiday_effect)
-save_result(kw, "07_kruskal_wallis", "Kruskal-Wallis tests of relative daily change by weekday, day of month, month")
+save_result(effects, "07_calendar_effect_sizes", "Eta squared of daily cross-account activity indicators by weekday, day of month, month (business days)")
 save_result(holiday_effect, "07_holiday_effect", "Activity on Portuguese public holidays vs normal business days")
 
 # %% [markdown]
+# The effect sizes confirm what the pictures suggest. On the medium dataset the day of the month explains about 60% of
+# the variation in the share of accounts with a large inflow, which is the salary and pension signal, while the
+# weekday explains about 45% of the share of accounts that move at all and about half of the large outflows. The month
+# of the year explains almost nothing (below 5% for every indicator). These are descriptive measures of strength, not
+# tests, so we read them only as a ranking of which calendar features deserve a place in the models.
+#
 # The weekly rhythm is now the expected one: money moves on business days only. Monday is the busiest day, because it
 # absorbs everything that happened over the weekend, and Friday comes second.
 #
@@ -1237,6 +1245,13 @@ plt.tight_layout(); plt.show()
 # percentage errors will explode. Dormant accounts barely move, but they too can sit close to zero, where even a tiny
 # change becomes a huge percentage. Stable positive accounts should be easy, and volatile positive accounts are where
 # seasonal and ARIMA models have the most room to add value.
+#
+# We will use these four rule-based groups as our segmentation in Sprint 2. The rules are transparent, they can be
+# recomputed in the same way on the large dataset, and they separate behaviours that need different treatment. Later
+# (D14) a clustering of the accounts finds only two groups, around 270 accounts near zero and 230 stable positive
+# ones. We read that as a check of these groups, not as an alternative: the clusters agree with the rules on the main
+# line, the distance from zero, but they cannot separate dormant from volatile accounts, and a clustering fitted again
+# on the large dataset could change its composition.
 
 # %% [markdown]
 # # Part D · Looking closer
@@ -2459,12 +2474,37 @@ summary.round(1)
 # %% [markdown]
 # The official MAPE is huge for every simple forecast and jumps from fold to fold, driven by a few near-zero balances, as
 # section 5 predicted. The two companion measures are far lower and much more stable. The ranking also depends on the
-# measure: the last balance does best on the official score, while the median of the last 30 days does best on the
-# typical account and on balances above €100. Repeating last week's path is never the best, since it copies last
-# week's noise.
+# measure: the last balance does best on the official score (about 1 300% against 3 000% for the median), while the
+# median of the last 30 days does best on the typical account (66.5% against 68.8%) and on balances above €100 (71.5%
+# against 88.7%). Repeating last week's path is never the best, since it copies last week's noise.
 #
-# These numbers are the benchmark for Sprint 2. The disagreement between measures is itself a result: it confirms that
-# the near-zero accounts need their own strategy.
+# This disagreement forces a decision on how to choose the best model. We considered three options: decide by the
+# official MAPE alone, decide by the typical account or the balances above €100, or decide by the official MAPE while
+# requiring that the model does not get worse on the other two. We take the third. The official MAPE is what the
+# organisers will compute, so it must rank the models, but it is unstable, so on its own it would reward luck on a
+# few near-zero days. The two companion measures act as a guard against that. The function below states the rule, and
+# we will use it unchanged in Sprint 2.
+
+# %%
+def passes_decision_rule(candidate, reference, tolerance=0.0):
+    """A candidate is accepted if it improves the official MAPE and does not get worse (beyond `tolerance`,
+    as a fraction) than the reference on the median per-account MAPE and on the MAPE for |actual| >= NEAR_ZERO."""
+    guards = ["median per-account MAPE", f"MAPE |actual|>={NEAR_ZERO:.0f}"]
+    better = candidate["MAPE (official)"] < reference["MAPE (official)"]
+    safe = all(candidate[m] <= reference[m] * (1 + tolerance) for m in guards)
+    return bool(better and safe)
+
+
+reference = summary.loc["naive (last value)"]
+rule_check = pd.Series({m: passes_decision_rule(summary.loc[m], reference) for m in summary.index if m != "naive (last value)"},
+                       name=f"accepted against '{reference.name}'")
+display(rule_check.to_frame())
+
+# %% [markdown]
+# None of the simple forecasts is accepted against the last balance, which is the expected result: each one wins on
+# some measure and loses on another, so no baseline dominates. That is exactly the situation the rule is built for, and
+# the models of Sprint 2 will have to improve all three measures at once. These numbers are the benchmark to beat. The
+# disagreement between measures is itself a result: it confirms that the near-zero accounts need their own strategy.
 
 # %% [markdown]
 # ## 18. What we take into Sprint 2
@@ -2480,9 +2520,12 @@ summary.round(1)
 # good calendar information, evaluated on folds that include January.
 #
 # The real difficulty, however, lies in the metric. A large share of balances lives near zero, and the oracle showed
-# that most of the official error comes from choosing the wrong level for those accounts.
+# that most of the official error comes from choosing the wrong level for those accounts. Because of this, models will
+# be chosen by the official MAPE but only accepted if they do not worsen the typical-account MAPE or the MAPE on
+# balances of at least €100 (section 17).
 #
-# This gives Sprint 2 a clear plan with three parts. First, two strategies instead of one. The accounts split along
+# This gives Sprint 2 a clear plan with three parts. First, two strategies instead of one, applied to the four
+# rule-based segments of section 15 (the clustering of D14 only confirms the main dividing line). The accounts split along
 # their distance from zero (D14), and the ratio between a balance and its recent volatility tells us in advance which
 # accounts are at risk of crossing zero (D12). Stable accounts far from zero get the forecasting models; accounts that
 # live around zero get a dedicated strategy built for MAPE, leaning the forecast towards zero when the sign is

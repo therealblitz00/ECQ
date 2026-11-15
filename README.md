@@ -31,7 +31,10 @@ Forecast each client's daily account balance for the **next 30 days**, evaluated
 - **Two kinds of accounts:** the feature map splits accounts mainly by distance from zero — ~230 stable positive accounts (naive median MAPE ≈ 26%) vs ~270 accounts living around zero (≈ 260%).
 - **Modelling hints:** flows are lumpy (Syntetos–Boylan) → forecast levels, not flows; seasonal patterns stable across years but too weak for seasonal differencing → calendar regressors/Fourier terms; asinh scaling for global models; ~40% of accounts keep non-linear structure (BDS) → room for tree-based ML.
 - **Oracle:** the best constant level per account reaches an official MAPE of ~44% vs ~1 300% for the naive forecast — most of the error is choosing the wrong level for near-zero accounts.
-- **Baselines (mean of 5 folds):** median of last 30 days → 71.5% MAPE on |actual| ≥ €100; official pooled MAPE > 1 000% for all baselines (dominated by near-zero actuals).
+- **Baselines (mean of 5 folds):** the ranking depends on the metric. Official MAPE: last value wins (1 303% vs 3 033% for the 30-day median). Median per-account MAPE: 30-day median wins (66.5% vs 68.8%). MAPE on |actual| ≥ €100: 30-day median wins (71.5% vs 88.7%). The official MAPE is dominated by near-zero actuals.
+- **Decision (model selection):** the official MAPE (leaving out only exact zeros) ranks models, but a model is accepted only if it does not get worse than the reference on the median per-account MAPE and on the MAPE for |actual| ≥ €100 (`passes_decision_rule`, notebook §17).
+- **Decision (segmentation):** the four rule-based segments of §15 (near-zero/overdraft, stable positive, volatile positive, dormant). The two-cluster map of D14 (~270 near-zero, ~230 stable positive) is a consistency check, not the segmentation.
+- **EDA statistics for time series:** levels are random-walk-like, so §4 describes levels only by median, min, max and share negative, and reports mean, std, skewness and kurtosis on the daily changes. Jarque–Bera was removed (changes are autocorrelated and ARCH); normality is tested on model residuals in Sprint 2. §7 reports effect sizes (eta squared on per-date cross-account aggregates) instead of Kruskal–Wallis p-values.
 
 All Sprint 1 results are saved as CSV in `data/sprint1/` (start with `00_index.csv` and `00_account_features.csv`).
 
@@ -82,8 +85,8 @@ Done:
 - [x] Calendar audit: Aug-2022 date-convention change detected and realigned; corrupted 2022-08-05 repaired
 - [x] Zeros, negatives and near-zero balances quantified; three-metric evaluation protocol defined
 - [x] Duplicates, impossible values (none), extreme moves (heavy tails; mostly permanent level shifts)
-- [x] Descriptive statistics per account and globally, normality (Jarque–Bera) and distributions
-- [x] Calendar relationships: weekday, day of month, month, holidays (heatmaps + Kruskal–Wallis)
+- [x] Descriptive statistics per account and globally (moments on daily changes, not levels) and distributions
+- [x] Calendar relationships: weekday, day of month, month, holidays (heatmaps + effect sizes)
 - [x] Decomposition (MSTL, weekly + monthly) and component strengths
 - [x] Stationarity (ADF/KPSS on levels and differences), ACF/PACF, Ljung–Box, ARCH-LM
 - [x] Structural changes across years
@@ -102,6 +105,7 @@ Done:
 
 To do:
 - [ ] Re-run the notebook after the additions above: build the `.ipynb` from the `.py` with jupytext, execute it and refresh `data/sprint1/` (the committed `.ipynb` and CSVs predate them)
+- [ ] Re-run needed after the EDA corrections (§4, §7), the decision rule (§17) and the segmentation text (§15): needs Python 3.13 venv and `data/raw/` CSVs, which were not available when the edits were made
 - [ ] Group review of the notebook and its conclusions
 
 ### Sprint 2 — Modelling: Forecasting Models (due 2026-11-26)
@@ -110,7 +114,8 @@ To do:
 - [ ] Inflow of the 8th: July/December as special months; January 2023 inflow on Monday 9 with an ordinary amount (D3)
 - [ ] COVID interruption: test an interruption flag or down-weighting (Mar–May 2020, Jan–Feb 2021) for models that use the whole history (§13)
 - [ ] ML / global models (e.g. LightGBM with lags and calendar features)
-- [ ] Compare models by MAPE under the defined validation scheme
+- [ ] Compare models by MAPE under the defined validation scheme, using the decision rule (official MAPE ranks, no worsening on the two companion measures)
+- [ ] Test normality (Jarque–Bera / Q–Q) on the residuals of the ARIMA models
 
 ### Sprint 3 — Anomalies + Optimizations (due 2026-12-03)
 - [ ] Identify and explain the anomalies found (in the data and in forecast errors)

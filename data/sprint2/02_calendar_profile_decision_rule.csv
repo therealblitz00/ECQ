@@ -1,0 +1,6 @@
+,accepted against the zero forecast
+"gated calendar profile, tuned",True
+"gated calendar profile, q=0.9 (fixed)",True
+"calendar profile, halved",False
+"weighted median, N=180 (constant)",False
+calendar profile,False

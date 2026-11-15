@@ -112,7 +112,10 @@ To do:
 ### Sprint 2 — Modelling: Forecasting Models (due 2026-11-26)
 - [x] Baselines: naive (last value), seasonal naive, mean/median (done in Sprint 1, §17)
 - [x] Level experiment for near-zero accounts (`notebooks/02_modelling.ipynb`, results in `data/sprint2/`): the MAPE-optimal weighted median cuts the near-zero official MAPE from ~1 600% (last value) to ~120%, but a forecast of exactly 0 scores 100% on every measure and nothing constant beats it. The two-step sign classifier + MAE size (~610%) and + MAPE size (~160%) both lose to the plain weighted median. On stable positive accounts the weighted median is worse than the last value, so segmenting is justified.
-- [ ] Beat the zero floor (100% MAPE) on near-zero accounts with calendar-aware forecasts (day of month, end of month, the 8th)
+- [x] Beat the zero floor on near-zero accounts with a calendar profile (weighted median of same-day-of-month balances) gated by sign agreement: official MAPE 95.9% (tuned gate) / 96.7% (q=0.9) vs 100% for zero, lower than zero in 5/5 and 3/5 folds, but the gate lets the profile through on only 11–30% of account-days
+- [x] Stable accounts ending near zero: one unpredictable account (€134k → €2) produces ~all of one fold's segment error; a warning flag (min of last year < 20% of median) isolates accounts that are not really stable (typical error 26% vs 8%)
+- [ ] Add the 20%-of-median condition to the stable segment rule and route flagged accounts to the near-zero strategy; report stable-group MAPE with and without the largest contributor
+- [ ] Models for volatile positive and dormant segments (not yet evaluated)
 - [ ] Statistical models: ETS, ARIMA/SARIMA
 - [ ] Inflow of the 8th: July/December as special months; January 2023 inflow on Monday 9 with an ordinary amount (D3)
 - [ ] COVID interruption: test an interruption flag or down-weighting (Mar–May 2020, Jan–Feb 2021) for models that use the whole history (§13)

@@ -427,11 +427,198 @@ axes[0].invert_yaxis(); plt.tight_layout(); plt.show()
 # What we take forward is a floor and a question. The floor is that every model for near-zero accounts must beat a
 # 100% MAPE, so the zero forecast becomes a reference of our decision rule. The question is how to do better than the
 # floor, which a constant level cannot. That needs the within-month movement: the day of the month, the end-of-month
-# salary and the 8th, so that the forecast moves with the calendar instead of staying flat. That is the next
-# experiment.
+# salary and the 8th, so that the forecast moves with the calendar instead of staying flat. Section 8 tests exactly
+# that, and section 9 returns to the stable accounts whose official score looked so odd.
 
 # %% [markdown]
-# ## 8. Index of saved results
+# ## 8. Can the calendar beat the zero floor?
+#
+# A constant level cannot go below 100% for accounts that cross zero all the time. But balances do not move at random:
+# salaries, pensions and debits come on fixed days of the month, so an account may be reliably positive on some days of
+# the month and reliably negative on others. We build a calendar profile for each account: for every day we want to
+# forecast, we take the balances the account had on the same day of the month (give or take two days) during the last
+# year, and keep their weighted median. This is the same MAPE-optimal estimator as before, now applied to days that
+# share a position in the month.
+#
+# A profile alone still carries the risk of being wrong about the sign, which is what costs so much in percentage terms.
+# So we add a gate: we only use the profile on days when at least a share q of the past balances for that day of the
+# month have the same sign as the profile, and we forecast zero otherwise. The idea is to take a risk only when the
+# account has been consistent. The share q, and whether to halve the profile, are chosen on the two 30-day windows
+# before each cut-off, like in section 4.
+
+# %%
+dom = bal.columns.day.to_numpy()          # day of the month of every column of the matrix
+
+
+def profile_parts(end, M=365, tol=2):
+    """For the HORIZON days after column `end`: calendar-profile level and the share of past same-day balances that have
+    the same sign as it. Uses columns before `end` only."""
+    hist = np.arange(max(0, end - M), end)
+    hd = dom[hist]
+    T = B[:, :end]
+    P = np.full((B.shape[0], HORIZON), np.nan)
+    C = np.full_like(P, np.nan)
+    for h in range(HORIZON):
+        diff = np.abs(hd - dom[end + h])
+        diff = np.minimum(diff, 31 - diff)                 # day 31 and day 1 are neighbours
+        X = T[:, hist[diff <= tol]]
+        med = weighted_median_inv(X)
+        P[:, h] = med
+        C[:, h] = np.nanmean(np.where(np.isnan(X), np.nan, np.sign(X) == np.sign(med)[:, None]), 1)
+    return np.where(np.isfinite(P), P, T[:, -1:]), C
+
+
+def gated(P, C, q, s):
+    """Profile (times s) on days with sign agreement >= q, zero otherwise."""
+    return np.where(C >= q, P * s, 0.0)
+
+
+Q_GRID, S_GRID = [0.6, 0.7, 0.8, 0.9, 1.0], [1.0, 0.5]
+Q_FIXED = 0.9
+cal_rows, cal_params = [], []
+for o in origins:
+    e = cut[o]
+    A = B[:, e:e + HORIZON]
+    m = seg_by_fold[o] == "near-zero / overdraft"
+    # tune q and s on the two inner windows
+    inner = [(e - 60, profile_parts(e - 60)), (e - 30, profile_parts(e - 30))]
+    scores = {}
+    for q in Q_GRID:
+        for sh in S_GRID:
+            scores[(q, sh)] = sum(mape_official(B[m, ie:ie + HORIZON], gated(P, C, q, sh)[m]) for ie, (P, C) in inner)
+    q_best, s_best = min(scores, key=scores.get)
+    cal_params.append({"fold": str((o + pd.Timedelta(days=1)).date()), "q": q_best, "profile factor": s_best})
+    P, C = profile_parts(e)
+    cands = {"zero (forecast 0)": np.zeros_like(A),
+             "weighted median, N=180 (constant)": np.repeat(fill(weighted_median_inv(B[:, e - 180:e]), B[:, e - 1])[:, None], HORIZON, 1),
+             "calendar profile": P,
+             "calendar profile, halved": 0.5 * P,
+             f"gated calendar profile, q={Q_FIXED} (fixed)": gated(P, C, Q_FIXED, 1.0),
+             "gated calendar profile, tuned": gated(P, C, q_best, s_best)}
+    for name, f in cands.items():
+        cal_rows.append({"fold": str((o + pd.Timedelta(days=1)).date()), "method": name, **evaluate(A[m], f[m])})
+cal = pd.DataFrame(cal_rows)
+cal_params = pd.DataFrame(cal_params)
+cal_summary = cal.groupby("method")[METRICS].mean().sort_values("MAPE (official)")
+display(cal_params)
+display(cal_summary.round(1))
+save_result(cal, "02_calendar_profile_by_fold", "Near-zero accounts: calendar-profile forecasts by fold", index=False)
+save_result(cal_summary, "02_calendar_profile_summary", "Near-zero accounts: calendar-profile forecasts, mean over folds")
+save_result(cal_params, "02_calendar_profile_tuned_parameters", "Gate threshold and profile factor chosen on the inner windows", index=False)
+
+# %%
+zero_ref = cal_summary.loc["zero (forecast 0)"]
+cal_verdict = pd.Series({m: passes_decision_rule(cal_summary.loc[m], zero_ref) for m in cal_summary.index if m != zero_ref.name},
+                        name="accepted against the zero forecast")
+display(cal_verdict.to_frame())
+pivot = cal.pivot(index="fold", columns="method", values="MAPE (official)")
+wins = pivot.drop(columns="zero (forecast 0)").lt(pivot["zero (forecast 0)"], axis=0)
+display(wins.sum().rename("folds (of 5) with a lower official MAPE than zero").to_frame())
+display(pivot.round(1))
+save_result(cal_verdict.to_frame(), "02_calendar_profile_decision_rule", "Decision-rule verdict against the zero forecast")
+
+# share of near-zero account-days on which the gate lets the profile through
+cover = {}
+for o, (q_t, s_t) in zip(origins, zip(cal_params["q"], cal_params["profile factor"])):
+    m = seg_by_fold[o] == "near-zero / overdraft"
+    _, C = profile_parts(cut[o])
+    cover[str((o + pd.Timedelta(days=1)).date())] = {"q=0.9 (fixed)": 100 * np.mean(C[m] >= Q_FIXED),
+                                                     "tuned": 100 * np.mean(C[m] >= q_t)}
+coverage = pd.DataFrame(cover).T
+display(coverage.round(1).rename(columns=lambda c: f"% of days with a non-zero forecast, {c}"))
+save_result(coverage, "02_calendar_profile_coverage", "Share (%) of near-zero account-days where the gated profile is used instead of zero")
+
+# %% [markdown]
+# %% [markdown]
+# The calendar helps, but only when we are careful with it. The profile on its own is worse than zero on the official
+# score (129%), and even halved it stays above 100%, because on the days when the account is not where its history says
+# it should be, the percentage error is large. The gate changes that. Letting the profile through only when the past
+# balances of that day of the month agree on the sign brings the official MAPE to 96% to 97%, below the zero floor, and
+# lowers the MAPE on balances of at least €100 to 89% to 94%. The version tuned on the inner windows chose the strictest
+# gate (q = 1) in every fold and beat zero on the official score in all five folds. The fixed gate of 0.9 does so in
+# three folds, and its better score on the larger balances comes at the cost of being sometimes worse than zero.
+#
+# We should be honest about how small this gain is and where it comes from. The gate lets the profile through on only
+# 11% to 16% of the near-zero account-days (26% to 30% for q = 0.9), and on the rest the forecast is still zero. A
+# gain of four points on a base of 100 is real in the sense that it is consistent across folds and passes our decision
+# rule against the zero forecast, but it is modest, and the median MAPE of the typical account does not improve beyond
+# the floor (100% for the tuned version). In practice the calendar tells us on which days it is safe to forecast a
+# value and on which days we should not. It does not make these accounts predictable.
+
+# %% [markdown]
+# ## 9. Stable accounts that end near zero
+#
+# In section 6 the stable positive accounts had an official MAPE of around 2 000% for every candidate, while the typical
+# account was at 9 to 25%. Something must dominate the pooled score. We look at which accounts, and at whether they
+# could have been seen coming. For every fold we list the stable accounts whose balance gets within €100 of zero
+# during the test window, and the share of the segment's total percentage error that each account produces with the
+# last-balance forecast.
+
+# %%
+stable_rows = []
+for o in origins:
+    e = cut[o]
+    T = B[:, :e]; A = B[:, e:e + HORIZON]
+    m = seg_by_fold[o] == "stable positive"
+    last = T[:, -1]
+    R = T[:, -365:]
+    ape = np.abs(A - last[:, None]) / np.where(A == 0, np.nan, np.abs(A))
+    for i in np.where(m)[0]:
+        stable_rows.append({"fold": str((o + pd.Timedelta(days=1)).date()), "account": bal.index[i], "last balance": last[i],
+                            "median last year": np.nanmedian(R[i]), "min last year": np.nanmin(R[i]),
+                            "min / median": np.nanmin(R[i]) / np.nanmedian(R[i]),
+                            "min |actual|": np.nanmin(np.abs(A[i])), "error total": np.nansum(ape[i]),
+                            "ends near zero": np.nanmin(np.abs(A[i])) < NEAR_ZERO})
+st = pd.DataFrame(stable_rows)
+st["share of segment error"] = st["error total"] / st.groupby("fold")["error total"].transform("sum")
+display(st.sort_values("share of segment error", ascending=False).head(8).round(2))
+save_result(st, "02_stable_accounts_ending_near_zero", "Stable positive accounts: warning features and error contribution per fold", index=False)
+
+# %% [markdown]
+# One account in one fold produces practically all of the segment's error. Its balance, above €100 000, falls to a
+# few euros inside the window, and nothing in its history warns about it: its lowest balance of the last year was 88%
+# of its median. This is an event that no forecasting method could have predicted, and on its own it moves the pooled
+# score of that fold by about 100 percentage points. We cannot fix it, but we should keep it in mind when we compare
+# official scores, because a single account can decide a fold.
+#
+# The other accounts that end near zero look different: their lowest balance of the last year had already been a small
+# fraction of their usual level. This suggests a warning rule for the stable accounts, which we test next: flag those
+# whose lowest balance of the last year was below 20% of their median.
+
+# %%
+flag_rows = []
+for o in origins:
+    e = cut[o]
+    T = B[:, :e]; A = B[:, e:e + HORIZON]
+    seg = seg_by_fold[o]
+    R = T[:, -365:]
+    ratio = np.nanmin(R, 1) / np.nanmedian(R, 1)
+    base = seg == "stable positive"
+    ends_near = np.nanmin(np.abs(A), 1) < NEAR_ZERO
+    for name, mm in (("stable, all", base), ("stable, not flagged", base & (ratio >= 0.2)),
+                     ("stable, flagged (min < 20% of median)", base & (ratio < 0.2))):
+        flag_rows.append({"fold": str((o + pd.Timedelta(days=1)).date()), "group": name, "accounts": int(mm.sum()),
+                          "ending near zero": int((mm & ends_near).sum()), **evaluate(A[mm], T[mm, -1:])})
+flags = pd.DataFrame(flag_rows)
+flag_summary = flags.groupby("group")[["accounts", "ending near zero"] + METRICS].mean()
+display(flag_summary.round(1))
+save_result(flag_summary, "02_stable_warning_flag", "Stable positive accounts split by a warning flag (lowest balance below 20% of the median), last-value forecast")
+
+# %% [markdown]
+# The rule separates two very different groups. The 25 stable accounts per fold that are flagged have a typical error of
+# 26% with the last balance, against 8% for the others, and they are the ones that end near zero more often (2.2 of the
+# 2.6 accounts per fold that do so). So these accounts were not really stable, and the segment rule of Sprint 1, which
+# looks only at the average variation, lets them in. Among the accounts that are not flagged, the typical error falls from
+# 9.2% to 7.7%. The official MAPE of the unflagged group is still very high, but that is the single €134 000 account
+# discussed above, which the flag cannot see.
+#
+# We take two decisions forward. The segment rule gets an extra condition, so that a stable account must also have kept
+# its balance above 20% of its median during the last year, and the flagged accounts go to the near-zero strategy of
+# section 8. And we will report the official MAPE of the stable group together with its version without the largest
+# contributor, so that one unpredictable event does not decide a comparison between models.
+
+# %% [markdown]
+# ## 10. Index of saved results
 
 # %%
 index = pd.DataFrame(saved_files)

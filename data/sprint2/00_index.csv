@@ -4,3 +4,10 @@ file,description,rows,columns
 02_level_experiment_summary_near_zero.csv,Mean over folds of each metric for the near-zero / overdraft segment,12,3
 02_level_experiment_summary_stable.csv,Mean over folds of each metric for the stable positive segment,8,3
 02_decision_rule_near_zero.csv,Decision-rule verdict of every near-zero candidate against the two baselines,12,3
+02_calendar_profile_by_fold.csv,Near-zero accounts: calendar-profile forecasts by fold,30,5
+02_calendar_profile_summary.csv,"Near-zero accounts: calendar-profile forecasts, mean over folds",6,3
+02_calendar_profile_tuned_parameters.csv,Gate threshold and profile factor chosen on the inner windows,5,3
+02_calendar_profile_decision_rule.csv,Decision-rule verdict against the zero forecast,5,1
+02_calendar_profile_coverage.csv,Share (%) of near-zero account-days where the gated profile is used instead of zero,5,2
+02_stable_accounts_ending_near_zero.csv,Stable positive accounts: warning features and error contribution per fold,689,10
+02_stable_warning_flag.csv,"Stable positive accounts split by a warning flag (lowest balance below 20% of the median), last-value forecast",3,5

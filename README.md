@@ -104,8 +104,8 @@ Done:
 - [x] Small dataset check: key facts for the first 50 accounts vs all accounts (§19)
 
 To do:
-- [ ] Re-run the notebook after the additions above: build the `.ipynb` from the `.py` with jupytext, execute it and refresh `data/sprint1/` (the committed `.ipynb` and CSVs predate them)
-- [ ] Re-run needed after the EDA corrections (§4, §7), the decision rule (§17) and the segmentation text (§15): needs Python 3.13 venv and `data/raw/` CSVs, which were not available when the edits were made
+- [x] Re-run the notebook after the additions above: build the `.ipynb` from the `.py` with jupytext, execute it and refresh `data/sprint1/` (the committed `.ipynb` and CSVs predate them)
+- [x] Notebook rebuilt and re-run after the EDA corrections (§4, §7), the decision rule (§17) and the segmentation text (§15); `data/sprint1/` refreshed
 - [ ] Group review of the notebook and its conclusions
 
 ### Sprint 2 — Modelling: Forecasting Models (due 2026-11-26)

@@ -7,8 +7,8 @@ file,description,rows,columns
 03_holiday_check_old_convention.csv,Old date convention: activity on labels after/on holidays (supports label D = close of D-1),3,1
 03_realignment_check.csv,Checks of the realigned calendar and repaired day,3,1
 03_weekday_activity_before_after.csv,Share of accounts changing by weekday: raw vs realigned,7,2
-04_per_account_statistics.csv,"Per account: mean, median, std, min, max, skewness, kurtosis, share negative, activity, CV, JB p-value",500,11
-04_per_account_statistics_summary.csv,Distribution across accounts of the per-account statistics,11,10
+04_per_account_statistics.csv,"Per account: median, min, max, share negative, activity; mean, std, skewness and kurtosis of the daily changes",500,9
+04_per_account_statistics_summary.csv,Distribution across accounts of the per-account statistics,9,10
 05_near_zero_summary.csv,"Zeros, negatives and near-zero balances (MAPE risk)",5,1
 05_sign_type_per_account.csv,Per account: always positive / always negative / changes sign,500,1
 06_extremes_summary.csv,Extreme daily moves (robust z on non-zero changes) and spikes,6,1
@@ -18,7 +18,7 @@ file,description,rows,columns
 07_calendar_by_weekday.csv,Calendar effects aggregated by weekday,7,4
 07_calendar_by_day.csv,Calendar effects aggregated by day,31,4
 07_calendar_by_month.csv,Calendar effects aggregated by month,12,4
-07_kruskal_wallis.csv,"Kruskal-Wallis tests of relative daily change by weekday, day of month, month",3,2
+07_calendar_effect_sizes.csv,"Eta squared of daily cross-account activity indicators by weekday, day of month, month (business days)",3,3
 07_holiday_effect.csv,Activity on Portuguese public holidays vs normal business days,2,2
 09_mstl_strength_summary.csv,MSTL component strengths: median-account series and per-account median,3,2
 09_mstl_strength_per_account.csv,"Per account (sample): strength of trend, weekly and monthly components",500,3
@@ -88,4 +88,4 @@ D22_matrix_profile_per_account.csv,Per account (sample): motif and discord (most
 17_baselines_by_fold.csv,Baseline forecasts: all metrics per fold and model,20,5
 17_baselines_summary.csv,Baseline forecasts: metrics averaged over folds (reference for Sprint 2),4,3
 19_small_vs_all_accounts.csv,Key facts of the notebook: all accounts vs the first 50 (= the small dataset),19,2
-00_account_features.csv,"ONE ROW PER ACCOUNT: all per-account statistics, tests and segment",500,55
+00_account_features.csv,"ONE ROW PER ACCOUNT: all per-account statistics, tests and segment",500,53

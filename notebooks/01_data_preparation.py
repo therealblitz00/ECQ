@@ -2409,14 +2409,14 @@ save_result(mp, "D22_matrix_profile_per_account", "Per account (sample): motif a
 # | 5 August 2022 holds the sum of two closing balances (§3) | Repair it exactly by subtracting the next day |
 # | Missing values only mark accounts opened later (§2) | No imputation; each account starts on its first day |
 # | Negative balances are frequent and legitimate (§5) | Keep them; forecasts may be negative; no log transform |
-# | Near-zero balances make MAPE explode (§5, D10–D12) | Report the official MAPE with its two companions; treat near-zero accounts separately in Sprint 2 |
+# | Near-zero balances make MAPE explode and the baselines rank differently on each measure (§5, §17, D10–D12) | The official MAPE ranks models, but a model is accepted only if it does not worsen the typical-account MAPE or the MAPE for balances of at least €100; treat near-zero accounts separately in Sprint 2 |
 # | Big moves are mostly permanent level shifts (§6, D7) | Keep them; focus models on the recent regime |
 # | Account sizes differ by orders of magnitude (§4) | Scale each account before any model that learns across accounts |
 # | Weekly and monthly rhythms, holidays, the 8th (§7, D3, D6) | Calendar information: business days, day of month, end of month, the 8th moved to the next business day, holidays |
 # | Random walk day to day, but strong mean reversion over a month and level breaks (§10, §11, D16, D18) | Forecast the level around which the balance oscillates; ARIMA with d = 1 or local-level models that reset after breaks |
 # | Seasonal patterns stable but weak (D17, D21) | Calendar regressors or Fourier terms instead of seasonal differencing |
 # | Skewed scales, negatives (D19) | Scale per account and use asinh for global models; evaluate on the original scale |
-# | Two kinds of accounts: far from zero vs living around zero (D14) | Separate strategies per group in Sprint 2 |
+# | Accounts differ mainly by distance from zero (§15, D14) | Separate strategies per group in Sprint 2, using the four rule-based segments of §15; D14 only confirms the main split |
 # | Accounts are independent (§14, D5) | No VAR; separate or global models with calendar information |
 #
 # The prepared dataset keeps the shape of the original file: one row per account, one column per day, realigned and

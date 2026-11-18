@@ -128,7 +128,9 @@ print(f"{bal.shape[0]} accounts, {bal.shape[1]} days, {bal.columns.min().date()}
 # %% [markdown]
 # ## 2. How we keep score
 #
-# We keep the rules of Sprint 1. The official MAPE leaves out only the exact zeros where it is undefined. Next to it we
+# We keep the rules of Sprint 1. The official MAPE adds €1 to the absolute balance in the denominator, as the professor
+# suggested, so that every day counts and a zero balance does not divide by zero: each day contributes
+# |actual − forecast| / (|actual| + €1). Next to it we
 # report the median MAPE across accounts and the MAPE on balances of at least €100. A model is accepted only if it
 # improves the official MAPE without getting worse on the other two measures. The folds are the same: January 2022 and
 # the four last 30-day windows of 2022, each forecast with the data before it only.
@@ -139,17 +141,24 @@ print(f"{bal.shape[0]} accounts, {bal.shape[1]} days, {bal.columns.min().date()}
 # need it in section 7, when a forecast of zero turns out to be hard to beat on every percentage measure.
 
 # %%
+MAPE_OFFSET = 1.0          # EUR added to |actual| in the MAPE denominator (professor's rule for zeros)
+
+
+def ape(actual, forecast):
+    """Absolute percentage error of every point, with the €1 offset in the denominator."""
+    return np.abs(actual - forecast) / (np.abs(actual) + MAPE_OFFSET)
+
+
 def mape_official(actual, forecast):
     a, f = np.asarray(actual, float), np.asarray(forecast, float)
-    ok = np.isfinite(a) & np.isfinite(f) & (a != 0)
-    return 100 * np.mean(np.abs((a[ok] - f[ok]) / a[ok]))
+    ok = np.isfinite(a) & np.isfinite(f)
+    return 100 * np.mean(ape(a[ok], f[ok]))
 
 
 def mape_per_account(actual, forecast):
-    a, f = np.asarray(actual, float), np.asarray(forecast, float)
-    ok = np.isfinite(a) & np.isfinite(f) & (a != 0)
-    ape = np.where(ok, np.abs((a - f) / np.where(ok, a, 1)), np.nan)
-    return 100 * np.nanmean(ape, axis=1)
+    a, f = np.asarray(actual, float), np.asarray(np.broadcast_to(forecast, np.shape(actual)), float)
+    ok = np.isfinite(a) & np.isfinite(f)
+    return 100 * np.nanmean(np.where(ok, ape(a, np.where(ok, f, 0)), np.nan), axis=1)
 
 
 METRICS = ["MAPE (official)", "median per-account MAPE", f"MAPE |actual|>={NEAR_ZERO:.0f}", "WAPE"]
@@ -163,7 +172,7 @@ def evaluate(actual, forecast):
     return {
         "MAPE (official)": mape_official(a, f),
         "median per-account MAPE": np.nanmedian(mape_per_account(a, f)),
-        f"MAPE |actual|>={NEAR_ZERO:.0f}": 100 * np.mean(np.abs((a[ok] - f[ok]) / a[ok])),
+        f"MAPE |actual|>={NEAR_ZERO:.0f}": 100 * np.mean(ape(a[ok], f[ok])),
         "WAPE": 100 * np.sum(np.abs(a[fin] - f[fin])) / np.sum(np.abs(a[fin])),
     }
 
@@ -230,10 +239,10 @@ display(pd.DataFrame({str((o + pd.Timedelta(days=1)).date()): pd.Series(s).value
 # near-zero accounts, so that the test window stays untouched.
 
 # %%
-def weighted_median_inv(A, eps=EPS):
-    """Per row: the constant c minimising sum |a - c| / max(|a|, eps) (weighted median), ignoring NaN and zeros."""
-    valid = np.isfinite(A) & (A != 0)
-    w = np.where(valid, 1.0 / np.maximum(np.abs(A), eps), 0.0)
+def weighted_median_inv(A):
+    """Per row: the constant c minimising sum |a - c| / (|a| + €1) (weighted median), ignoring NaN."""
+    valid = np.isfinite(A)
+    w = np.where(valid, 1.0 / (np.abs(np.where(valid, A, 0.0)) + MAPE_OFFSET), 0.0)
     order = np.argsort(np.where(valid, A, np.inf), axis=1)
     As = np.take_along_axis(A, order, 1)
     cw = np.cumsum(np.take_along_axis(w, order, 1), 1)
@@ -393,9 +402,10 @@ for s, tab in summary.items():
 # ## 7. Reading the results
 #
 # We apply the decision rule against three references: the last balance, the median of the last 30 days and, new in
-# this notebook, a forecast of exactly zero. A zero forecast has a MAPE of exactly 100% for every account and every
-# non-zero balance, whatever the balance is. It is not a model, but it is a ruthless benchmark, because the percentage
-# error of any forecast that leans too high is unbounded while the one of a zero forecast is capped.
+# this notebook, a forecast of exactly zero. A zero forecast has an error of |actual| / (|actual| + €1) on every day,
+# just under 100% whatever the balance is (99% for a balance of €100, 50% for €1). It is not a model, but it is a
+# ruthless benchmark, because the percentage error of any forecast that leans too high is unbounded while the one of a
+# zero forecast is capped below 100%.
 
 # %%
 near = summary["near-zero / overdraft"]
@@ -417,10 +427,10 @@ axes[0].invert_yaxis(); plt.tight_layout(); plt.show()
 # around 120%. That confirms the main lesson of Sprint 1: the level matters more than anything else for these
 # accounts, and choosing it with the MAPE in mind removes more than 90% of the official error.
 #
-# The second result is a warning. The zero forecast scores exactly 100% on the three measures, and the tuned
+# The second result is a warning. The zero forecast scores just under 100% on the three measures, and the tuned
 # shrinkage ends up choosing factors between 0 and 0.1, which is a forecast of almost zero (100.7% official). The
 # search was free to keep the level and it chose to give it up. For accounts that cross zero all the time, no constant
-# level is reliably within a factor of two of the true balance, so the best constant is the one that costs exactly
+# level is reliably within a factor of two of the true balance, so the best constant is the one that costs just under
 # 100%. The weighted medians do a little better than zero only on the balances of at least €100 (90 to 96% against
 # 100%) and they do it by being right about sign and size on the days when the balance is not tiny, at the price of
 # a higher official score.
@@ -430,9 +440,9 @@ axes[0].invert_yaxis(); plt.tight_layout(); plt.show()
 # median of the last 30 days 64%, even though their percentage errors are far worse; the tuned shrinkage, which is
 # almost zero, misses 99%. The zero floor is therefore a property of the MAPE, which caps the cost of
 # under-forecasting at 100% and leaves the cost of over-forecasting unbounded, and not a sign that zero is a good
-# forecast of the balance. Since the organisers did not say how the MAPE treats balances close to zero, we keep the
-# official MAPE as the score that ranks models, as decided in Sprint 1, but we read every result that relies on
-# forecasting zero together with its WAPE, and we will raise the point with the professor before the final submission.
+# forecast of the balance. The €1 added to the denominator does not change this: it removes the division by zero but
+# leaves balances of a few euros with huge percentage errors. We keep the official MAPE as the score that ranks models,
+# as decided in Sprint 1, but we read every result that relies on forecasting zero together with its WAPE.
 #
 # The third result concerns the two-step idea. With the size predicted by a mean absolute error the official MAPE is
 # about 610%, because that loss ignores how costly it is to over-forecast a small balance. With a size chosen for the
@@ -585,12 +595,12 @@ for o in origins:
     m = seg_by_fold[o] == "stable positive"
     last = T[:, -1]
     R = T[:, -365:]
-    ape = np.abs(A - last[:, None]) / np.where(A == 0, np.nan, np.abs(A))
+    err = ape(A, last[:, None])
     for i in np.where(m)[0]:
         stable_rows.append({"fold": str((o + pd.Timedelta(days=1)).date()), "account": bal.index[i], "last balance": last[i],
                             "median last year": np.nanmedian(R[i]), "min last year": np.nanmin(R[i]),
                             "min / median": np.nanmin(R[i]) / np.nanmedian(R[i]),
-                            "min |actual|": np.nanmin(np.abs(A[i])), "error total": np.nansum(ape[i]),
+                            "min |actual|": np.nanmin(np.abs(A[i])), "error total": np.nansum(err[i]),
                             "ends near zero": np.nanmin(np.abs(A[i])) < NEAR_ZERO})
 st = pd.DataFrame(stable_rows)
 st["share of segment error"] = st["error total"] / st.groupby("fold")["error total"].transform("sum")
@@ -755,7 +765,7 @@ def gbm_forecast(e, train_mask, predict_mask, step=15, weighted=True, extra=None
         A = B[X["acct"].to_numpy(), j + X["horizon"].to_numpy() - 1]
         ok = np.isfinite(A) & np.isfinite(X["last"])
         y = (A - ref[X["acct"]]) / typical[X["acct"]]
-        w = np.minimum(typical[X["acct"]] / np.maximum(np.abs(A), EPS), WEIGHT_CAP)
+        w = np.minimum(typical[X["acct"]] / (np.abs(A) + MAPE_OFFSET), WEIGHT_CAP)
         Xs.append(X[ok]); ys.append(y[ok]); ws.append(w[ok])
     X = pd.concat(Xs); y = np.concatenate(ys); w = np.concatenate(ws)
     feats = [c for c in X.columns if c != "acct"]
@@ -992,8 +1002,8 @@ def classical_forecasts(e, mask):
 
 def metrics_without_top(A, F):
     """Scores after removing the account with the largest total percentage error."""
-    ape = np.abs(A - F) / np.where(A == 0, np.nan, np.abs(A))
-    keep = np.arange(len(A)) != np.nanargmax(np.nansum(ape, 1))
+    err = ape(A, F)
+    keep = np.arange(len(A)) != np.nanargmax(np.nansum(err, 1))
     return evaluate(A[keep], F[keep])
 
 
@@ -1269,8 +1279,8 @@ cls_best = {s: cls_summary.loc[(DECIDING_VERSION, s)]["MAPE (official)"].idxmin(
 gbm_best = gbm_var["MAPE (official)"].idxmin()
 decision_log = pd.DataFrame([
     {"section": "2, 7", "question": "How do we score a forecast?",
-     "alternatives": "official MAPE (zeros left out), median per-account MAPE, MAPE on |balance| >= 100, WAPE; references: last value, 30-day median, zero",
-     "judged by": "what each measure rewards; the zero forecast scores exactly 100% on every MAPE",
+     "alternatives": "official MAPE (denominator |actual| + 1 EUR), median per-account MAPE, MAPE on |balance| >= 100, WAPE; references: last value, 30-day median, zero",
+     "judged by": "what each measure rewards; the zero forecast scores just under 100% on every MAPE",
      "result": "the official MAPE alone is decided by near-zero balances and by single accounts",
      "decision": "rank by the official MAPE, accept only without worsening the two other MAPE measures; report WAPE and the version without the largest contributor"},
     {"section": "4", "question": "Which constant level for near-zero accounts?",

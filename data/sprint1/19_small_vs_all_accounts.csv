@@ -14,7 +14,7 @@ large inflows on the 8th / ordinary business day,2.594,1.288
 % segment near-zero / overdraft,39.0,42.0
 % segment stable positive,27.6,26.0
 % segment volatile positive,33.2,32.0
-naive (last value): median per-account MAPE,68.831,88.936
-naive (last value): MAPE |actual|>=100,88.702,89.356
-median of last 30 days: median per-account MAPE,66.538,70.232
-median of last 30 days: MAPE |actual|>=100,71.457,114.701
+naive (last value): median per-account MAPE,68.108,88.352
+naive (last value): MAPE |actual|>=100,88.343,89.021
+median of last 30 days: median per-account MAPE,65.967,69.965
+median of last 30 days: MAPE |actual|>=100,71.212,114.321

@@ -401,8 +401,9 @@ save_result(per_account.describe(percentiles=[0.05, 0.25, 0.5, 0.75, 0.95]).T, "
 # ## 5. The zero problem
 #
 # The evaluation metric divides each error by the true balance. That is harmless for a balance of €5 000, but it is
-# undefined when the balance is exactly zero and explodes when it is close to zero. Since the organisers did not tell
-# us how they handle those cases, we need to know how often they occur.
+# undefined when the balance is exactly zero and explodes when it is close to zero. The organisers did not say how they
+# handle those cases; the professor suggested adding €1 to the balance in the denominator, which is the rule we adopt
+# from D9 on. Either way, we need to know how often such balances occur.
 
 # %%
 obs = B[~np.isnan(B)]
@@ -424,9 +425,10 @@ save_result(pd.Series(sign_type, index=bal.index, name="sign_type"), "05_sign_ty
             "Per account: always positive / always negative / changes sign")
 
 # Illustration: the same absolute error (EUR 50) produces wildly different percentage errors
-illus = pd.DataFrame({"actual": [5000, 500, 100, 20, 5, 1]})
+illus = pd.DataFrame({"actual": [5000, 500, 100, 20, 5, 1, 0]})
 illus["forecast"] = illus["actual"] + 50
-illus["APE (%)"] = (100 * (illus["actual"] - illus["forecast"]).abs() / illus["actual"].abs()).round(1)
+illus["APE (%)"] = (100 * (illus["actual"] - illus["forecast"]).abs() / illus["actual"].abs().replace(0, np.nan)).round(1)
+illus["APE with €1 added to |actual| (%)"] = (100 * (illus["actual"] - illus["forecast"]).abs() / (illus["actual"].abs() + 1)).round(1)
 illus
 
 # %% [markdown]
@@ -436,12 +438,13 @@ illus
 #
 # The small table above shows why this dominates everything. The same €50 error is 1% on a €5 000 balance and 1 000% on
 # a €5 balance. A handful of near-zero days can therefore outweigh thousands of well-forecast ones in the official
-# score.
+# score. Adding €1 to the denominator gives a zero balance a finite error and tames the balances of a few cents, but
+# the €5 balance still costs over 800%: the €1 rule solves the division by zero, not the near-zero problem.
 #
 # We will not let the official MAPE alone decide between models, because a handful of near-zero days can make it
 # unstable (section 17 shows two baselines whose official scores differ by a factor of two while the typical account
-# says the opposite). Our decision rule has two parts. The official MAPE, leaving out only the exact zeros where it is
-# undefined, ranks the models, since it is what the organisers will use. But a model is only accepted if it does not
+# says the opposite). Our decision rule has two parts. The official MAPE, with €1 added to the absolute balance in the
+# denominator, ranks the models, since it is our best guess of what the organisers will use. But a model is only accepted if it does not
 # get worse than the reference on the other two measures: the median MAPE across accounts, which describes the typical
 # account, and the MAPE computed only on balances of at least €100. When the official number is far above both, we
 # will know the near-zero balances are to blame. This also hints at a modelling idea for Sprint 2: when a balance might be close to zero, a smaller forecast in
@@ -1752,24 +1755,35 @@ save_result(paths, "D8_january_paths", "Median relative balance path after Dec 3
 # ## D9. How we will keep score
 #
 # Before asking how good a forecast can be, we fix the scoring rules used from now on. The decision metric is the
-# official MAPE, computed over all accounts and days, leaving out the few exact zeros where it is undefined. Next to it
+# official MAPE, computed over all accounts and days. A plain MAPE divides by the true balance, so it is undefined on the
+# few exact zeros and explodes on balances of a few cents. Following the professor's indication, we add €1 to the
+# absolute balance in the denominator: each day contributes |actual − forecast| / (|actual| + €1). This keeps every day in
+# the score, removes the division by zero, and changes almost nothing for balances of more than a few euros. It does
+# not remove the difficulty of balances between €1 and €100, which still weigh heavily, as section 5 showed. Next to it
 # we report the median MAPE across accounts and the MAPE on balances of at least €100, so that we can always tell
 # whether a bad score comes from the typical account or from the near-zero ones. We also define the validation folds
 # here: four recent 30-day windows at the end of 2022 and January 2022, each forecast using only the data before it.
 
 # %%
+MAPE_OFFSET = 1.0          # EUR added to |actual| in the MAPE denominator (professor's rule for zeros)
+
+
+def ape(actual, forecast):
+    """Absolute percentage error of every point, with the €1 offset in the denominator."""
+    return np.abs(actual - forecast) / (np.abs(actual) + MAPE_OFFSET)
+
+
 def mape_official(actual, forecast):
-    """MAPE as in the brief, pooled over all points; undefined points (actual = 0 or missing) are excluded."""
+    """MAPE pooled over all points, denominator |actual| + €1; missing points are excluded."""
     a, f = np.asarray(actual, float), np.asarray(forecast, float)
-    ok = np.isfinite(a) & np.isfinite(f) & (a != 0)
-    return 100 * np.mean(np.abs((a[ok] - f[ok]) / a[ok]))
+    ok = np.isfinite(a) & np.isfinite(f)
+    return 100 * np.mean(ape(a[ok], f[ok]))
 
 
 def mape_per_account(actual, forecast, min_abs=0.0):
-    a, f = np.asarray(actual, float), np.asarray(forecast, float)
-    ok = np.isfinite(a) & np.isfinite(f) & (np.abs(a) > min_abs)
-    ape = np.where(ok, np.abs((a - f) / np.where(ok, a, 1)), np.nan)
-    return 100 * np.nanmean(ape, axis=1)
+    a, f = np.asarray(actual, float), np.asarray(np.broadcast_to(forecast, np.shape(actual)), float)
+    ok = np.isfinite(a) & np.isfinite(f) & (np.abs(a) >= min_abs)
+    return 100 * np.nanmean(np.where(ok, ape(a, np.where(ok, f, 0)), np.nan), axis=1)
 
 
 def evaluate(actual, forecast, train=None):
@@ -1780,7 +1794,7 @@ def evaluate(actual, forecast, train=None):
     return {
         "MAPE (official)": mape_official(a, f),
         "median per-account MAPE": np.nanmedian(mape_per_account(a, f)),
-        f"MAPE |actual|>={NEAR_ZERO:.0f}": 100 * np.mean(np.abs((a[ok] - f[ok]) / a[ok])),
+        f"MAPE |actual|>={NEAR_ZERO:.0f}": 100 * np.mean(ape(a[ok], f[ok])),
     }
 
 
@@ -1807,13 +1821,13 @@ def split(data, origin):
 
 # %%
 def mape_optimal_constant(A):
-    """Per row: the constant c minimising sum |a - c| / |a| (weighted median, weights 1/|a|)."""
+    """Per row: the constant c minimising sum |a - c| / (|a| + €1) (weighted median, weights 1/(|a| + €1))."""
     out = np.full(A.shape[0], np.nan)
     for i, row in enumerate(A):
-        a = row[np.isfinite(row) & (row != 0)]
+        a = row[np.isfinite(row)]
         if len(a) == 0:
             continue
-        o = np.argsort(a); w = 1 / np.abs(a[o]); cw = np.cumsum(w)
+        o = np.argsort(a); w = 1 / (np.abs(a[o]) + MAPE_OFFSET); cw = np.cumsum(w)
         out[i] = a[o][np.searchsorted(cw, cw[-1] / 2)]
     return out
 
@@ -1838,8 +1852,8 @@ save_result(oracle, "D10_oracle_by_fold", "Baselines vs oracle constant forecast
 save_result(oracle_summary, "D10_oracle_summary", "Baselines vs oracle constant forecasts, averaged over folds")
 
 # %% [markdown]
-# The gap is enormous. A constant at the right level reaches an official MAPE more than twenty times lower than the
-# simple forecasts. In other words, most of the official error is not about the daily ups and downs: it is about
+# The gap is enormous. A constant at the right level reaches an official MAPE of about 43%, some seventeen times lower
+# than the last balance (about 740%). In other words, most of the official error is not about the daily ups and downs: it is about
 # choosing the wrong level for the accounts that sit near zero. The oracle constant also beats the true average of the
 # window by far, which confirms the asymmetry we found in section 5: MAPE rewards forecasts that lean towards zero.
 #
@@ -1950,9 +1964,10 @@ save_result(hurst, "D13_hurst_per_account", "Per account: Hurst exponent (R/S) o
 # So far we have described the accounts one property at a time. Forecasting researchers often go one step further:
 # they compute a set of features for every series (how persistent it is, how strong its cycles are, how often it
 # crosses zero, how lumpy its variance is) and then place all series on a single map. Accounts that sit close together
-# on the map behave alike and will probably need the same kind of model. We compute eighteen such features, convert
-# them to comparable scores, reduce them to two dimensions with a principal component analysis, and let a clustering
-# algorithm tell us how many natural groups there are.
+# on the map behave alike and will probably need the same kind of model. We compute eighteen such features and convert
+# them to comparable scores. Several features measure related things, so a principal component analysis keeps the
+# few combinations that carry 80% of the variance; a clustering algorithm then tells us, in that reduced space, how many
+# natural groups there are, and the first two components give us the map.
 
 # %%
 def series_features(s):
@@ -1989,19 +2004,24 @@ ts_feat["log_cv"] = np.log10(ts_feat.pop("cv").clip(lower=1e-3))
 # Rank-based normal scores make the features comparable and robust to extreme values
 filled = ts_feat.fillna(ts_feat.median())
 scores = filled.rank(pct=True).sub(0.5 / len(filled)).apply(stats.norm.ppf)
-pca = PCA(n_components=5, random_state=RANDOM_STATE).fit(scores)
-pcs = pd.DataFrame(pca.transform(scores)[:, :2], index=scores.index, columns=["PC1", "PC2"])
-loadings = pd.DataFrame(pca.components_[:2].T, index=scores.columns, columns=["PC1", "PC2"])
-explained = pd.Series(pca.explained_variance_ratio_, index=[f"PC{i}" for i in range(1, 6)])
+# The 18 features overlap (several measure distance from zero), so we cluster on the principal components that keep
+# 80% of the variance: this removes the redundancy and the noisiest directions (D14b compares 70%, 90% and no PCA).
+PCA_VARIANCE = 0.80
+pca = PCA(n_components=PCA_VARIANCE, svd_solver="full", random_state=RANDOM_STATE).fit(scores)
+pc_names = [f"PC{i}" for i in range(1, pca.n_components_ + 1)]
+Z = pd.DataFrame(pca.transform(scores), index=scores.index, columns=pc_names)
+pcs = Z[["PC1", "PC2"]]
+loadings = pd.DataFrame(pca.components_.T, index=scores.columns, columns=pc_names)
+explained = pd.Series(pca.explained_variance_ratio_, index=pc_names)
 
 sil = {}
 for k_ in range(2, 9):
-    sil[k_] = silhouette_score(scores, KMeans(n_clusters=k_, n_init=10, random_state=RANDOM_STATE).fit_predict(scores))
+    sil[k_] = silhouette_score(Z, KMeans(n_clusters=k_, n_init=10, random_state=RANDOM_STATE).fit_predict(Z))
 best_k = max(sil, key=sil.get)
-clusters = pd.Series(KMeans(n_clusters=best_k, n_init=10, random_state=RANDOM_STATE).fit_predict(scores),
+clusters = pd.Series(KMeans(n_clusters=best_k, n_init=10, random_state=RANDOM_STATE).fit_predict(Z),
                      index=scores.index, name="cluster")
 
-display(explained.round(3).to_frame("explained variance"))
+display(explained.to_frame("explained variance").assign(cumulative=explained.cumsum()).round(3))
 display(loadings.round(2).sort_values("PC1"))
 display(pd.Series(sil).round(3).to_frame("silhouette"))
 cluster_profile = ts_feat.groupby(clusters).median().T
@@ -2020,7 +2040,7 @@ plt.colorbar(sc, ax=axes[1], label="log10 naive MAPE (%)")
 axes[1].set(title="... coloured by the error of the naive forecast", xlabel="PC1", ylabel="PC2")
 plt.tight_layout(); plt.show()
 save_result(ts_feat.join(pcs).join(clusters), "D14_feature_space_per_account", "Per account: time-series features, PCA coordinates and cluster")
-save_result(loadings, "D14_pca_loadings", "PCA loadings of the time-series features (PC1, PC2)")
+save_result(loadings, "D14_pca_loadings", "PCA loadings of the time-series features (components keeping 80% of the variance)")
 save_result(cluster_profile, "D14_cluster_profiles", "Median features, size and naive MAPE of each cluster")
 
 # %% [markdown]
@@ -2032,8 +2052,8 @@ save_result(cluster_profile, "D14_cluster_profiles", "Median features, size and 
 # The clustering agrees with this reading. The best split has only two groups, and the separation is modest, which
 # tells us accounts form a continuum rather than tidy families. Still, the two groups are very different where it
 # matters: about 230 persistent, calm accounts, mostly positive and far from zero, that the naive forecast already
-# handles with a median error near 26%, and about 270 erratic accounts that live around zero, cross it almost twenty
-# times a year and carry a median error ten times higher. We name the groups by how they move rather than by where
+# handles with a median error near 28%, and about 270 erratic accounts that live around zero, cross it almost twenty
+# times a year and carry a median error almost nine times higher. We name the groups by how they move rather than by where
 # they sit, because, as D14b shows, a few calm accounts with small balances fall in the first group. The near-zero and
 # stable segments of section 15 fall mostly on one side or the other, while the volatile accounts straddle the border.
 # For Sprint 2 this is a clear instruction: the main dividing line between accounts is their distance from zero, and it
@@ -2064,7 +2084,13 @@ save_result(cluster_profile, "D14_cluster_profiles", "Median features, size and 
 # `tsfresh` package (its efficient setting, computed on the same balances). For the scale we compare the rank-based
 # normal scores of D14 with plain standardisation and with a robust version (median and interquartile range), because
 # balances have extreme values. For the algorithm we compare k-means with Ward's hierarchical clustering and a Gaussian
-# mixture. In every case the number of groups is chosen between 2 and 8 by the silhouette.
+# mixture. For the dimensions we compare the 80% of variance used in D14 with 70%, 90% and the 18 scores without any
+# reduction. In every case the number of groups is chosen between 2 and 8 by the silhouette.
+#
+# One caution applies to the dimensions. The silhouette and the other separation indices are computed in the space the
+# clustering sees, and distances look sharper in a space with fewer dimensions, so these indices are not comparable
+# between configurations with a different number of components. Stability, explained difficulty and the agreement
+# between groupings do not depend on the space, and those are the measures we use to compare them.
 #
 # Each configuration is judged on five measures. Three describe how well separated the groups are: the silhouette and
 # the Calinski–Harabasz index (higher is better) and the Davies–Bouldin index (lower is better). The fourth is
@@ -2138,20 +2164,33 @@ def judge(S, algo, ref_labels, difficulty, k_range=range(2, 9), n_boot=20, frac=
             "smallest group (% accounts)": 100 * np.bincount(lab).min() / len(lab)}, lab
 
 
+def reduce_dims(S, variance):
+    """Principal components keeping `variance` of the variance, or S unchanged when variance is None."""
+    if variance is None:
+        return S
+    return PCA(n_components=variance, svd_solver="full", random_state=RANDOM_STATE).fit_transform(S)
+
+
 ids_map = ts_feat.index
 d14_labels = clusters.reindex(ids_map).to_numpy()
-configs = {"D14: all 18 features, rank-normal, k-means": (list(ts_feat.columns), "rank-normal scores", "k-means")}
+ALL = list(ts_feat.columns)
+RN, KM = "rank-normal scores", "k-means"
+configs = {"D14: all 18 features, rank-normal, PCA 80%, k-means": (ALL, RN, KM, PCA_VARIANCE)}
+for v, label in ((None, "no PCA (all 18 dimensions)"), (0.70, "PCA 70%"), (0.90, "PCA 90%")):
+    configs[f"dimensions: {label}"] = (ALL, RN, KM, v)
 for grp, cols in FEATURE_GROUPS.items():
-    configs[f"without the {grp} group"] = ([c for c in ts_feat.columns if c not in cols], "rank-normal scores", "k-means")
-configs["only the distance-from-zero group"] = (FEATURE_GROUPS["distance from zero"], "rank-normal scores", "k-means")
+    configs[f"without the {grp} group"] = ([c for c in ALL if c not in cols], RN, KM, PCA_VARIANCE)
+configs["only the distance-from-zero group"] = (FEATURE_GROUPS["distance from zero"], RN, KM, PCA_VARIANCE)
 for sc in ("standardised", "robust (median/IQR)"):
-    configs[f"scale: {sc}"] = (list(ts_feat.columns), sc, "k-means")
+    configs[f"scale: {sc}"] = (ALL, sc, KM, PCA_VARIANCE)
 for algo in ("Ward hierarchical", "Gaussian mixture"):
-    configs[f"algorithm: {algo}"] = (list(ts_feat.columns), "rank-normal scores", algo)
+    configs[f"algorithm: {algo}"] = (ALL, RN, algo, PCA_VARIANCE)
 
 cmp_rows = {}
-for name, (cols, sc, algo) in configs.items():
-    cmp_rows[name], _ = judge(SCALERS[sc](ts_feat[cols]), algo, d14_labels, log_difficulty.reindex(ids_map).to_numpy())
+for name, (cols, sc, algo, v) in configs.items():
+    S_ = reduce_dims(SCALERS[sc](ts_feat[cols]).to_numpy(), v)
+    cmp_rows[name], _ = judge(S_, algo, d14_labels, log_difficulty.reindex(ids_map).to_numpy())
+    cmp_rows[name]["dimensions used"] = S_.shape[1]
 
 # The automatic alternative: tsfresh features on the same accounts (efficient setting)
 tsf_ids = sample_accounts(ids_map, MAX_TEST_ACCOUNTS)
@@ -2162,8 +2201,11 @@ tsf = extract_features(long_bal, column_id="id", column_sort="t", column_value="
 tsf = tsf.replace([np.inf, -np.inf], np.nan).reindex(tsf_ids)
 tsf = tsf.loc[:, (tsf.notna().mean() > 0.9) & (tsf.nunique() > 1)]
 print(f"tsfresh: {tsf.shape[1]} usable features for {len(tsf)} accounts")
-cmp_rows[f"tsfresh ({tsf.shape[1]} automatic features), rank-normal, k-means"], _ = judge(
-    rank_normal(tsf), "k-means", clusters.reindex(tsf_ids).to_numpy(), log_difficulty.reindex(tsf_ids).to_numpy())
+for v, label in ((None, "no PCA"), (PCA_VARIANCE, "PCA 80%")):
+    S_ = reduce_dims(rank_normal(tsf).to_numpy(), v)
+    name = f"tsfresh ({tsf.shape[1]} automatic features), rank-normal, {label}, k-means"
+    cmp_rows[name], _ = judge(S_, KM, clusters.reindex(tsf_ids).to_numpy(), log_difficulty.reindex(tsf_ids).to_numpy())
+    cmp_rows[name]["dimensions used"] = S_.shape[1]
 
 # Reference: the rule-based segments of section 15 are a grouping too
 seg_ref = feat.segment.reindex(ids_map)
@@ -2179,33 +2221,41 @@ save_result(cluster_cmp, "D14b_clustering_alternatives",
 
 # %% [markdown]
 # The message of the map survives almost every change, and the alternatives that look better on paper fail on the
-# measure that matters to us. Every configuration chooses two groups, so the split in two is not an artefact of one
-# algorithm or one scale.
+# measure that matters to us. Almost every configuration chooses two groups, so the split in two is not an artefact of
+# one algorithm or one scale.
+#
+# The number of dimensions changes nothing that matters. Clustering on all 18 scores, or on the components that keep
+# 70%, 80% or 90% of the variance, gives practically the same two groups (agreement with D14 between 0.97 and 0.98),
+# the same stability (about 0.93) and the same explained difficulty (0.33 to 0.34). The separation indices rise as the
+# number of dimensions falls, as we warned they would, so they cannot choose between these versions. We keep 80%
+# because it removes the overlap between features while keeping the five components that can be read: persistence,
+# the monthly cycle, inactivity near zero, and two components of short-term dynamics.
 #
 # The feature groups show where the information is. Removing the distance-from-zero group is the only change that
-# really damages the map: the share of forecast difficulty explained falls from 0.34 to 0.18 and the groups agree with
+# really damages the map: the share of forecast difficulty explained falls from 0.34 to 0.19 and the groups agree with
 # D14 only partly (ARI 0.57). Removing any other group changes little (eta squared between 0.35 and 0.40, ARI between
-# 0.77 and 0.88). Keeping only the distance-from-zero group gives the cleanest separation (silhouette 0.45) and a little
-# more explained difficulty (0.42), which confirms that this is the dividing line. We still keep the full set in D14,
+# 0.78 and 0.89). Keeping only the distance-from-zero group gives the cleanest separation (silhouette 0.52) and a little
+# more explained difficulty (0.43), which confirms that this is the dividing line. We still keep the full set in D14,
 # because the other groups describe how an account moves, not only where it sits, and that is what the choice of a
 # model needs; the comparison tells us that the clusters themselves are driven by distance from zero.
 #
-# The scale matters more than we expected. The robust scaling gives the best silhouette of all (0.53), but it does so by
+# The scale matters more than we expected. The robust scaling gives the best silhouette of all (0.60), but it does so by
 # isolating about 11% of accounts with extreme values, and its groups explain almost nothing of the forecast difficulty
-# (0.02). That is a warning against choosing a clustering by its silhouette alone. Plain standardisation is worse than
-# the rank-based scores on every measure, which is why D14 uses ranks.
+# (0.02). That is a warning against choosing a clustering by its silhouette alone. Plain standardisation is unstable
+# (0.71), splits off a group of only 9% of the accounts and explains less difficulty than the rank-based scores, which
+# is why D14 uses ranks.
 #
 # Among the algorithms, Ward's hierarchical clustering is unstable: two subsamples of the same accounts agree only at
-# 0.44, against 0.93 for k-means. The Gaussian mixture finds nearly the same two groups as k-means (ARI 0.81) and
-# explains slightly more difficulty (0.40 against 0.34), so either would do; we keep k-means, the simpler of the two.
+# 0.44, against 0.93 for k-means. The Gaussian mixture finds similar groups (ARI 0.72) with the same explained
+# difficulty (0.34) and a little less stability (0.89), so we keep k-means, the simpler of the two.
 #
-# The automatic features of `tsfresh` lose on every measure: lowest silhouette (0.17), worst Davies–Bouldin index (2.28)
-# and only 0.21 of the difficulty explained, with groups that agree little with D14 (ARI 0.31). With more than 700
-# features, most of them describe the scale and the shape of the series, and the few that measure distance from zero
-# are drowned. More features did not mean a better map, and hand-made features tied to what we already know about the
-# data are both more useful and easier to explain.
+# The automatic features of `tsfresh` lose on every measure that does not depend on the space, with or without the
+# reduction to 80% of the variance (90 components): only 0.21 of the difficulty explained, with groups that agree little
+# with D14 (ARI 0.30 to 0.31). With more than 700 features, most of them describe the scale and the shape of the
+# series, and the few that measure distance from zero are drowned. More features did not mean a better map, and
+# hand-made features tied to what we already know about the data are both more useful and easier to explain.
 #
-# The last row is the most important for Sprint 2. The four rule-based segments of section 15 explain 0.51 of the
+# The last row is the most important for Sprint 2. The four rule-based segments of section 15 explain 0.52 of the
 # forecast difficulty, more than any clustering we tried, and they are defined by thresholds anyone can check. So the
 # map and its alternatives play the role of a consistency check: they confirm that distance from zero is the main
 # dividing line, and the rules turn that line into the segments that Sprint 2 models one by one.
@@ -2226,8 +2276,8 @@ seg_aligned = feat.segment.reindex(scores.index).to_numpy()
 diff_aligned = log_difficulty.reindex(scores.index).to_numpy()
 k_rows = {}
 for k_ in (2, 3, 4):
-    lab = KMeans(n_clusters=k_, n_init=10, random_state=RANDOM_STATE).fit_predict(scores)
-    k_rows[f"k-means, k = {k_}"] = {"silhouette": silhouette_score(scores, lab),
+    lab = KMeans(n_clusters=k_, n_init=10, random_state=RANDOM_STATE).fit_predict(Z)
+    k_rows[f"k-means, k = {k_}"] = {"silhouette": silhouette_score(Z, lab),
                                     "agreement with the 4 segments (ARI)": adjusted_rand_score(seg_aligned, lab),
                                     "difficulty explained (eta sq)": eta_sq(diff_aligned, lab)}
 k_rows["rule-based segments (section 15)"] = {"difficulty explained (eta sq)": eta_sq(diff_aligned, seg_aligned)}
@@ -2242,7 +2292,7 @@ save_result(k_vs_segments, "D14b_k_vs_segments", "k-means with 2, 3 and 4 groups
 #
 # Asking the clustering for more groups does not recover the segments. With three or four groups the silhouette falls,
 # the agreement with the segments does not improve on two groups, and the share of forecast difficulty explained stays
-# around 0.35, far from the 0.51 of the rules. The data do not contain four natural families. The four segments come
+# around 0.34 to 0.37, far from the 0.52 of the rules. The data do not contain four natural families. The four segments come
 # from what we know about forecasting these balances: the risk of the MAPE near zero, the difference between a calm
 # and a volatile positive account, and the accounts that do not move at all. The two clusters justify the first cut of
 # the rules, and the forecasting needs justify the rest. Sprint 2 will give the final evidence, if each segment ends
@@ -2725,9 +2775,9 @@ summary.round(1)
 # %% [markdown]
 # The official MAPE is huge for every simple forecast and jumps from fold to fold, driven by a few near-zero balances, as
 # section 5 predicted. The two companion measures are far lower and much more stable. The ranking also depends on the
-# measure: the last balance does best on the official score (about 1 300% against 3 000% for the median), while the
-# median of the last 30 days does best on the typical account (66.5% against 68.8%) and on balances above €100 (71.5%
-# against 88.7%). Repeating last week's path is never the best, since it copies last week's noise.
+# measure: the last balance does best on the official score (about 740% against 2 100% for the median), while the
+# median of the last 30 days does best on the typical account (66.0% against 68.1%) and on balances above €100 (71.2%
+# against 88.3%). Repeating last week's path is never the best, since it copies last week's noise.
 #
 # This disagreement forces a decision on how to choose the best model. We considered three options: decide by the
 # official MAPE alone, decide by the typical account or the balances above €100, or decide by the official MAPE while

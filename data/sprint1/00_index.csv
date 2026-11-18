@@ -68,9 +68,9 @@ D11_error_drivers.csv,Spearman correlation of account characteristics with naive
 D12_zero_crossing_risk.csv,P(balance crosses zero within 30 days) by |balance| / recent volatility,6,2
 D13_hurst_per_account.csv,Per account: Hurst exponent (R/S) of daily changes,500,1
 D14_feature_space_per_account.csv,"Per account: time-series features, PCA coordinates and cluster",500,21
-D14_pca_loadings.csv,"PCA loadings of the time-series features (PC1, PC2)",18,2
+D14_pca_loadings.csv,PCA loadings of the time-series features (components keeping 80% of the variance),18,5
 D14_cluster_profiles.csv,"Median features, size and naive MAPE of each cluster",20,2
-D14b_clustering_alternatives.csv,"D14 map vs alternative feature sets, scalings and algorithms: separation, stability, difficulty explained",12,8
+D14b_clustering_alternatives.csv,"D14 map vs alternative feature sets, scalings and algorithms: separation, stability, difficulty explained",16,9
 D14b_segments_vs_clusters.csv,Rule-based segments of section 15 inside the two D14 clusters,2,4
 D14b_k_vs_segments.csv,"k-means with 2, 3 and 4 groups vs the four rule-based segments",4,3
 D14b_border_accounts.csv,Median profile of near-zero and stable accounts in each D14 cluster (accounts where the two classifications agree and disagree),4,8

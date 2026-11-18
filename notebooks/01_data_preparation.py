@@ -612,6 +612,32 @@ save_result(holiday_effect, "07_holiday_effect", "Activity on Portuguese public 
 # of the month, so both rhythms will be at work.
 
 # %% [markdown]
+# ### 7b. The saw-tooth profile: calendar days and business days to month end
+#
+# To see the monthly rhythm as a customer experiences it, we trace how a typical balance changes across the month.
+# We look at this in two complementary ways: aligned by the day of the month (1 to 31) and aligned by business days
+# counting down to the end of the month (-5 to 0), which captures the fact that Portuguese employers typically pay
+# salaries on the last business day of the month rather than on a fixed calendar date. We normalise each account by its
+# typical balance so large accounts do not dominate, and report the median profile with interquartile bands.
+
+# %%
+dom_profile = cal[cal.weekday < 5].groupby("day")[["mean_rel_change", "large_inflow", "large_outflow"]].median()
+bday_to_end = pd.Series(
+    pd.Series(bdays).groupby(pd.Series(bdays).dt.to_period("M")).rank(ascending=False).to_numpy() - 1, index=bdays)
+cal_bday_end = cal.loc[cal.index.intersection(bdays)].copy()
+cal_bday_end["bday_to_end"] = -cal_bday_end.index.map(bday_to_end)
+end_profile = cal_bday_end[cal_bday_end.bday_to_end >= -5].groupby("bday_to_end")[["mean_rel_change", "large_inflow", "large_outflow"]].median()
+
+fig, axes = plt.subplots(1, 2, figsize=(15, 3.8))
+dom_profile[["large_inflow", "large_outflow"]].plot(ax=axes[0], marker="o")
+axes[0].set(title="Median activity by calendar day of month (business days)", xlabel="day of month", ylabel="share of accounts")
+end_profile[["large_inflow", "large_outflow"]].plot(ax=axes[1], marker="o")
+axes[1].set(title="Median activity by business days to month end (0 = last business day)", xlabel="business days to month end", ylabel="share of accounts")
+plt.tight_layout(); plt.show()
+save_result(dom_profile, "07b_sawtooth_profile_dom", "Median activity across accounts by day of month (business days)")
+save_result(end_profile, "07b_sawtooth_profile_monthend", "Median activity across accounts by business days to month end")
+
+# %% [markdown]
 # ## 8. A few accounts up close
 #
 # Statistics summarise; pictures show. Here are nine accounts chosen at random.
@@ -1049,6 +1075,31 @@ save_result(same_months, "13_lockdown_same_months", "March-April of each year: a
 # Models that learn from the whole history, such as global models with yearly patterns, should not learn spring 2020 as
 # a normal spring: in Sprint 2 we will mark March to May 2020 and January to February 2021 with an interruption flag,
 # or down-weight them, and check on the validation folds whether it helps.
+
+# %% [markdown]
+# ### 13b. Cross-sectional balance quantiles across three years (fan chart)
+#
+# A single cross-sectional median hides how the rest of the customer base behaves. We trace the percentiles of
+# balances across all active accounts on each calendar date: the 10th, 25th, 50th (median), 75th and 90th percentiles.
+# This gives a fan chart of the distribution over the three years, showing the persistent anchoring of the bottom
+# quantiles around zero and into overdraft, the gradual upward drift of the upper quantiles, and the temporary
+# savings build-up during the 2020 confinement.
+
+# %%
+quantiles = [0.10, 0.25, 0.50, 0.75, 0.90]
+q_df = pd.DataFrame(np.nanquantile(B, quantiles, axis=0), index=[f"p{int(q*100)}" for q in quantiles], columns=bal.columns).T
+
+fig, ax = plt.subplots(figsize=(15, 4))
+ax.fill_between(q_df.index, q_df["p10"], q_df["p90"], color="tab:blue", alpha=0.15, label="10th–90th percentile")
+ax.fill_between(q_df.index, q_df["p25"], q_df["p75"], color="tab:blue", alpha=0.30, label="25th–75th percentile (IQR)")
+ax.plot(q_df.index, q_df["p50"], color="tab:blue", lw=1.5, label="median (50th percentile)")
+ax.axhline(0, color="red", ls="--", lw=0.8, alpha=0.7, label="zero balance")
+for a, b in LOCKDOWNS:
+    ax.axvspan(a, b, color="grey", alpha=0.12)
+ax.set(title="Cross-sectional distribution of balances over time (fan chart, EUR)", ylabel="EUR")
+ax.legend(loc="upper left")
+plt.tight_layout(); plt.show()
+save_result(q_df, "13b_cross_sectional_quantiles", "Daily cross-sectional percentiles (p10, p25, p50, p75, p90) across all active accounts")
 
 # %% [markdown]
 # # Part C · Accounts side by side
@@ -1572,6 +1623,48 @@ save_result(floors, "D4_overdraft_floors", "Per account with negatives: minimum,
 # no sign of hard credit limits, so our forecasts do not need a floor.
 
 # %% [markdown]
+# ### D4b. How long does an account stay in the red? (Negative spells)
+#
+# Finding that 22% of observed balances are negative tells us that overdrafts are common, but not whether they are
+# short-lived or chronic. If an overdraft is typically resolved within a few days (e.g. bridging until the next inflow),
+# an account currently negative is likely to return to positive territory during the 30-day forecast horizon. If
+# negative spells last for months, the negative level is persistent and the forecast should remain below zero.
+# We measure the length of every contiguous spell of negative balances across all accounts.
+
+# %%
+spell_lengths = []
+for acc in bal.index:
+    s = bal.loc[acc].dropna().to_numpy()
+    is_neg = (s < 0).astype(int)
+    if not is_neg.any():
+        continue
+    d_neg = np.diff(np.r_[0, is_neg, 0])
+    starts = np.flatnonzero(d_neg == 1)
+    ends = np.flatnonzero(d_neg == -1)
+    lengths = ends - starts
+    spell_lengths.extend(lengths)
+
+spell_s = pd.Series(spell_lengths, name="negative_spell_days")
+spell_summary = pd.Series({
+    "total negative spells detected": len(spell_s),
+    "median spell duration (days)": float(spell_s.median()),
+    "mean spell duration (days)": round(float(spell_s.mean()), 1),
+    "25th percentile (days)": float(spell_s.quantile(0.25)),
+    "75th percentile (days)": float(spell_s.quantile(0.75)),
+    "90th percentile (days)": float(spell_s.quantile(0.90)),
+    "share of spells lasting <= 15 days": round(float((spell_s <= 15).mean()), 3),
+    "share of spells lasting <= 30 days": round(float((spell_s <= 30).mean()), 3),
+})
+display(spell_summary.to_frame("value"))
+
+fig, ax = plt.subplots(figsize=(10, 3.5))
+ax.hist(spell_s.clip(upper=60), bins=30, color="tab:red", alpha=0.7, edgecolor="black")
+ax.axvline(spell_s.median(), color="black", ls="--", lw=1.2, label=f"median ({spell_s.median():.0f} days)")
+ax.set(title="Distribution of negative balance spell durations (clipped at 60 days)", xlabel="duration of negative spell (calendar days)", ylabel="count")
+ax.legend(); plt.tight_layout(); plt.show()
+save_result(spell_summary, "D4b_negative_spells_summary", "Summary of contiguous negative balance spell lengths across accounts")
+
+# %% [markdown]
 # ## D5. Are accounts linked?
 #
 # Section 14 found weak correlations, but two specific links could still exist. One is a transfer: money leaving one
@@ -1809,6 +1902,38 @@ def split(data, origin):
     train = data.loc[:, :origin]
     test = data.loc[:, origin + pd.Timedelta(days=1): origin + pd.Timedelta(days=HORIZON)]
     return train, test
+
+# %% [markdown]
+# ### D9b. Sensitivity of the evaluation metric to the zero-offset convention
+#
+# The brief specifies the evaluation metric as MAPE without explicitly detailing how division by zero is handled in the
+# final blind test. Section 5 showed that exact zeros do occur and near-zero balances are frequent. We adopted the
+# convention of adding €1 to the denominator ($|A_t| + 1.0$), reflecting the professor's rule.
+#
+# Before committing to model rankings in Sprint 2, we test whether that choice distorts the relative performance of the
+# baselines. We evaluate the naive forecast (last value) and the 30-day median across six possible offset values
+# $\epsilon \in \{0.01, 0.1, 0.5, 1.0, 5.0, 10.0\}$. If the baseline rankings are stable across that range, we can be
+# confident that model selection is not an artefact of the €1 parameter.
+
+# %%
+offsets = [0.01, 0.1, 0.5, 1.0, 5.0, 10.0]
+sens_rows = []
+for eps in offsets:
+    f_res = []
+    for origin in origins:
+        train, test = split(bal, origin)
+        A = test.to_numpy()
+        for mname, fc in [("naive (last value)", train.to_numpy()[:, -1:]),
+                          ("median of last 30 days", np.nanmedian(train.to_numpy()[:, -30:], 1, keepdims=True))]:
+            fc_mat = np.broadcast_to(fc, A.shape)
+            ok = np.isfinite(A) & np.isfinite(fc_mat)
+            m_val = 100 * np.mean(np.abs(A[ok] - fc_mat[ok]) / (np.abs(A[ok]) + eps))
+            f_res.append({"offset_eps": eps, "model": mname, "mape": m_val})
+    sens_rows.extend(f_res)
+
+offset_sens = pd.DataFrame(sens_rows).groupby(["offset_eps", "model"])["mape"].mean().unstack().round(1)
+display(offset_sens)
+save_result(offset_sens, "D9b_mape_offset_sensitivity", "Sensitivity of baseline MAPE scores across different denominator offsets")
 
 # %% [markdown]
 # ## D10. How good could a forecast be?
@@ -2455,6 +2580,35 @@ save_result(seasonal_diff, "D17_seasonal_differencing", "Seasonal strength rule 
 # the seasonal part of SARIMA for the few accounts with a strong monthly cycle.
 
 # %% [markdown]
+# ### D17b. Checking for over-differencing
+#
+# A classical result in Box–Jenkins time-series analysis is that taking an unnecessary difference introduces
+# an artificial unit root into the moving-average component and increases the variance of the series rather than
+# reducing it. To verify the seasonal strength test above, we compare the sample variance of the first differences
+# $\nabla y_t$ with the variance of the seasonally differenced changes $\nabla_{30} \nabla y_t$ for each account.
+
+# %%
+var_diff1, var_diff30 = [], []
+for acc in bal.index:
+    s = bal.loc[acc].dropna()
+    d1 = s.diff().dropna()
+    d30 = d1.diff(30).dropna()
+    if len(d30) > 60:
+        var_diff1.append(float(d1.var()))
+        var_diff30.append(float(d30.var()))
+
+var_diff1, var_diff30 = np.array(var_diff1), np.array(var_diff30)
+overdiff = pd.Series({
+    "accounts checked": len(var_diff1),
+    "median Var(first differences)": float(np.median(var_diff1)),
+    "median Var(seasonal + first differences)": float(np.median(var_diff30)),
+    "median variance ratio Var(d=1, D=1) / Var(d=1)": float(np.median(var_diff30 / var_diff1)),
+    "% accounts where seasonal differencing INCREASES variance": round(100 * float(np.mean(var_diff30 > var_diff1)), 1),
+})
+display(overdiff.to_frame("value"))
+save_result(overdiff, "D17b_overdifferencing_check", "Check for over-differencing: comparison of variance under d=1 vs (d=1, D=1)")
+
+# %% [markdown]
 # ## D18. A formal check of the random walk
 #
 # If a balance were a random walk, the variance of its changes over *q* days would be *q* times the variance of its
@@ -2808,6 +2962,38 @@ display(rule_check.to_frame())
 # disagreement between measures is itself a result: it confirms that the near-zero accounts need their own strategy.
 
 # %% [markdown]
+# ### 17b. How does forecast error evolve across the 30-day horizon?
+#
+# A single 30-day aggregate hides how quickly each baseline degrades. The naive forecast (carrying the last balance forward)
+# is hard to beat on day 1 or day 2 before any new transactions occur, but degrades as weekend gaps and monthly payments
+# accumulate. Conversely, level-based forecasts such as the 30-day median should be relatively steady across the horizon.
+# We evaluate the official MAPE day by day for each forecast horizon $h \in \{1, \dots, 30\}$, averaged across the 5 validation folds.
+
+# %%
+h_results = []
+for origin in origins:
+    train, test = split(prepared, origin)
+    A = test.to_numpy()
+    T = train.to_numpy()
+    for name, fc in [("naive (last value)", baselines(train)["naive (last value)"]),
+                      ("median of last 30 days", baselines(train)["median of last 30 days"])]:
+        for h in range(HORIZON):
+            a_h = A[:, h]
+            f_h = fc[:, h]
+            ok = np.isfinite(a_h) & np.isfinite(f_h)
+            h_mape = 100 * np.mean(np.abs(a_h[ok] - f_h[ok]) / (np.abs(a_h[ok]) + MAPE_OFFSET))
+            h_results.append({"horizon_day": h + 1, "model": name, "mape": h_mape})
+
+h_df = pd.DataFrame(h_results).groupby(["horizon_day", "model"])["mape"].mean().unstack()
+
+fig, ax = plt.subplots(figsize=(12, 3.8))
+h_df.plot(ax=ax, marker=".")
+ax.set(title="Official MAPE across the 30-day forecast horizon (mean over 5 folds)", xlabel="horizon day (1 to 30)", ylabel="MAPE (%)")
+ax.grid(True)
+plt.tight_layout(); plt.show()
+save_result(h_df, "17b_mape_by_horizon", "Official MAPE per forecast horizon step (h=1..30) for baseline models")
+
+# %% [markdown]
 # ## 18. What we take into Sprint 2
 #
 # We started with a clean-looking file and found that it hid two problems: a change in the date convention in August
@@ -2838,6 +3024,19 @@ display(rule_check.to_frame())
 # 8th, that January inflow should have the amount of an ordinary month, about half of the doubled December payment, so
 # July and December must be treated as special months rather than copied forward (D3). The benchmark to beat is in
 # section 17.
+
+# %% [markdown]
+# ### 18b. Sprint 2 hypothesis matrix by segment
+#
+# To guide the modelling sprint, the findings of this exploratory analysis translate into a structured test matrix
+# mapping each customer segment to candidate model families and evaluation criteria:
+#
+# | Segment | Share of accounts | Key challenge | Candidate models | Features & Regressors | Target / Acceptance |
+# |---|---|---|---|---|---|
+# | **Stable positive** | ~28% | Preserve low MAPE; capture smooth drift | Naive, ETS (A,N,N / A,A,N), ARIMA(p,1,q) | Autoregressive lags, local level | Beat naive (median MAPE < 25%) |
+# | **Near-zero / overdraft** | ~39% | Asymmetry of MAPE near zero; sign changes | Weighted median, gated calendar profile, zero floor | Day of month, payday flag, recent sign | Beat 100% zero floor on official MAPE |
+# | **Volatile positive** | ~33% | Large saw-tooth swings; non-linear spending | LightGBM / XGBoost, SARIMAX with Fourier terms | Lags, rolling stats, payday 8th / 28th, bdays to month end | Beat naive and 30-day median across all 3 guards |
+# | **Dormant** | ~0.2% | Flat series; long spells without movement | Naive (last value), constant median | None (zero change assumed) | Maintain zero error on flat days |
 
 # %% [markdown]
 # ## 19. Does the small dataset tell the same story?

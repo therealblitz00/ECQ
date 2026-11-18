@@ -9,7 +9,7 @@ Forecast each client's daily account balance for the **next 30 days**, evaluated
 | `data/raw/medium-dataset.csv` | 500 accounts × 1095 days |
 
 - *Wide* format: one row per `ACCOUNT_ID`, one column per day (raw labels 2020-01-02 → 2022-12-31). The data is fictitious.
-- The **final evaluation uses a large dataset** (not yet available). The small/medium datasets are for development; all code must scale to the large one (vectorised, memory-aware) and run on the group's Lenovo ThinkStation PGX (ARM64 Linux).
+- The **final evaluation uses a large dataset** (not yet available; the professor said it is about 20 times the medium one, i.e. roughly 10 000 accounts). The small/medium datasets are for development; all code must scale to the large one (vectorised, memory-aware) and run on the group's Lenovo ThinkStation PGX (ARM64 Linux).
 - The final forecasts are for the 30 days following the end of the data, for the same accounts.
 - How MAPE treats zero/negative balances is not specified — any assumption must be documented.
 

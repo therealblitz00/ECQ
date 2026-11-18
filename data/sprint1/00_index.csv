@@ -71,6 +71,9 @@ D14_feature_space_per_account.csv,"Per account: time-series features, PCA coordi
 D14_pca_loadings.csv,"PCA loadings of the time-series features (PC1, PC2)",18,2
 D14_cluster_profiles.csv,"Median features, size and naive MAPE of each cluster",20,2
 D14b_clustering_alternatives.csv,"D14 map vs alternative feature sets, scalings and algorithms: separation, stability, difficulty explained",12,8
+D14b_segments_vs_clusters.csv,Rule-based segments of section 15 inside the two D14 clusters,2,4
+D14b_k_vs_segments.csv,"k-means with 2, 3 and 4 groups vs the four rule-based segments",4,3
+D14b_border_accounts.csv,Median profile of near-zero and stable accounts in each D14 cluster (accounts where the two classifications agree and disagree),4,8
 D15_syntetos_boylan_per_account.csv,"Per account: ADI, CV2 and demand-pattern category of inflows and outflows",500,6
 D15_syntetos_boylan_table.csv,Accounts by inflow category x outflow category,3,4
 D16_zivot_andrews_per_account.csv,"Per account: Zivot-Andrews statistic, p-value, break date and ADF/KPSS class",500,4

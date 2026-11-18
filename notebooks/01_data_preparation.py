@@ -2031,10 +2031,13 @@ save_result(cluster_profile, "D14_cluster_profiles", "Median features, size and 
 #
 # The clustering agrees with this reading. The best split has only two groups, and the separation is modest, which
 # tells us accounts form a continuum rather than tidy families. Still, the two groups are very different where it
-# matters: about 230 positive, stable accounts that the naive forecast already handles with a median error near 26%,
-# and about 270 accounts that live around zero, cross it almost twenty times a year and carry a median error ten times
-# higher. The rule-based segments of section 15 fall almost entirely on one side or the other. For Sprint 2 this is a
-# clear instruction: the main dividing line between accounts is their distance from zero, and it deserves its own
+# matters: about 230 persistent, calm accounts, mostly positive and far from zero, that the naive forecast already
+# handles with a median error near 26%, and about 270 erratic accounts that live around zero, cross it almost twenty
+# times a year and carry a median error ten times higher. We name the groups by how they move rather than by where
+# they sit, because, as D14b shows, a few calm accounts with small balances fall in the first group. The near-zero and
+# stable segments of section 15 fall mostly on one side or the other, while the volatile accounts straddle the border.
+# For Sprint 2 this is a clear instruction: the main dividing line between accounts is their distance from zero, and it
+# deserves its own
 # model strategy.
 
 # %% [markdown]
@@ -2206,6 +2209,81 @@ save_result(cluster_cmp, "D14b_clustering_alternatives",
 # forecast difficulty, more than any clustering we tried, and they are defined by thresholds anyone can check. So the
 # map and its alternatives play the role of a consistency check: they confirm that distance from zero is the main
 # dividing line, and the rules turn that line into the segments that Sprint 2 models one by one.
+#
+# That raises an obvious question. If the data show two natural groups, why do we model four? We answer it in three
+# steps: how the segments sit inside the two clusters, whether a clustering forced to three or four groups would find
+# the segments by itself, and which accounts the two classifications disagree on.
+
+# %%
+cl_names = {c: ("erratic, crossing zero" if cluster_profile.loc["share_near_zero", c] == cluster_profile.loc["share_near_zero"].max()
+                else "persistent, calm") for c in cluster_profile.columns}
+cluster_named = clusters.map(cl_names).rename("cluster")
+seg_vs_cluster = pd.crosstab(cluster_named, feat.segment.reindex(clusters.index))
+display(seg_vs_cluster)
+save_result(seg_vs_cluster, "D14b_segments_vs_clusters", "Rule-based segments of section 15 inside the two D14 clusters")
+
+seg_aligned = feat.segment.reindex(scores.index).to_numpy()
+diff_aligned = log_difficulty.reindex(scores.index).to_numpy()
+k_rows = {}
+for k_ in (2, 3, 4):
+    lab = KMeans(n_clusters=k_, n_init=10, random_state=RANDOM_STATE).fit_predict(scores)
+    k_rows[f"k-means, k = {k_}"] = {"silhouette": silhouette_score(scores, lab),
+                                    "agreement with the 4 segments (ARI)": adjusted_rand_score(seg_aligned, lab),
+                                    "difficulty explained (eta sq)": eta_sq(diff_aligned, lab)}
+k_rows["rule-based segments (section 15)"] = {"difficulty explained (eta sq)": eta_sq(diff_aligned, seg_aligned)}
+k_vs_segments = pd.DataFrame(k_rows).T
+display(k_vs_segments.round(3))
+save_result(k_vs_segments, "D14b_k_vs_segments", "k-means with 2, 3 and 4 groups vs the four rule-based segments")
+
+# %% [markdown]
+# The segments respect the border the clustering found. Almost all near-zero accounts sit in the erratic cluster and
+# almost all stable accounts in the calm one. The volatile accounts are the exception: they split nearly in half,
+# which means that neither cluster describes them well, and that is precisely why they need a segment of their own.
+#
+# Asking the clustering for more groups does not recover the segments. With three or four groups the silhouette falls,
+# the agreement with the segments does not improve on two groups, and the share of forecast difficulty explained stays
+# around 0.35, far from the 0.51 of the rules. The data do not contain four natural families. The four segments come
+# from what we know about forecasting these balances: the risk of the MAPE near zero, the difference between a calm
+# and a volatile positive account, and the accounts that do not move at all. The two clusters justify the first cut of
+# the rules, and the forecasting needs justify the rest. Sprint 2 will give the final evidence, if each segment ends
+# up with a different best model.
+#
+# The last step looks at the accounts on which the two classifications disagree: near-zero accounts that the
+# clustering places in the calm group, and stable accounts that it places in the erratic one.
+
+# %%
+recent = bal.iloc[:, -365:]
+border = ts_feat[["zero_crossings_per_year", "acf1_level", "stability"]].assign(
+    **{"median balance, last 12 months": recent.median(1).reindex(ts_feat.index),
+       "share of days near zero, last 12 months": (recent.abs() < NEAR_ZERO).mean(1).reindex(ts_feat.index),
+       "share of negative days, last 12 months": (recent < 0).mean(1).reindex(ts_feat.index),
+       "naive MAPE": naive_mape_acc.reindex(ts_feat.index)})
+seg_all = feat.segment.reindex(ts_feat.index)
+border_groups = {}
+for sname in ("near-zero / overdraft", "stable positive"):
+    for cname in cl_names.values():
+        m_ = (seg_all == sname) & (cluster_named.reindex(ts_feat.index) == cname)
+        if m_.any():
+            border_groups[(sname, cname)] = border[m_].median().to_frame().T.assign(accounts=int(m_.sum())).iloc[0]
+border_profile = pd.DataFrame(border_groups).T
+border_profile.index.names = ["segment", "cluster"]
+display(border_profile.round(2))
+save_result(border_profile, "D14b_border_accounts", "Median profile of near-zero and stable accounts in each D14 cluster (accounts where the two classifications agree and disagree)")
+
+# %% [markdown]
+# The near-zero accounts that the clustering calls calm are small balances that are almost always positive and move
+# slowly: they cross zero less than half as often as the other near-zero accounts and are very persistent from one day
+# to the next. By the way they move they look like stable accounts, and only their level gives them away. The features
+# of D14 describe mostly how an account moves, so the clustering puts them with the calm accounts. Part of the
+# disagreement also comes from time: the features use the whole three years, while the segments look only at the last
+# twelve months, so an account that changed its behaviour can be classified by its past in one and by its present in
+# the other.
+#
+# For forecasting, the rules are right about these accounts. Their naive MAPE is as high as that of the other near-zero
+# accounts, many times the error of a calm account, because what drives the MAPE is a level close to zero, not the
+# way the balance moves. The same holds the other way round: the stable accounts that the clustering calls erratic
+# never come near zero and the naive forecast handles them well. This is the strongest argument for modelling with the
+# segments and keeping the map as a check: where the two disagree, the segments are the ones that predict the error.
 
 # %% [markdown]
 # ## D15. How often does money move?

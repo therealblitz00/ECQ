@@ -624,6 +624,35 @@ display(flag_summary.round(1))
 save_result(flag_summary, "02_stable_warning_flag", "Stable positive accounts split by a warning flag (lowest balance below 20% of the median), last-value forecast")
 
 # %% [markdown]
+# The threshold of 20% is a choice, so we check how the split behaves for other values before we keep it. A low
+# threshold flags only the accounts that came very close to zero; a high one flags many accounts that are simply
+# variable. For each value we count how many stable accounts are flagged, how many of the accounts that end near zero
+# in the test window were flagged beforehand, and the typical error of the accounts that stay in the stable group.
+
+# %%
+FLAG_GRID = [0.05, 0.1, 0.2, 0.3, 0.5]
+sens_rows = []
+for o in origins:
+    e = cut[o]
+    T = B[:, :e]; A = B[:, e:e + HORIZON]
+    base = seg_by_fold[o] == "stable positive"
+    R = T[:, -365:]
+    ratio = np.nanmin(R, 1) / np.nanmedian(R, 1)
+    ends_near = np.nanmin(np.abs(A), 1) < NEAR_ZERO
+    for thr in FLAG_GRID:
+        flagged = base & (ratio < thr)
+        kept = base & ~flagged
+        sens_rows.append({"fold": str((o + pd.Timedelta(days=1)).date()), "threshold": thr,
+                          "flagged accounts": int(flagged.sum()),
+                          "endings near zero caught (%)": 100 * (flagged & ends_near).sum() / max((base & ends_near).sum(), 1),
+                          "kept: median per-account MAPE": evaluate(A[kept], T[kept, -1:])["median per-account MAPE"],
+                          "flagged: median per-account MAPE": evaluate(A[flagged], T[flagged, -1:])["median per-account MAPE"]
+                          if flagged.any() else np.nan})
+flag_sens = pd.DataFrame(sens_rows).groupby("threshold").mean(numeric_only=True)
+display(flag_sens.round(1))
+save_result(flag_sens, "02_stable_flag_threshold_sensitivity", "Warning-flag threshold: accounts flagged, near-zero endings caught, typical error of kept and flagged accounts")
+
+# %% [markdown]
 # The rule separates two very different groups. The 25 stable accounts per fold that are flagged have a typical error of
 # 26% with the last balance, against 8% for the others, and they are the ones that end near zero more often (2.2 of the
 # 2.6 accounts per fold that do so). So these accounts were not really stable, and the segment rule of Sprint 1, which
@@ -705,8 +734,13 @@ def gbm_features(e, ids_mask, M=365, tol=2):
     return pd.concat(rows, ignore_index=True), ref, typical
 
 
-def gbm_forecast(e, train_mask, predict_mask, step=15):
-    """Fit on past cut-offs of the accounts in train_mask, predict the HORIZON days after column e for predict_mask."""
+GBM_PARAMS = dict(objective="l1", n_estimators=300, learning_rate=0.05, num_leaves=15, min_child_samples=50,
+                  subsample=0.8, subsample_freq=1, colsample_bytree=0.8, random_state=RANDOM_STATE, verbose=-1)
+
+
+def gbm_forecast(e, train_mask, predict_mask, step=15, weighted=True, **overrides):
+    """Fit on past cut-offs of the accounts in train_mask, predict the HORIZON days after column e for predict_mask.
+    `weighted` uses the MAPE weights; `overrides` change the LightGBM parameters (used in the comparison below)."""
     Xs, ys, ws = [], [], []
     for j in range(365, e - HORIZON + 1, step):
         X, ref, typical = gbm_features(j, train_mask)
@@ -717,9 +751,8 @@ def gbm_forecast(e, train_mask, predict_mask, step=15):
         Xs.append(X[ok]); ys.append(y[ok]); ws.append(w[ok])
     X = pd.concat(Xs); y = np.concatenate(ys); w = np.concatenate(ws)
     feats = [c for c in X.columns if c != "acct"]
-    model = lgb.LGBMRegressor(objective="l1", n_estimators=300, learning_rate=0.05, num_leaves=15, min_child_samples=50,
-                              subsample=0.8, subsample_freq=1, colsample_bytree=0.8, random_state=RANDOM_STATE, verbose=-1)
-    model.fit(X[feats], y, sample_weight=w)
+    model = lgb.LGBMRegressor(**{**GBM_PARAMS, **overrides})
+    model.fit(X[feats], y, sample_weight=w if weighted else None)
     Xp, ref, typical = gbm_features(e, predict_mask)
     pred = model.predict(Xp[feats]) * typical[Xp["acct"]] + ref[Xp["acct"]]
     out = np.full((B.shape[0], HORIZON), np.nan)
@@ -778,6 +811,41 @@ display(vol_verdict)
 save_result(vol_verdict, "02_volatile_positive_decision_rule", "Decision-rule verdict for the volatile positive candidates")
 
 # %% [markdown]
+# The tree model above is one configuration among many, so we check that its two main choices, the MAPE-weighted loss
+# and the size of the trees, are not arbitrary. We refit it with an unweighted absolute loss, with a squared loss, and
+# with smaller and larger trees, each time changing one thing and keeping the rest. The comparison is on the raw
+# forecasts, before small values are set to zero, so that the zeroing threshold does not hide differences between them.
+
+# %%
+GBM_VARIANTS = {"MAPE-weighted L1, 15 leaves (chosen)": {},
+                "unweighted L1": {"weighted": False},
+                "squared loss (L2), MAPE-weighted": {"objective": "l2"},
+                "MAPE-weighted L1, 7 leaves": {"num_leaves": 7},
+                "MAPE-weighted L1, 31 leaves": {"num_leaves": 31}}
+gv_rows = []
+for o in origins:
+    e = cut[o]
+    A = B[:, e:e + HORIZON]
+    m = seg2_by_fold[o] == "volatile positive"
+    for name, kw in GBM_VARIANTS.items():
+        F = gbm_forecast(e, m, m, **kw)
+        gv_rows.append({"fold": str((o + pd.Timedelta(days=1)).date()), "variant": name, **evaluate(A[m], F[m])})
+gbm_var = pd.DataFrame(gv_rows).groupby("variant")[METRICS].mean().sort_values("MAPE (official)")
+gbm_var["accepted vs chosen"] = [passes_decision_rule(gbm_var.loc[v], gbm_var.loc["MAPE-weighted L1, 15 leaves (chosen)"])
+                                 for v in gbm_var.index]
+display(gbm_var.round(1))
+save_result(gbm_var, "02_gbm_variants", "Volatile accounts: GBM loss and tree-size variants (raw forecasts, mean over folds)")
+
+# %% [markdown]
+# The table answers two questions. The first is whether weighting the loss by the MAPE matters: the unweighted absolute
+# loss and the squared loss treat a euro of error on a small balance like a euro on a large one, so if our reasoning in
+# section 4 is right they should do worse on the official MAPE, and the squared loss should suffer most from the heavy
+# tails of section 6 of Sprint 1. The second is whether the size of the trees was a lucky guess: if the smaller and
+# larger trees land close to the chosen configuration, the model is not sensitive to it and there is no reason to tune
+# it further on folds this few. The last column applies our decision rule to each variant against the chosen one; a
+# variant that passed it would replace the configuration used in the rest of the notebook in the next iteration.
+
+# %% [markdown]
 # ## 11. Do the classical models do better?
 #
 # So far the stable accounts have been forecast with the last balance and the volatile ones with a global tree model.
@@ -789,14 +857,16 @@ save_result(vol_verdict, "02_volatile_positive_decision_rule", "Decision-rule ve
 # or damped) chosen by AICc, because balances can be negative and a multiplicative model needs them positive. The ARIMA
 # chooses its orders, the differencing and the seasonal part by the KPSS and seasonal tests and AICc. Both are fitted on
 # the last year before each cut-off, so that a level shift of two years ago does not pull the forecast, and run in
-# parallel over accounts, which is what makes them affordable on the large dataset.
+# parallel over accounts, which is what makes them affordable on the large dataset. To check that the weekly season is
+# worth its cost, we also fit both models without it.
 #
 # The monthly cycle of salaries and pensions is not in these models: a season of 30 days on daily data would make
 # the seasonal ARIMA very expensive and the month does not have a fixed length. The calendar is what the gated profile
 # and the tree model use instead, so this section tells us how far the classical models get without it.
 
 # %%
-CLASSICAL = {"ets": "ETS (additive, weekly season)", "arima": "ARIMA (auto, weekly season)"}
+CLASSICAL = {"ets": "ETS (additive, weekly season)", "arima": "ARIMA (auto, weekly season)",
+             "ets_ns": "ETS (additive, no season)", "arima_ns": "ARIMA (auto, no season)"}
 
 
 def classical_forecasts(e, mask):
@@ -808,7 +878,9 @@ def classical_forecasts(e, mask):
         long = pd.DataFrame({"unique_id": np.repeat(ids, FIT_DAYS), "ds": np.tile(bal.columns[e - FIT_DAYS:e], len(ids)),
                              "y": W.ravel()}).dropna()
         sf = StatsForecast(models=[AutoETS(season_length=7, model="AZA", alias="ets"),
-                                   AutoARIMA(season_length=7, alias="arima")],
+                                   AutoARIMA(season_length=7, alias="arima"),
+                                   AutoETS(season_length=1, model="AZN", alias="ets_ns"),
+                                   AutoARIMA(season_length=1, alias="arima_ns")],
                            freq="D", n_jobs=N_JOBS, fallback_model=Naive())
         fc = sf.forecast(h=HORIZON, df=long)
         fc = fc.reset_index() if "unique_id" not in fc.columns else fc
@@ -1081,7 +1153,97 @@ save_result(pipe_verdict, "02_pipeline_decision_rule", "Decision-rule verdict of
 # balance. Every comparison will keep reporting the official MAPE with and without the largest contributor.
 
 # %% [markdown]
-# ## 14. Index of saved results
+# ## 14. What we tried, and why we chose what we chose
+#
+# Every choice in this notebook was made by comparing it with alternatives on the same folds, with the same measures and
+# the same decision rule, and none was kept because it came first. This section collects those comparisons in one
+# place. Each row is a question we asked, the alternatives we put against each other, how we judged them, what won and
+# what we decided. The numbers are read from the tables computed above, so the log stays true if the data change.
+
+# %%
+def fmt(row, cols=("MAPE (official)", "median per-account MAPE", f"MAPE |actual|>={NEAR_ZERO:.0f}")):
+    return " / ".join(f"{row[c]:.1f}%" for c in cols)
+
+
+pipe_sm = overall[overall.version == DECIDING_VERSION].groupby("system")[METRICS].mean()
+choice_ok = passes_decision_rule(pipe_sm.loc[PIPE], pipe_sm.loc[PIPE_V1])
+cls_best = {s: cls_summary.loc[(DECIDING_VERSION, s)]["MAPE (official)"].idxmin() for s in ("stable positive", "volatile positive")}
+gbm_best = gbm_var["MAPE (official)"].idxmin()
+decision_log = pd.DataFrame([
+    {"section": "2, 7", "question": "How do we score a forecast?",
+     "alternatives": "official MAPE (zeros left out), median per-account MAPE, MAPE on |balance| >= 100, WAPE; references: last value, 30-day median, zero",
+     "judged by": "what each measure rewards; the zero forecast scores exactly 100% on every MAPE",
+     "result": "the official MAPE alone is decided by near-zero balances and by single accounts",
+     "decision": "rank by the official MAPE, accept only without worsening the two other MAPE measures; report WAPE and the version without the largest contributor"},
+    {"section": "4", "question": "Which constant level for near-zero accounts?",
+     "alternatives": f"{len(near)} candidates: last value, 30-day median, weighted medians (N = {', '.join(map(str, WINDOWS))}), "
+                     f"shrinkage ({len(SHRINK)} factors x {len(WINDOWS)} windows) and sign-uncertainty shrinkage "
+                     f"({len(LAMBDAS)} x {len(WINDOWS)}) tuned on inner windows, two-step models, zero",
+     "judged by": "decision rule against last value, 30-day median and zero",
+     "result": f"best: {near.index[0]} ({fmt(near.iloc[0])}); last value {fmt(near.loc['naive (last value)'])}",
+     "decision": "no constant level beats zero; look for the calendar (section 8)"},
+    {"section": "5", "question": "Does a sign classifier plus a size model help?",
+     "alternatives": "size by absolute error (MAE) vs size by MAPE, both after a LightGBM sign classifier",
+     "judged by": "decision rule against the plain weighted median",
+     "result": f"MAE size {near.loc['two-step: sign classifier + median size (MAE)', 'MAPE (official)']:.0f}%, "
+               f"MAPE size {near.loc['two-step: sign classifier + weighted-median size (MAPE)', 'MAPE (official)']:.0f}%, "
+               f"weighted median N=90 {near.loc['weighted median, N=90', 'MAPE (official)']:.0f}%",
+     "decision": "rejected: the classifier adds nothing beyond the share of positive days"},
+    {"section": "8", "question": "Can the calendar beat the zero floor?",
+     "alternatives": f"calendar profile, halved profile, sign gate q = 0.9, gate and factor tuned over {len(Q_GRID)} x {len(S_GRID)} values",
+     "judged by": "decision rule against zero, folds won",
+     "result": f"best: {cal_summary.index[0]} ({fmt(cal_summary.iloc[0])})",
+     "decision": "gated profile with tuned gate for the near-zero group"},
+    {"section": "9", "question": "Which stable accounts are not really stable?",
+     "alternatives": f"warning flag at {', '.join(f'{t:.0%}' for t in FLAG_GRID)} of the median",
+     "judged by": "accounts flagged, near-zero endings caught, typical error of the accounts kept",
+     "result": f"at 20%: {flag_sens.loc[0.2, 'flagged accounts']:.0f} flagged, {flag_sens.loc[0.2, 'endings near zero caught (%)']:.0f}% of endings caught, "
+               f"kept accounts {flag_sens.loc[0.2, 'kept: median per-account MAPE']:.1f}%",
+     "decision": "flag at 20%; flagged accounts go to the near-zero strategy"},
+    {"section": "10", "question": "Which model for volatile accounts?",
+     "alternatives": f"{len(vol_summary)} candidates: baselines, weighted medians, calendar profiles, global LightGBM with and without zeroing",
+     "judged by": "decision rule against last value and 30-day median",
+     "result": f"best: {vol_summary.index[0]} ({fmt(vol_summary.iloc[0])})",
+     "decision": "global LightGBM with small forecasts zeroed"},
+    {"section": "10", "question": "Which loss and tree size for the LightGBM?",
+     "alternatives": f"{len(GBM_VARIANTS)} variants: " + ", ".join(GBM_VARIANTS),
+     "judged by": "decision rule against the chosen configuration (raw forecasts)",
+     "result": f"best official MAPE: {gbm_best} ({fmt(gbm_var.loc[gbm_best])})",
+     "decision": "keep the MAPE-weighted L1 with 15 leaves unless a variant passes the rule"},
+    {"section": "10", "question": "When should small GBM forecasts be set to zero?",
+     "alternatives": f"{len(ZERO_GRID)} thresholds ({', '.join(map(str, ZERO_GRID))} x typical size), tuned on the window before each cut-off",
+     "judged by": "official MAPE, with the typical-account MAPE allowed to worsen by at most 10%",
+     "result": "chosen per fold: " + ", ".join(f"{v}" for v in vol_c.values()),
+     "decision": "threshold tuned per fold"},
+    {"section": "11", "question": "Do exponential smoothing and ARIMA help?",
+     "alternatives": ", ".join(CLASSICAL.values()) + "; fitted per account on the last year",
+     "judged by": "decision rule against the baselines (and the GBM for volatile accounts), without the largest contributor",
+     "result": f"stable: best {cls_best['stable positive']}; volatile: best classical {cls_best['volatile positive']}",
+     "decision": f"stable -> {STABLE_MODEL}; volatile -> {VOLATILE_MODEL}"},
+    {"section": "12", "question": "Do the guards and a per-account choice improve the pipeline?",
+     "alternatives": "no guards, guards, guards + per-account choice among last value / profile / zero",
+     "judged by": "decision rule, with and without the largest contributor",
+     "result": f"guards + choice {fmt(pipe_sm.loc[PIPE])}; guards only {fmt(pipe_sm.loc[PIPE_V1])}; no guards {fmt(pipe_sm.loc[PIPE_NOGUARD])}",
+     "decision": "guards kept; per-account choice " + ("accepted" if choice_ok else "not accepted")},
+]).set_index("section")
+display(decision_log)
+save_result(decision_log, "02_decision_log", "Every modelling choice of the notebook: alternatives compared, criterion, result and decision")
+
+# %% [markdown]
+# Read from top to bottom, the log tells the story of this sprint in one page. We started with constant levels and
+# found the zero floor, tried a two-step model and rejected it, beat the floor with the calendar, repaired the
+# segmentation with a warning flag whose threshold we checked, and gave each segment the model that won its own
+# comparison: the calendar for the accounts near zero, a time series model for the stable accounts and a global tree
+# model for the volatile ones. Each of those choices was tested against simpler alternatives and against variations of
+# itself, and two ideas that sounded promising, the sign classifier and the per-account choice, were measured and
+# dropped because the decision rule said so.
+#
+# The log is also a list of what is still open, and that is where Sprint 3 starts: a better way to find the near-zero
+# accounts that a simple level forecasts well, the sudden drops of stable accounts that no model sees coming, and the
+# monthly cycle that the classical models do not yet include.
+
+# %% [markdown]
+# ## 15. Index of saved results
 
 # %%
 index = pd.DataFrame(saved_files)

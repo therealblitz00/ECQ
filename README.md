@@ -103,6 +103,7 @@ Done:
 - [x] Course-method additions: robust STL per account (§9: flags >10% of a typical account's days, so not usable as an anomaly filter here — fixed 30-day period drifts against real months, lumpy flows), rolling mean/std plots (§10), ARCH-LM on AR(p)-prewhitened residuals next to the raw test (§12), COVID lockdowns as an interrupted series (§13, Hyndman & Rostami-Tabar), prewhitened cross-correlations (§14), caution note on the Hurst exponent (D13)
 - [x] Pension evidence for the 8th: month-by-month table, weekend/holiday rule, pension-like accounts, July/December doubling, January 2023 consequence (D3)
 - [x] Small dataset check: key facts for the first 50 accounts vs all accounts (§19)
+- [x] Why the 18 D14 features, and the alternatives tried (D14b): each feature group justified by an earlier section; one-change-at-a-time comparison of feature sets (drop each group, only distance-from-zero, tsfresh with 744 automatic features), scalings (rank-normal, standardised, robust) and algorithms (k-means, Ward, Gaussian mixture), judged by silhouette, Calinski–Harabasz, Davies–Bouldin, subsample stability and the share of forecast difficulty explained. Distance from zero drives the map (eta² 0.34 → 0.18 without it); robust scaling wins on silhouette but explains nothing (0.02); Ward is unstable (0.44); tsfresh loses on every measure; the rule-based segments explain the most difficulty (0.51)
 
 To do:
 - [x] Re-run the notebook after the additions above: build the `.ipynb` from the `.py` with jupytext, execute it and refresh `data/sprint1/` (the committed `.ipynb` and CSVs predate them)
@@ -120,6 +121,8 @@ To do:
 - [x] WAPE added as a reported (not deciding) measure: the pipeline misses ~17% of the euros vs ~12% for the last value; forecasting zero is cheap in MAPE and expensive in euros (§2, §7, §13)
 - [x] Per-account choice (last value / guarded profile / zero) in the near-zero group on the two inner windows (§12): ~45 accounts per fold get their last value back, median per-account MAPE 74.5% → 70.4%, but official MAPE 637% → 664% (72.5% → 81.5% without the largest contributor) — not accepted; kept as a measured trade-off
 - [x] ETS (additive, weekly season) and AutoARIMA (weekly season) per account with statsforecast, in parallel, on the last 365 days (§11): on stable accounts ARIMA beats the last value (official 16.3% vs 17.0% without the largest contributor, typical 7.2% vs 7.7%) and is adopted; ETS ≈ last value; on volatile accounts ARIMA beats the last value but not the GBM (296%/64% vs 98%/55%)
+- [x] More comparisons in `02_modelling.py` (not yet re-run): warning-flag threshold sensitivity (5–50%, §9), LightGBM loss and tree-size variants (unweighted L1, L2, 7/31 leaves, §10), ETS/ARIMA with and without the weekly season (§11), and a decision log of every choice with the alternatives compared (§14)
+- [ ] Re-run `02_modelling` (jupytext + nbconvert, ~12–14 min) and check the §11/§13 text against the new tables
 - [ ] Ask the professor how the MAPE treats near-zero balances, and what the reference value of 224 refers to (euros? sklearn fraction?)
 - [ ] Inflow of the 8th: July/December as special months; January 2023 inflow on Monday 9 with an ordinary amount (D3)
 - [ ] COVID interruption: test an interruption flag or down-weighting (Mar–May 2020, Jan–Feb 2021) for models that use the whole history (§13)

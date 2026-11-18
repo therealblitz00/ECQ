@@ -53,8 +53,11 @@ from scipy import stats
 from scipy.signal import periodogram
 from statsmodels.tsa.stattools import adfuller, kpss, acf, pacf, zivot_andrews, bds
 from sklearn.decomposition import PCA
-from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score
+from sklearn.cluster import KMeans, AgglomerativeClustering
+from sklearn.mixture import GaussianMixture
+from sklearn.metrics import silhouette_score, calinski_harabasz_score, davies_bouldin_score, adjusted_rand_score
+from tsfresh import extract_features
+from tsfresh.feature_extraction import EfficientFCParameters
 import stumpy
 from statsmodels.tsa.seasonal import MSTL, STL
 from statsmodels.stats.diagnostic import acorr_ljungbox, het_arch
@@ -2033,6 +2036,176 @@ save_result(cluster_profile, "D14_cluster_profiles", "Median features, size and 
 # higher. The rule-based segments of section 15 fall almost entirely on one side or the other. For Sprint 2 this is a
 # clear instruction: the main dividing line between accounts is their distance from zero, and it deserves its own
 # model strategy.
+
+# %% [markdown]
+# ### D14b. Why these eighteen features, and what else we tried
+#
+# A map like this one is only as good as the choices behind it, and each choice could have been made differently: the
+# features, the way we put them on a common scale, the clustering algorithm and the number of groups. Before we lean on
+# the map in Sprint 2 we want to know whether its message survives those choices, or whether we simply took the first
+# configuration that ran.
+#
+# The eighteen features were not picked from a catalogue. Each one measures a property that an earlier section showed
+# to matter for forecasting, and they fall into four groups. The dependence group (lag-one autocorrelation of the
+# balance and of its changes, the sum of the first ten squared autocorrelations of the changes, and the Hurst exponent)
+# comes from the ACF analysis of section 11 and from D13. The stability and shape group (stability and lumpiness of
+# 30-day blocks, kurtosis of the changes, the longest flat spell and the share of active days) comes from the heavy
+# tails and flat stretches of section 6 and D7. The distance-from-zero group (crossings of the median, sign changes per
+# year, share of days near zero, share of negative days, and the coefficient of variation) is the MAPE risk of section 5.
+# The seasonality group (strength of trend, weekly and monthly components and the spectral entropy) comes from the
+# decomposition of section 9 and the periodogram of D6. Together they describe each account by the properties that
+# decide which model will suit it.
+#
+# We then change one choice at a time and keep everything else as in D14. For the features we drop each group in turn,
+# keep only the distance-from-zero group, and replace the whole set with the roughly 780 automatic features of the
+# `tsfresh` package (its efficient setting, computed on the same balances). For the scale we compare the rank-based
+# normal scores of D14 with plain standardisation and with a robust version (median and interquartile range), because
+# balances have extreme values. For the algorithm we compare k-means with Ward's hierarchical clustering and a Gaussian
+# mixture. In every case the number of groups is chosen between 2 and 8 by the silhouette.
+#
+# Each configuration is judged on five measures. Three describe how well separated the groups are: the silhouette and
+# the Calinski–Harabasz index (higher is better) and the Davies–Bouldin index (lower is better). The fourth is
+# stability: we cluster 20 random subsamples of 80% of the accounts and measure how well they agree with the full
+# solution (adjusted Rand index, 1 means identical). The fifth is the one that matters for us: the share of the variation
+# in forecast difficulty, the log of each account's naive MAPE, that the groups explain (eta squared). A clustering that
+# is neat but does not separate easy accounts from hard ones would be of no use for choosing models.
+
+# %%
+FEATURE_GROUPS = {
+    "dependence": ["acf1_level", "acf1_diff", "acf10_diff", "hurst_changes"],
+    "stability and shape": ["stability", "lumpiness", "kurtosis_changes", "longest_flat_spell", "activity"],
+    "distance from zero": ["crossing_points", "zero_crossings_per_year", "share_near_zero", "share_negative", "log_cv"],
+    "seasonality": ["strength_trend", "strength_weekly (7)", "strength_monthly (30)", "spectral_entropy"],
+}
+assert sorted(sum(FEATURE_GROUPS.values(), [])) == sorted(ts_feat.columns), "every D14 feature belongs to one group"
+
+
+def rank_normal(X):
+    X = X.fillna(X.median())
+    return X.rank(pct=True).sub(0.5 / len(X)).apply(stats.norm.ppf)
+
+
+def standardise(X):
+    X = X.fillna(X.median())
+    return (X - X.mean()) / X.std().replace(0, 1)
+
+
+def robust_scale(X):
+    X = X.fillna(X.median())
+    iqr = (X.quantile(0.75) - X.quantile(0.25)).replace(0, 1)
+    return ((X - X.median()) / iqr).clip(-10, 10)
+
+
+SCALERS = {"rank-normal scores": rank_normal, "standardised": standardise, "robust (median/IQR)": robust_scale}
+
+
+def fit_labels(S, algo, k, seed=RANDOM_STATE):
+    if algo == "k-means":
+        return KMeans(n_clusters=k, n_init=10, random_state=seed).fit_predict(S)
+    if algo == "Ward hierarchical":
+        return AgglomerativeClustering(n_clusters=k, linkage="ward").fit_predict(S)
+    return GaussianMixture(n_components=k, covariance_type="diag", n_init=3, random_state=seed).fit_predict(S)
+
+
+log_difficulty = np.log10(naive_mape_acc.clip(lower=1))
+
+
+def eta_sq(values, labels):
+    v = pd.Series(np.asarray(values, float)); g = pd.Series(labels)
+    ok = v.notna()
+    v, g = v[ok], g[ok.to_numpy()]
+    between = v.groupby(g.to_numpy()).apply(lambda x: len(x) * (x.mean() - v.mean()) ** 2).sum()
+    return float(between / ((v - v.mean()) ** 2).sum())
+
+
+def judge(S, algo, ref_labels, difficulty, k_range=range(2, 9), n_boot=20, frac=0.8):
+    S = S.to_numpy() if hasattr(S, "to_numpy") else S
+    sil = {k: silhouette_score(S, fit_labels(S, algo, k)) for k in k_range}
+    k = max(sil, key=sil.get)
+    lab = fit_labels(S, algo, k)
+    boot_rng = np.random.default_rng(RANDOM_STATE)
+    agree = []
+    for _ in range(n_boot):
+        idx = np.sort(boot_rng.choice(len(S), size=int(frac * len(S)), replace=False))
+        agree.append(adjusted_rand_score(lab[idx], fit_labels(S[idx], algo, k)))
+    return {"groups (k)": k, "silhouette": sil[k], "Calinski-Harabasz": calinski_harabasz_score(S, lab),
+            "Davies-Bouldin": davies_bouldin_score(S, lab), "stability (ARI)": float(np.mean(agree)),
+            "difficulty explained (eta sq)": eta_sq(difficulty, lab),
+            "agreement with D14 (ARI)": adjusted_rand_score(ref_labels, lab),
+            "smallest group (% accounts)": 100 * np.bincount(lab).min() / len(lab)}, lab
+
+
+ids_map = ts_feat.index
+d14_labels = clusters.reindex(ids_map).to_numpy()
+configs = {"D14: all 18 features, rank-normal, k-means": (list(ts_feat.columns), "rank-normal scores", "k-means")}
+for grp, cols in FEATURE_GROUPS.items():
+    configs[f"without the {grp} group"] = ([c for c in ts_feat.columns if c not in cols], "rank-normal scores", "k-means")
+configs["only the distance-from-zero group"] = (FEATURE_GROUPS["distance from zero"], "rank-normal scores", "k-means")
+for sc in ("standardised", "robust (median/IQR)"):
+    configs[f"scale: {sc}"] = (list(ts_feat.columns), sc, "k-means")
+for algo in ("Ward hierarchical", "Gaussian mixture"):
+    configs[f"algorithm: {algo}"] = (list(ts_feat.columns), "rank-normal scores", algo)
+
+cmp_rows = {}
+for name, (cols, sc, algo) in configs.items():
+    cmp_rows[name], _ = judge(SCALERS[sc](ts_feat[cols]), algo, d14_labels, log_difficulty.reindex(ids_map).to_numpy())
+
+# The automatic alternative: tsfresh features on the same accounts (efficient setting)
+tsf_ids = sample_accounts(ids_map, MAX_TEST_ACCOUNTS)
+long_bal = (bal.loc[tsf_ids].T.reset_index(drop=True).rename_axis("t").reset_index()
+            .melt(id_vars="t", var_name="id", value_name="y").dropna())
+tsf = extract_features(long_bal, column_id="id", column_sort="t", column_value="y",
+                       default_fc_parameters=EfficientFCParameters(), n_jobs=4, disable_progressbar=True)
+tsf = tsf.replace([np.inf, -np.inf], np.nan).reindex(tsf_ids)
+tsf = tsf.loc[:, (tsf.notna().mean() > 0.9) & (tsf.nunique() > 1)]
+print(f"tsfresh: {tsf.shape[1]} usable features for {len(tsf)} accounts")
+cmp_rows[f"tsfresh ({tsf.shape[1]} automatic features), rank-normal, k-means"], _ = judge(
+    rank_normal(tsf), "k-means", clusters.reindex(tsf_ids).to_numpy(), log_difficulty.reindex(tsf_ids).to_numpy())
+
+# Reference: the rule-based segments of section 15 are a grouping too
+seg_ref = feat.segment.reindex(ids_map)
+cmp_rows["reference: rule-based segments (section 15)"] = {
+    "groups (k)": seg_ref.nunique(), "difficulty explained (eta sq)": eta_sq(log_difficulty.reindex(ids_map), seg_ref.to_numpy()),
+    "agreement with D14 (ARI)": adjusted_rand_score(d14_labels, seg_ref.to_numpy()),
+    "smallest group (% accounts)": 100 * seg_ref.value_counts().min() / len(seg_ref)}
+
+cluster_cmp = pd.DataFrame(cmp_rows).T
+display(cluster_cmp.round(3))
+save_result(cluster_cmp, "D14b_clustering_alternatives",
+            "D14 map vs alternative feature sets, scalings and algorithms: separation, stability, difficulty explained")
+
+# %% [markdown]
+# The message of the map survives almost every change, and the alternatives that look better on paper fail on the
+# measure that matters to us. Every configuration chooses two groups, so the split in two is not an artefact of one
+# algorithm or one scale.
+#
+# The feature groups show where the information is. Removing the distance-from-zero group is the only change that
+# really damages the map: the share of forecast difficulty explained falls from 0.34 to 0.18 and the groups agree with
+# D14 only partly (ARI 0.57). Removing any other group changes little (eta squared between 0.35 and 0.40, ARI between
+# 0.77 and 0.88). Keeping only the distance-from-zero group gives the cleanest separation (silhouette 0.45) and a little
+# more explained difficulty (0.42), which confirms that this is the dividing line. We still keep the full set in D14,
+# because the other groups describe how an account moves, not only where it sits, and that is what the choice of a
+# model needs; the comparison tells us that the clusters themselves are driven by distance from zero.
+#
+# The scale matters more than we expected. The robust scaling gives the best silhouette of all (0.53), but it does so by
+# isolating about 11% of accounts with extreme values, and its groups explain almost nothing of the forecast difficulty
+# (0.02). That is a warning against choosing a clustering by its silhouette alone. Plain standardisation is worse than
+# the rank-based scores on every measure, which is why D14 uses ranks.
+#
+# Among the algorithms, Ward's hierarchical clustering is unstable: two subsamples of the same accounts agree only at
+# 0.44, against 0.93 for k-means. The Gaussian mixture finds nearly the same two groups as k-means (ARI 0.81) and
+# explains slightly more difficulty (0.40 against 0.34), so either would do; we keep k-means, the simpler of the two.
+#
+# The automatic features of `tsfresh` lose on every measure: lowest silhouette (0.17), worst Davies–Bouldin index (2.28)
+# and only 0.21 of the difficulty explained, with groups that agree little with D14 (ARI 0.31). With more than 700
+# features, most of them describe the scale and the shape of the series, and the few that measure distance from zero
+# are drowned. More features did not mean a better map, and hand-made features tied to what we already know about the
+# data are both more useful and easier to explain.
+#
+# The last row is the most important for Sprint 2. The four rule-based segments of section 15 explain 0.51 of the
+# forecast difficulty, more than any clustering we tried, and they are defined by thresholds anyone can check. So the
+# map and its alternatives play the role of a consistency check: they confirm that distance from zero is the main
+# dividing line, and the rules turn that line into the segments that Sprint 2 models one by one.
 
 # %% [markdown]
 # ## D15. How often does money move?

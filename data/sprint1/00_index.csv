@@ -70,6 +70,7 @@ D13_hurst_per_account.csv,Per account: Hurst exponent (R/S) of daily changes,500
 D14_feature_space_per_account.csv,"Per account: time-series features, PCA coordinates and cluster",500,21
 D14_pca_loadings.csv,"PCA loadings of the time-series features (PC1, PC2)",18,2
 D14_cluster_profiles.csv,"Median features, size and naive MAPE of each cluster",20,2
+D14b_clustering_alternatives.csv,"D14 map vs alternative feature sets, scalings and algorithms: separation, stability, difficulty explained",12,8
 D15_syntetos_boylan_per_account.csv,"Per account: ADI, CV2 and demand-pattern category of inflows and outflows",500,6
 D15_syntetos_boylan_table.csv,Accounts by inflow category x outflow category,3,4
 D16_zivot_andrews_per_account.csv,"Per account: Zivot-Andrews statistic, p-value, break date and ADF/KPSS class",500,4

@@ -128,7 +128,8 @@ To do:
 - [ ] Re-run `02_modelling` (jupytext + nbconvert, ~12–14 min) — needed for the new MAPE (|A| + €1) too — and update the numbers quoted in the §7–§13 text from the new tables
 - [x] Ask the professor how the MAPE treats zeros: add €1 to |actual| in the denominator (adopted in both notebooks)
 - [ ] Confirm with the professor that the reference value of 224 is the naive forecast under the |A| + €1 rule (we get ~238% on medium for Dec 2022)
-- [ ] Metric sensitivity: offset of €1 / €10 / €100, plus sMAPE and MASE as references, on the baselines and the pipeline — does the ranking of models depend on the metric?
+- [x] Metric sensitivity to the zero offset on the baselines (€0.01 to €10, Sprint 1 D9b)
+- [ ] Metric sensitivity, rest: sMAPE and MASE as references, and the offset sensitivity applied to the Sprint 2 pipeline — does the ranking of models depend on the metric?
 - [ ] Level from the current regime only: compute levels (last value, medians, weighted medians, profiles) on the history since the last change point (D7, D16) instead of fixed 30/90/365-day windows; compare with the decision rule
 - [ ] Calendar table for the models: business days, Portuguese holidays, the 8th with the weekend rule, paydays on the 28th–30th, July/December double pensions; feed it to SARIMAX, the GBM and the calendar profile
 - [ ] asinh transformation of the balance (D19) for ARIMA/ETS and the GBM on volatile accounts, with back-transformation bias correction

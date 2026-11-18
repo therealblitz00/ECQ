@@ -126,7 +126,12 @@ To do:
 - [x] ETS (additive, weekly season) and AutoARIMA (weekly season) per account with statsforecast, in parallel, on the last 365 days (§11): on stable accounts ARIMA beats the last value (official 16.3% vs 17.0% without the largest contributor, typical 7.2% vs 7.7%) and is adopted; ETS ≈ last value; on volatile accounts ARIMA beats the last value but not the GBM (296%/64% vs 98%/55%)
 - [x] More comparisons in `02_modelling.py` (not yet re-run): warning-flag threshold sensitivity (5–50%, §9), LightGBM loss and tree-size variants (unweighted L1, L2, 7/31 leaves, §10), ETS/ARIMA with and without the weekly season (§11), an optional tsfresh-features GBM (`RUN_TSFRESH_GBM = False` by default; on medium it was rejected: 99.3% vs 97.7% official with zeroing, worse WAPE, ~10 min extra), and a decision log of every choice with the alternatives compared (§14)
 - [ ] Re-run `02_modelling` (jupytext + nbconvert, ~12–14 min) — needed for the new MAPE (|A| + €1) too — and update the numbers quoted in the §7–§13 text from the new tables
-- [ ] Ask the professor how the MAPE treats near-zero balances, and what the reference value of 224 refers to (euros? sklearn fraction?)
+- [x] Ask the professor how the MAPE treats zeros: add €1 to |actual| in the denominator (adopted in both notebooks)
+- [ ] Confirm with the professor that the reference value of 224 is the naive forecast under the |A| + €1 rule (we get ~238% on medium for Dec 2022)
+- [ ] Metric sensitivity: offset of €1 / €10 / €100, plus sMAPE and MASE as references, on the baselines and the pipeline — does the ranking of models depend on the metric?
+- [ ] Level from the current regime only: compute levels (last value, medians, weighted medians, profiles) on the history since the last change point (D7, D16) instead of fixed 30/90/365-day windows; compare with the decision rule
+- [ ] Calendar table for the models: business days, Portuguese holidays, the 8th with the weekend rule, paydays on the 28th–30th, July/December double pensions; feed it to SARIMAX, the GBM and the calendar profile
+- [ ] asinh transformation of the balance (D19) for ARIMA/ETS and the GBM on volatile accounts, with back-transformation bias correction
 - [ ] Inflow of the 8th: July/December as special months; January 2023 inflow on Monday 9 with an ordinary amount (D3)
 - [ ] COVID interruption: test an interruption flag or down-weighting (Mar–May 2020, Jan–Feb 2021) for models that use the whole history (§13)
 - [x] ML / global models: LightGBM for volatile accounts (§10)
@@ -136,6 +141,25 @@ To do:
 
 ### Sprint 3 — Anomalies + Optimizations (due 2026-12-03)
 - [ ] Identify and explain the anomalies found (in the data and in forecast errors)
+- [ ] Suspicious-activity scan (daily balances only, so each typology is searched through its signature in the net daily change):
+  - [ ] Structuring / smurfing: repeated inflows of similar size just below a reporting threshold (e.g. €9 500–9 990) on consecutive days
+  - [ ] Pass-through / money-mule accounts: large inflow followed by a near-equal outflow within 1–3 days; turnover far above the average balance
+  - [ ] Unexplained large inflows: net change many times the account's usual income (robust z-score against its own history)
+  - [ ] Account draining / takeover: sudden fall to near zero after a stable history, at once or in several withdrawals (candidate: the €134k → €2 account of Sprint 2 §9)
+  - [ ] Salami slicing: many small, near-identical debits; cents analysis (extends D1)
+  - [ ] Transfers between accounts and round-tripping: equal and opposite net changes in two accounts with a 0–2 day lag; cycles A→B→C→A in the transfer graph (extends D5, which tested lag 0 globally)
+  - [ ] Funnel accounts: one account whose inflows match outflows of many others
+  - [ ] Kiting: pairs of accounts with mirrored oscillations (strong negative correlation of daily changes)
+  - [ ] Dormant accounts reactivated: long flat spell followed by a burst of activity
+  - [ ] Bust-out / overdraft abuse: a new minimum far below the historical floor with no recovery (D4 found no floors)
+  - [ ] Pension or payroll fraud: duplicated payments on the 8th, or pension accounts that keep accumulating with no outflows (D3)
+  - [ ] Movements on weekends or holidays, when the bank does not process (§7: activity on business days only)
+  - [ ] Fabricated amounts: Benford, round amounts and repeated exact amounts per account (extends D1)
+  - [ ] Change of pattern: loss of the monthly cycle or of the salary, abrupt change of profile (D7, D16)
+- [ ] Suspicion score per account combining the indicators above; inspect the top accounts by hand and report them as suspicious patterns (no ground truth to confirm fraud)
+- [ ] Use the flags in the forecasts: exclude or replace flagged days (pass-through spikes, one-off inflows) before computing levels and profiles; forecast pass-through accounts at their base level; restart drained accounts from their new level
+- [ ] Anomaly cleaning of the training data: a simple rule for isolated jumps that revert within a few days (the robust STL of §9 flags too many days to be used as a filter)
+- [ ] Near-zero group: a better way to find the accounts that a simple level forecasts well (more than two inner windows, or account features instead of recent errors only)
 - [ ] Optimize the best model(s): hyperparameters, features, per-segment treatment of accounts, ensembles
 - [ ] Re-evaluate the impact of the optimizations on MAPE
 

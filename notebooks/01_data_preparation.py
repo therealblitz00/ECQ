@@ -32,8 +32,8 @@
 # business-day week and a saw-tooth month, with salaries at the end of the month, pensions on the 8th and debits at the
 # start. Accounts behave independently. Day to day a balance looks like a random walk, but over a month most of its
 # movement cancels out around a level that jumps from time to time. The hard part is the metric: one balance in six is within €100 of zero, and an oracle experiment shows that
-# most of the official error comes from choosing the wrong level for those accounts. That is where Sprint 2 will win or
-# lose.
+# most of the official error comes from choosing the wrong level for those accounts, even with the €1 that we add to
+# each balance in the denominator of the MAPE, as the professor suggested. That is where Sprint 2 will win or lose.
 #
 # The notebook only needs the CSV file provided by the professor, set in `DATA_PATH` below.
 
@@ -622,9 +622,11 @@ save_result(holiday_effect, "07_holiday_effect", "Activity on Portuguese public 
 
 # %%
 dom_profile = cal[cal.weekday < 5].groupby("day")[["mean_rel_change", "large_inflow", "large_outflow"]].median()
+business_days = pd.bdate_range(bal.columns.min(), bal.columns.max() + pd.Timedelta(days=40))
 bday_to_end = pd.Series(
-    pd.Series(bdays).groupby(pd.Series(bdays).dt.to_period("M")).rank(ascending=False).to_numpy() - 1, index=bdays)
-cal_bday_end = cal.loc[cal.index.intersection(bdays)].copy()
+    pd.Series(business_days).groupby(pd.Series(business_days).dt.to_period("M")).rank(ascending=False).to_numpy() - 1,
+    index=business_days)
+cal_bday_end = cal.loc[cal.index.intersection(business_days)].copy()
 cal_bday_end["bday_to_end"] = -cal_bday_end.index.map(bday_to_end)
 end_profile = cal_bday_end[cal_bday_end.bday_to_end >= -5].groupby("bday_to_end")[["mean_rel_change", "large_inflow", "large_outflow"]].median()
 
@@ -636,6 +638,16 @@ axes[1].set(title="Median activity by business days to month end (0 = last busin
 plt.tight_layout(); plt.show()
 save_result(dom_profile, "07b_sawtooth_profile_dom", "Median activity across accounts by day of month (business days)")
 save_result(end_profile, "07b_sawtooth_profile_monthend", "Median activity across accounts by business days to month end")
+
+# %% [markdown]
+# The month has a clear shape. Large inflows peak on the 8th, when 16% of accounts receive one, and again from the 28th
+# to the 31st, at 13% to 16%, while large outflows are most common on the first five days of the month, when 15% to 21%
+# of accounts make one. On every other day the typical balance drifts down. That is the saw-tooth: a jump at the end of
+# the month and on the 8th, then a slow descent as the money is spent.
+#
+# Counting business days to the end of the month sharpens the end-of-month peak a little: the last business day gathers
+# slightly more large inflows than any calendar day at the end of the month. Salaries follow the last business day rather than a fixed date, so a
+# calendar for the models should count business days to the month end next to the day of the month.
 
 # %% [markdown]
 # ## 8. A few accounts up close
@@ -1081,9 +1093,8 @@ save_result(same_months, "13_lockdown_same_months", "March-April of each year: a
 #
 # A single cross-sectional median hides how the rest of the customer base behaves. We trace the percentiles of
 # balances across all active accounts on each calendar date: the 10th, 25th, 50th (median), 75th and 90th percentiles.
-# This gives a fan chart of the distribution over the three years, showing the persistent anchoring of the bottom
-# quantiles around zero and into overdraft, the gradual upward drift of the upper quantiles, and the temporary
-# savings build-up during the 2020 confinement.
+# This gives a fan chart of the distribution over the three years, which shows whether the bottom of the book stays
+# anchored around zero and in overdraft, whether the upper quantiles drift, and whether the first lockdown left a mark.
 
 # %%
 quantiles = [0.10, 0.25, 0.50, 0.75, 0.90]
@@ -1100,6 +1111,14 @@ ax.set(title="Cross-sectional distribution of balances over time (fan chart, EUR
 ax.legend(loc="upper left")
 plt.tight_layout(); plt.show()
 save_result(q_df, "13b_cross_sectional_quantiles", "Daily cross-sectional percentiles (p10, p25, p50, p75, p90) across all active accounts")
+
+# %% [markdown]
+# The fan chart shows the whole book moving up. The lowest tenth of balances rose from about −€315 at the start of 2020
+# to about −€16 at the end of 2022, the lowest quarter crossed from overdraft into positive balances, and the median rose
+# from about €310 to between €550 and €690 after the first months of 2020 and stayed there. The rise that began during the
+# first lockdown was therefore not temporary: it became the new level. For forecasting this is one more reason to
+# estimate levels on the recent regime rather than on the whole history, and it tells us that the bottom of the
+# distribution, where the MAPE is most fragile, keeps living close to zero.
 
 # %% [markdown]
 # # Part C · Accounts side by side
@@ -1298,6 +1317,55 @@ for ax, seg in zip(np.atleast_1d(axes), seg_summary.index):
 plt.tight_layout(); plt.show()
 
 # %% [markdown]
+# The variables and the order of the rules follow from what we have seen so far, but the three thresholds (5% of
+# active days, 25% of days near zero or negative, a coefficient of variation of 0.5) are our choice. Before relying on
+# them we check how many accounts would change group if each threshold were moved, and whether the data show a natural
+# gap at the threshold or a continuous spread of accounts across it.
+
+# %%
+def segment_with(f, activity=0.05, near=0.25, cv=0.5):
+    """The rules of this section with other thresholds, vectorised over accounts."""
+    return pd.Series(np.select([f.activity < activity, (f.share_near_zero > near) | (f.share_negative > near), f.cv < cv],
+                               ["dormant", "near-zero / overdraft", "stable positive"], default="volatile positive"),
+                     index=f.index)
+
+
+base_seg = segment_with(feat)
+THRESHOLD_GRID = {"activity": [0.03, 0.10], "near": [0.15, 0.20, 0.30, 0.35], "cv": [0.3, 0.4, 0.6, 0.75]}
+DEFAULTS = {"activity": 0.05, "near": 0.25, "cv": 0.5}
+RULE_NAMES = {"activity": "share of active days below", "near": "share of days near zero or negative above",
+              "cv": "coefficient of variation below"}
+seg_sens_rows = []
+for rule, values in THRESHOLD_GRID.items():
+    for v in values:
+        changed = (segment_with(feat, **{rule: v}) != base_seg).sum()
+        seg_sens_rows.append({"rule": RULE_NAMES[rule], "our threshold": DEFAULTS[rule], "alternative": v,
+                          "accounts that change group": int(changed)})
+seg_sensitivity = pd.DataFrame(seg_sens_rows)
+display(seg_sensitivity)
+save_result(seg_sensitivity, "15_segment_threshold_sensitivity", "Accounts that change segment when each rule threshold is moved")
+
+near_or_neg = feat[["share_near_zero", "share_negative"]].max(axis=1)
+fig, axes = plt.subplots(1, 3, figsize=(16, 3.2))
+for ax, (vals, thr, title) in zip(axes, [(feat.activity, 0.05, "share of active days"),
+                                         (near_or_neg, 0.25, "share of days near zero or negative (larger of the two)"),
+                                         (feat.cv.clip(upper=3), 0.5, "coefficient of variation (capped at 3)")]):
+    ax.hist(vals.dropna(), bins=60, color="tab:blue"); ax.axvline(thr, color="red", lw=1.2)
+    ax.set(title=title, ylabel="accounts")
+plt.tight_layout(); plt.show()
+
+# %% [markdown]
+# The three thresholds are not equally solid. The activity threshold sits in a natural gap: a single account is below 5%
+# and the next one is far above, so moving it to 3% or 10% changes one account. The near-zero threshold sits in a sparse
+# zone without a natural cut: 14 to 17 accounts change group if it moves by five points, and about 35 if it moves by ten.
+# The threshold on the coefficient of variation is the fragile one. Its distribution is continuous, with no gap anywhere,
+# so 22 to 27 accounts move between stable and volatile for a change of 0.1 and up to 81 for a change of 0.25.
+#
+# We therefore keep the thresholds, which are reasonable and easy to check, but we do not treat the coefficient of
+# variation as settled. The boundary it draws, between stable and volatile positive accounts, is a modelling choice,
+# and Sprint 2 should choose it by the forecasts it produces, in the same way as the other parameters there.
+
+# %% [markdown]
 # The grouping already shows where the difficulty lies. Accounts that live near zero or in overdraft are where the
 # percentage errors will explode. Dormant accounts barely move, but they too can sit close to zero, where even a tiny
 # change becomes a huge percentage. Stable positive accounts should be easy, and volatile positive accounts are where
@@ -1305,8 +1373,8 @@ plt.tight_layout(); plt.show()
 #
 # We will use these four rule-based groups as our segmentation in Sprint 2. The rules are transparent, they can be
 # recomputed in the same way on the large dataset, and they separate behaviours that need different treatment. Later
-# (D14) a clustering of the accounts finds only two groups, around 270 accounts near zero and 230 stable positive
-# ones. We read that as a check of these groups, not as an alternative: the clusters agree with the rules on the main
+# (D14) a clustering of the accounts finds only two groups, around 270 erratic accounts crossing zero and 230 persistent,
+# calm ones. We read that as a check of these groups, not as an alternative: the clusters agree with the rules on the main
 # line, the distance from zero, but they cannot separate dormant from volatile accounts, and a clustering fitted again
 # on the large dataset could change its composition.
 
@@ -1497,9 +1565,11 @@ save_result(day8, "D3_day8_weekend_rule", "Share of accounts with a large inflow
 # fourteen times a year, with an extra payment in each of those months, and it should only change once a year, in
 # January, when pensions are updated.
 #
-# We test these three predictions. The first table follows the 8th through all 36 months, the second looks for the
-# accounts that are paid on it in almost every month, and the chart compares the amount of each month with the amount
-# of an ordinary month of the same year.
+# We test these three predictions. The first table follows the 8th through all 36 months. We then look for the accounts
+# that are paid on it in almost every month, on the exact date (the 8th, or the next business day at weekends), and
+# compare that rule with a looser one, any day between the 5th and the 11th. Because a loose rule can catch accounts by
+# chance, we also apply both rules to days on which no payment is known to happen. The chart compares the amount of
+# each month with the amount of an ordinary month of the same year.
 
 # %%
 PENSION_MIN_SHARE = 0.8      # an account is "paid on the 8th" if it has a large inflow on days 5-11 in >= 80% of its months
@@ -1519,22 +1589,81 @@ ordinary_bday = li[(li.index.dayofweek < 5) & ~window_days].median()
 display(day8_by_month)
 print(f"For comparison, a business day outside days 5-11 has a median share of {ordinary_bday:.3f}")
 
-# (b) Accounts paid on the 8th: the largest large inflow on days 5-11 of each month
-mask8 = (rel > 0.2) & window_days[None, :]
-amount8 = pd.DataFrame(np.where(mask8, dB, np.nan), index=bal.index, columns=cd)
-amount8 = amount8.T.groupby(cd.to_period("M")).max().T                     # accounts x months
+# (b) Accounts paid on the 8th. The data show an exact date: the 8th, or the next business day when it falls on a
+# weekend. A window of days 5-11 would also catch accounts that happen to receive money around those days, so we flag an
+# account only when it has a large inflow on the exact date in >= 80% of its months, and compare with the window rule.
+months_all = pd.period_range(cd.min(), cd.max(), freq="M")
+
+
+def expected_date(m, day):
+    """The `day` of month m, moved to the next business day when it falls on a weekend."""
+    d = pd.Timestamp(year=m.year, month=m.month, day=day)
+    while d.dayofweek >= 5:
+        d += pd.Timedelta(days=1)
+    return d
+
+
 months_observed = pd.DataFrame(~np.isnan(dB), index=bal.index, columns=cd).T.groupby(cd.to_period("M")).any().T
-share_months8 = amount8.notna().sum(1) / months_observed.sum(1)
+
+
+def paid_on(day_mask):
+    """Per account and month, the largest large inflow (> 20% of the typical balance) on the days in day_mask,
+    and the share of months in which there is one."""
+    amt = pd.DataFrame(np.where((rel > 0.2) & day_mask[None, :], dB, np.nan), index=bal.index, columns=cd)
+    amt = amt.T.groupby(cd.to_period("M")).max().T                          # accounts x months
+    return amt, amt.notna().sum(1) / months_observed.sum(1)
+
+
+def month_ratios(P):
+    """Amount of each month / amount of an ordinary month (not July or December) of the same year, per account."""
+    p_year, p_month = P.columns.year, P.columns.month
+    ratio = pd.DataFrame(np.nan, index=P.index, columns=P.columns)
+    normal = {}
+    for y in np.unique(p_year):
+        in_year = p_year == y
+        normal[y] = P.loc[:, in_year & ~np.isin(p_month, [7, 12])].median(axis=1)
+        ratio.loc[:, in_year] = P.loc[:, in_year].div(normal[y], axis=0).to_numpy()
+    return ratio, normal
+
+
+exact_days = cd.isin(pd.DatetimeIndex([expected_date(m, 8) for m in months_all]))
+amount8, share_months8 = paid_on(exact_days)
 pension_like = share_months8 >= PENSION_MIN_SHARE
+_, share_window = paid_on(window_days)
+window_like = share_window >= PENSION_MIN_SHARE
+
+
+def signature(mask, amounts):
+    """Median July and December ratios and the variation of the ordinary amounts of a group of accounts."""
+    if not mask.any():
+        return {"accounts": 0}
+    r, _ = month_ratios(amounts.loc[mask])
+    ordinary = amounts.loc[mask, ~np.isin(amounts.columns.month, [7, 12])]
+    return {"accounts": int(mask.sum()),
+            "July / ordinary month": r.loc[:, r.columns.month == 7].median(axis=1).median(),
+            "December / ordinary month": r.loc[:, r.columns.month == 12].median(axis=1).median(),
+            "variation of the ordinary amounts (CV)": (ordinary.std(axis=1) / ordinary.mean(axis=1)).median()}
+
+
+amount_window, _ = paid_on(window_days)
+pension_rule_cmp = pd.DataFrame({
+    "paid on the exact date (8th or next business day)": signature(pension_like, amount8),
+    "caught only by the window of days 5-11": signature(window_like & ~pension_like, amount_window),
+}).T
+# Chance controls: the same rules where no payment is known to happen
+controls = {}
+for lo, hi in ((15, 21), (18, 24)):
+    _, s_ = paid_on((cd.day >= lo) & (cd.day <= hi))
+    controls[f"window of days {lo}-{hi} (no known payment)"] = int((s_ >= PENSION_MIN_SHARE).sum())
+_, s_ = paid_on(cd.isin(pd.DatetimeIndex([expected_date(m, 16) for m in months_all])))
+controls["exact date: the 16th or next business day (no known payment)"] = int((s_ >= PENSION_MIN_SHARE).sum())
+pension_controls = pd.Series(controls, name="accounts flagged")
+display(pension_rule_cmp.round(2))
+display(pension_controls.to_frame())
 
 P = amount8.loc[pension_like]
-p_year, p_month = P.columns.year, P.columns.month
-ratio = pd.DataFrame(np.nan, index=P.index, columns=P.columns)
-normal_amount = {}
-for y in np.unique(p_year):
-    in_year = p_year == y
-    normal_amount[y] = P.loc[:, in_year & ~np.isin(p_month, [7, 12])].median(axis=1)   # an ordinary month of year y
-    ratio.loc[:, in_year] = P.loc[:, in_year].div(normal_amount[y], axis=0).to_numpy()
+ratio, normal_amount = month_ratios(P)
+p_month = P.columns.month
 ratio_by_month = ratio.T.groupby(p_month).median().median(axis=1).rename("median ratio to an ordinary month")
 ratio_by_month.index.name = "month of the year"
 years = sorted(normal_amount)
@@ -1542,7 +1671,7 @@ annual_update = pd.Series({f"{years[i]} vs {years[i - 1]}": 100 * ((normal_amoun
                            for i in range(1, len(years))}, name="median change of the ordinary amount (%)")
 
 pension_summary = pd.Series({
-    "accounts paid on days 5-11 in >= 80% of their months": int(pension_like.sum()),
+    "accounts paid on the exact date in >= 80% of their months": int(pension_like.sum()),
     "% of all accounts": round(100 * pension_like.mean(), 1),
     "July amount / ordinary month (median)": round(ratio_by_month.get(7, np.nan), 2),
     "December amount / ordinary month (median)": round(ratio_by_month.get(12, np.nan), 2),
@@ -1567,18 +1696,27 @@ axes[1].set(title=f"Amount received around the 8th / amount of an ordinary month
 plt.tight_layout(); plt.show()
 
 save_result(day8_by_month, "D3_day8_by_month", "Per month: weekday of the 8th, holiday flag, peak day of large inflows on days 5-11")
-save_result(pd.DataFrame({"share_months_paid_days_5_11": share_months8, "pension_like": pension_like}),
-            "D3_pension_like_per_account", "Per account: share of months with a large inflow on days 5-11 and pension-like flag")
+save_result(pd.DataFrame({"share_months_paid_on_8th": share_months8, "share_months_paid_days_5_11": share_window,
+                          "pension_like": pension_like}),
+            "D3_pension_like_per_account", "Per account: share of months with a large inflow on the 8th (or next business day) and on days 5-11, and pension-like flag")
+save_result(pension_rule_cmp, "D3_pension_rule_comparison", "Exact-date rule vs window of days 5-11: accounts, July and December ratios, variation of amounts")
+save_result(pension_controls, "D3_pension_chance_controls", "Accounts flagged by the same rules on days with no known payment")
 save_result(ratio_by_month, "D3_pension_ratio_by_month", "Pension-like accounts: amount around the 8th / ordinary month, by month of the year")
 save_result(annual_update, "D3_pension_annual_update", "Pension-like accounts: yearly change of the ordinary amount received around the 8th")
 
 # %% [markdown]
 # All three predictions hold. In every one of the 36 months the large inflows peak on the 8th when it is a business day,
 # on Monday the 10th when it is a Saturday and on Monday the 9th when it is a Sunday, at roughly two to three and a half
-# times the level of an ordinary business day. About one account in eight receives this money in almost every month. For those accounts the
-# amount of July and December is twice that of an ordinary month, while January is an ordinary month, and from one year
-# to the next the ordinary amount rises by only about one percent. This is the signature of a pension: fourteen
-# payments a year and a small annual update.
+# times the level of an ordinary business day. Forty accounts, about one in twelve, receive this money on the exact date
+# in almost every month. For those accounts the amount of July and December is twice that of an ordinary month, while
+# January is an ordinary month, and from one year to the next the ordinary amount rises by only about one percent. This
+# is the signature of a pension: fourteen payments a year and a small annual update.
+#
+# The exact date matters. The looser window of days 5 to 11 flags 25 more accounts, but none of them doubles in July or
+# December, and their amounts vary twice as much from month to month: they are accounts that happen to receive money
+# around those days, not pensioners. The chance controls confirm it. A window of seven days where no payment is known to
+# happen still flags 21 to 31 accounts, while the exact-date rule applied to the 16th flags none. A wide window catches
+# accounts by chance; an exact date does not.
 #
 # Two notes of caution. A doubling in July and December would also appear in salaries, which in Portugal carry holiday
 # and Christmas allowances, so it is the combination with the day of the 8th and the next-business-day rule that points
@@ -1591,6 +1729,60 @@ save_result(annual_update, "D3_pension_annual_update", "Pension-like accounts: y
 # half of what they received in December. A model that copies the last monthly cycle into January would therefore
 # expect twice the real inflow on those accounts. Sprint 2 has to treat July and December as special months for the
 # inflow of the 8th.
+
+# %% [markdown]
+# ### What we looked for and did not find
+#
+# Paydays were not the only kind of account we expected. A bank's book usually also holds savings accounts, where money
+# comes in and stays; accounts used only once, for a single large operation, or left untouched for months; and, since
+# Portuguese tenancy law lets a tenant pay the rent until the 8th without penalty, a peak of outflows on that day. Each
+# of these would leave a clear mark in the balances, so we looked for all three.
+
+# %%
+inflow_total = np.nansum(np.where(dB > 0, dB, 0.0), axis=1)
+outflow_total = np.nansum(np.where(dB < 0, -dB, 0.0), axis=1)
+out_in_ratio = pd.Series(outflow_total / np.where(inflow_total > 0, inflow_total, np.nan), index=bal.index)
+
+movement = pd.DataFrame(np.abs(np.nan_to_num(dB)), index=bal.index, columns=cd)
+share_60d = movement.T.rolling(60, min_periods=1).sum().max() / movement.sum(axis=1).replace(0, np.nan)
+
+
+def longest_idle(row):
+    still = np.r_[False, row == 0, False].astype(int)       # missing days (accounts not yet open) are not idle
+    edges = np.flatnonzero(np.diff(still))
+    return int((edges[1::2] - edges[::2]).max()) if len(edges) else 0
+
+
+idle_days = pd.Series([longest_idle(r) for r in dB], index=bal.index)
+
+large_out = pd.DataFrame((rel < -0.2) & ~np.isnan(rel), index=bal.index, columns=cd)
+large_out_by_day = large_out.mean(axis=0).groupby(cd.day).mean().rename("share of accounts with a large outflow")
+large_out_by_day.index.name = "day of the month"
+
+not_found = pd.Series({
+    "savings-like accounts (outflows < 50% of inflows)": int((out_in_ratio < 0.5).sum()),
+    "median outflows / inflows": round(out_in_ratio.median(), 3),
+    "single-use accounts (>= 80% of all movement in one 60-day window)": int((share_60d >= 0.8).sum()),
+    "accounts idle for more than 180 days at some point": int((idle_days > 180).sum()),
+    "accounts idle for the last 180 days of the data": int((np.nan_to_num(dB[:, -180:]) == 0).all(axis=1).sum()),
+    "rank of the 8th among days 1-10 by share of large outflows": int(large_out_by_day.loc[1:10].rank(ascending=False)[8]),
+}, name="value")
+display(not_found.to_frame())
+display(large_out_by_day.loc[1:12].round(4).to_frame())
+save_result(not_found, "D3_not_found", "Kinds of accounts and patterns we looked for and did not find (savings, single use, rent on the 8th)")
+save_result(large_out_by_day, "D3_large_outflows_by_day", "Share of accounts with a large outflow, by day of the month")
+
+# %% [markdown]
+# None of the three shows up. Only four accounts send out less than half of what they receive, and the typical account
+# spends 99% of its inflows, so there are no savings accounts in this book: money arrives and leaves. No account
+# concentrates most of its movement in a single two-month window, and no account has been idle for the last six months
+# of the data; only three had a pause of more than six months at some point. And the 8th does not stand out among the
+# outflows: of the first ten days of the month it has the fewest large outflows, while the first five days have the
+# most. A rent paid on the same day as a pension would in any case be hidden in the net balance of that day.
+#
+# These negative results matter as much as the positive ones. They tell us that every account in the development data
+# is a current account in regular use, so Sprint 2 does not need special treatment for savings or abandoned accounts,
+# and that the large outflows to model are those at the start of the month.
 
 # %% [markdown]
 # ## D4. Is there a floor?
@@ -1663,6 +1855,13 @@ ax.axvline(spell_s.median(), color="black", ls="--", lw=1.2, label=f"median ({sp
 ax.set(title="Distribution of negative balance spell durations (clipped at 60 days)", xlabel="duration of negative spell (calendar days)", ylabel="count")
 ax.legend(); plt.tight_layout(); plt.show()
 save_result(spell_summary, "D4b_negative_spells_summary", "Summary of contiguous negative balance spell lengths across accounts")
+
+# %% [markdown]
+# Overdrafts are mostly short. The median negative spell lasts eight days, 72% of spells end within two weeks and 95%
+# within 30 days. A balance that is negative today will usually be positive again within the forecast window, which is
+# consistent with the payday cycle: the account goes into the red before the salary or pension and comes back when it
+# arrives. A forecast that holds a negative level for 30 days will often be on the wrong side of zero, the most expensive
+# mistake under the MAPE, which is why the sign of the balance needs its own treatment in Sprint 2.
 
 # %% [markdown]
 # ## D5. Are accounts linked?
@@ -1934,6 +2133,13 @@ for eps in offsets:
 offset_sens = pd.DataFrame(sens_rows).groupby(["offset_eps", "model"])["mape"].mean().unstack().round(1)
 display(offset_sens)
 save_result(offset_sens, "D9b_mape_offset_sensitivity", "Sensitivity of baseline MAPE scores across different denominator offsets")
+
+# %% [markdown]
+# The level of the score depends heavily on the offset, but the ranking does not. The last balance beats the 30-day median
+# on the official MAPE at every offset from one cent to €10, while both scores fall by a factor of four to five as the
+# offset grows, because the offset caps the cost of the tiny balances. So the €1 rule decides how large our numbers look,
+# not which baseline wins, and we can keep it without fearing that it alone drives the comparison of models. The scores
+# of different offsets must never be compared with each other.
 
 # %% [markdown]
 # ## D10. How good could a forecast be?
@@ -2609,6 +2815,12 @@ display(overdiff.to_frame("value"))
 save_result(overdiff, "D17b_overdifferencing_check", "Check for over-differencing: comparison of variance under d=1 vs (d=1, D=1)")
 
 # %% [markdown]
+# The check confirms D17 without exception: adding a seasonal difference of 30 days on top of the first difference
+# increases the variance in every account, by a median factor of 1.9. That is the textbook sign of over-differencing,
+# so the monthly cycle should enter the models as calendar regressors or Fourier terms and not through a seasonal
+# difference.
+
+# %% [markdown]
 # ## D18. A formal check of the random walk
 #
 # If a balance were a random walk, the variance of its changes over *q* days would be *q* times the variance of its
@@ -2839,7 +3051,8 @@ save_result(mp, "D22_matrix_profile_per_account", "Per account (sample): motif a
 # That calendar is more precise than we thought: inflows come at the end of the month and on the 8th, moved to the next
 # business day at weekends, and the inflows of the 8th behave like pensions, doubled in July and December (D3), the monthly cycle needs several harmonics to be drawn (D6), it is stable from year to
 # year (D21) and too weak for seasonal differencing in most accounts (D17). Some payments return on fixed days and can
-# be projected (D2), while there are no credit limits to respect (D4).
+# be projected (D2), while there are no credit limits to respect (D4), overdrafts are short (D4b), and there are no
+# savings or abandoned accounts in the book (D3).
 #
 # The specialist tools changed how we see the dynamics. Day to day the balance looks like a random walk, but over a
 # month most of the movement cancels out (D18), and the apparent wandering is largely a stable level that jumps from
@@ -2848,6 +3061,7 @@ save_result(mp, "D22_matrix_profile_per_account", "Per account (sample): motif a
 # for machine-learning models (D20).
 #
 # Above all, two findings will shape Sprint 2. The accounts split along one main line, their distance from zero (D14),
+# a result that survives every alternative feature set, scale and algorithm we tried (D14b),
 # and the oracle showed that most of the official error comes from choosing the wrong level for the accounts that live
 # near zero (D10 to D12). Getting those accounts right is worth more than any refinement of the daily dynamics.
 
@@ -2994,6 +3208,14 @@ plt.tight_layout(); plt.show()
 save_result(h_df, "17b_mape_by_horizon", "Official MAPE per forecast horizon step (h=1..30) for baseline models")
 
 # %% [markdown]
+# The two forecasts age very differently. The last balance is excellent on the first day (35%) and degrades steadily,
+# to about 230% after one week, 410% after two and 530% after three, as payments accumulate and more balances cross
+# zero. The 30-day median is poor from the first day but roughly flat across the horizon, since it does not try to
+# follow the path. Both jump on the last day, which falls on the turn of the month in most folds, when salaries and
+# debits move many balances at once. A forecast for 30 days therefore needs a level that holds over the whole horizon
+# rather than the last value, and the turn of the month deserves particular care.
+
+# %% [markdown]
 # ## 18. What we take into Sprint 2
 #
 # We started with a clean-looking file and found that it hid two problems: a change in the date convention in August
@@ -3018,25 +3240,37 @@ save_result(h_df, "17b_mape_by_horizon", "Official MAPE per forecast horizon ste
 # live around zero get a dedicated strategy built for MAPE, leaning the forecast towards zero when the sign is
 # uncertain (§5, D10). Second, we forecast the level around which each balance oscillates rather than carrying the last
 # value forward, because over a month most of the movement cancels out (D18) and the level is stable between breaks
-# (D7, D16); models should be estimated on the recent regime. Third, the forecasts follow the calendar: business days
+# (D7, D16); models should be estimated on the recent regime, all the more because the whole book moved up after the first
+# months of 2020 and stayed there (13b). Third, the forecasts follow the calendar: business days
 # only, the turn of the month with salaries and early-month debits, and the 8th moved to the next business day when it
 # falls on a weekend (§7, D3), which in the forecast window means Monday 9 January 2023. For the accounts paid on the
 # 8th, that January inflow should have the amount of an ordinary month, about half of the doubled December payment, so
-# July and December must be treated as special months rather than copied forward (D3). The benchmark to beat is in
+# July and December must be treated as special months rather than copied forward (D3). Those accounts are found on the
+# exact date of the payment, not on a window around it, which gives forty of them, about one in twelve.
+#
+# A few checks also tell Sprint 2 what it does not need to worry about, and what it should still test. Overdrafts are
+# short, eight days in the median (D4b), so the sign of a balance changes within the horizon and must be forecast, not
+# held. The ranking of the baselines does not depend on the €1 offset of the metric (D9b). There are no savings or
+# abandoned accounts to treat apart (D3). And of the three thresholds of the segmentation, the one between stable and
+# volatile accounts is fragile and should be chosen by the forecasts (section 15). The benchmark to beat is in
 # section 17.
 
 # %% [markdown]
-# ### 18b. Sprint 2 hypothesis matrix by segment
+# ### 18b. What each segment needs from Sprint 2
 #
-# To guide the modelling sprint, the findings of this exploratory analysis translate into a structured test matrix
-# mapping each customer segment to candidate model families and evaluation criteria:
+# The evidence of this notebook already suggests a different starting point for each segment of section 15. The table
+# summarises it; every candidate will be judged with the decision rule of section 17 against the last balance and the
+# 30-day median, and the shares are those of the medium dataset.
 #
-# | Segment | Share of accounts | Key challenge | Candidate models | Features & Regressors | Target / Acceptance |
-# |---|---|---|---|---|---|
-# | **Stable positive** | ~28% | Preserve low MAPE; capture smooth drift | Naive, ETS (A,N,N / A,A,N), ARIMA(p,1,q) | Autoregressive lags, local level | Beat naive (median MAPE < 25%) |
-# | **Near-zero / overdraft** | ~39% | Asymmetry of MAPE near zero; sign changes | Weighted median, gated calendar profile, zero floor | Day of month, payday flag, recent sign | Beat 100% zero floor on official MAPE |
-# | **Volatile positive** | ~33% | Large saw-tooth swings; non-linear spending | LightGBM / XGBoost, SARIMAX with Fourier terms | Lags, rolling stats, payday 8th / 28th, bdays to month end | Beat naive and 30-day median across all 3 guards |
-# | **Dormant** | ~0.2% | Flat series; long spells without movement | Naive (last value), constant median | None (zero change assumed) | Maintain zero error on flat days |
+# | Segment | Accounts | What makes it hard | Where to start | Evidence |
+# |---|---|---|---|---|
+# | Near-zero / overdraft | 39% | Small balances and frequent sign changes make the MAPE explode | A MAPE-optimal level leaning towards zero when the sign is uncertain | §5, D10, D12, D4b |
+# | Stable positive | 28% | Little room left: the last balance is already good | The last balance against ETS and ARIMA on the recent regime | §10–11, D7, D16 |
+# | Volatile positive | 33% | Monthly saw-tooth around a level that jumps | Calendar-aware models (business days to month end, the 8th) and machine learning | §7, 7b, D3, D20 |
+# | Dormant | 0.2% | Almost no movement | The last balance | §15 |
+#
+# The thresholds that separate these segments are not equally firm (section 15), so the line between stable and
+# volatile accounts is itself something Sprint 2 should choose by the forecasts.
 
 # %% [markdown]
 # ## 19. Does the small dataset tell the same story?
@@ -3137,7 +3371,7 @@ account_features = (per_account
                     .join(cp_table[["change_points", "days_since_last_change_point"]])
                     .join(stl_counts)
                     .join(arch_w[["ar_order", "arch_lm_p_prewhitened"]].rename(columns={"ar_order": "prewhitening_ar_order"}))
-                    .join(pd.DataFrame({"share_months_paid_days_5_11": share_months8, "pension_like": pension_like})))
+                    .join(pd.DataFrame({"share_months_paid_on_8th": share_months8, "pension_like": pension_like})))
 save_result(account_features, "00_account_features", "ONE ROW PER ACCOUNT: all per-account statistics, tests and segment")
 
 index = pd.DataFrame(saved_files)

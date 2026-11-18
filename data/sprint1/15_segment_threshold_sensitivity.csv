@@ -1,0 +1,11 @@
+,rule,our threshold,alternative,accounts that change group
+0,share of active days below,0.05,0.03,1
+1,share of active days below,0.05,0.1,1
+2,share of days near zero or negative above,0.25,0.15,36
+3,share of days near zero or negative above,0.25,0.2,17
+4,share of days near zero or negative above,0.25,0.3,14
+5,share of days near zero or negative above,0.25,0.35,31
+6,coefficient of variation below,0.5,0.3,54
+7,coefficient of variation below,0.5,0.4,22
+8,coefficient of variation below,0.5,0.6,27
+9,coefficient of variation below,0.5,0.75,81

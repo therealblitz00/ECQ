@@ -24,7 +24,7 @@ Forecast each client's daily account balance for the **next 30 days**, evaluated
 - **COVID:** the first lockdown (Mar–May 2020) shows a clear dip in activity and outflows; the second (Jan–Feb 2021) a smaller one. Decision: no treatment for models on the recent regime; interruption flag or down-weighting to be tested in Sprint 2 for models that use the whole history.
 - **Small vs medium:** the first 50 accounts (= small dataset) give the same structural picture; too few accounts to show the pension pattern or stable baseline scores.
 - **Paydays:** largest inflows on the 8th (moved to the next business day at weekends; 8 Jan 2023 is a Sunday → 9 Jan) and on the 28th–30th; ~1 in 5 recurring amounts falls on a fixed day of the month.
-- **The 8th behaves like pensions:** in all 36 months the large inflows of days 5–11 peak on the 8th, or on Monday 10th/9th when the 8th is a Saturday/Sunday (the payment is not brought forward on the 8 December holiday). ~13% of accounts are paid there in ≥ 80% of their months; for them the July and December amounts are ~2× an ordinary month (14 payments a year) and the ordinary amount rises ~1%/year.
+- **The 8th behaves like pensions:** in all 36 months the large inflows of days 5–11 peak on the 8th, or on Monday 10th/9th when the 8th is a Saturday/Sunday (the payment is not brought forward on the 8 December holiday). 40 accounts (8%, about one in twelve) are paid on the exact date (the 8th or the next business day) in ≥ 80% of their months; for them the July and December amounts are ~2× an ordinary month (14 payments a year) and the ordinary amount rises ~1%/year.
 - **January 2023 insight:** for those accounts the January inflow should arrive on **Monday 9 Jan 2023** with the amount of an **ordinary month, about half of December's** — a model that copies the last monthly cycle would forecast twice the real inflow. July and December are special months.
 - **Structure:** monthly cycle ≈30.4 days with harmonics (15.2, 10.1); frequent level shifts (half the accounts changed level in the last ~2 months); January dips like a deep ordinary month; accounts independent (no transfers/duplicates); no credit-limit floors; no long memory (Hurst ≈ 0.37; reading it as anti-persistence is a possible interpretation, not covered by the course references).
 - **Dynamics, refined:** random walk day to day, but strong mean reversion over a month (variance ratio ≈ 0.24 at 21 business days); once one level break is allowed (Zivot–Andrews) most accounts are stationary → forecast the level the balance oscillates around.
@@ -111,6 +111,11 @@ Done:
 To do:
 - [x] Re-run the notebook after the additions above: build the `.ipynb` from the `.py` with jupytext, execute it and refresh `data/sprint1/` (the committed `.ipynb` and CSVs predate them)
 - [x] Notebook rebuilt and re-run after the EDA corrections (§4, §7), the decision rule (§17) and the segmentation text (§15); `data/sprint1/` refreshed
+- [x] Pensions on the exact date (D3, suggestion 1): flag accounts paid on the 8th or the next business day instead of any day 5–11; 40 accounts (8%) with July/December at 2.05×/2.08× vs 25 window-only accounts at ~1.1×; chance controls: a 7-day window with no known payment flags 21–31 accounts, the exact-date rule on the 16th flags none
+- [x] Segmentation threshold sensitivity (§15, suggestion 8): activity 5% sits in a natural gap (1 account moves), near-zero 25% moves 14–36 accounts, the CV 0.5 is fragile (22–81 accounts) — to be tuned by forecasts in Sprint 2
+- [x] What we looked for and did not find (D3): savings accounts (4 accounts spend < 50% of inflows; median 99%), single-use or abandoned accounts (none), rent peak on the 8th (the 8th has the fewest large outflows of days 1–10)
+- [x] Fix §7b (saw-tooth profile) to build its own business-day calendar (it reused a name defined later in D3 and failed when run end to end)
+- [x] Storytelling review of the whole notebook: closing paragraphs written for 7b, 13b, D4b, D9b, D17b and 17b from their results; 18b rewritten as a plain table using Sprint 1 evidence and the decision rule (no Sprint 2 results); §15, §18, D23 and the summary updated with the new findings; numbers in the text checked against the tables; re-run end to end (64 cells, no errors)
 - [ ] Group review of the notebook and its conclusions
 
 ### Sprint 2 — Modelling: Forecasting Models (due 2026-11-26)
@@ -132,6 +137,15 @@ To do:
 - [ ] Metric sensitivity, rest: sMAPE and MASE as references, and the offset sensitivity applied to the Sprint 2 pipeline — does the ranking of models depend on the metric?
 - [ ] Level from the current regime only: compute levels (last value, medians, weighted medians, profiles) on the history since the last change point (D7, D16) instead of fixed 30/90/365-day windows; compare with the decision rule
 - [ ] Calendar table for the models: business days, Portuguese holidays, the 8th with the weekend rule, paydays on the 28th–30th, July/December double pensions; feed it to SARIMAX, the GBM and the calendar profile
+- [ ] Payday of each account (suggestion 2): learn per account the anchor (calendar day k, or 1st–3rd business day from the month end), the weekend rule (previous or next business day) and the months with extra amounts (> ~1.5× an ordinary month); a large inflow (> 20% of the typical balance) on the anchor ±1 day in ≥ 60% of months; chance control with a mid-month anchor (days 15–17); descriptive labels: pension, month end, public-sector-like, other fixed day, irregular income, no regular income. Expected ~284 accounts (111 month end, 48 on the 8th), ~5% false positives
+- [ ] Public-sector-like profile (suggestion 3): fixed day 20–24, previous business day at weekends, extra in June and November; ~26 accounts; January 2023 dates (Fri 20, Mon 23, Tue 24) with an ordinary amount
+- [ ] Irregular income / freelancers (suggestion 10): accounts with frequent large inflows but no fixed day (~51 outside the near-zero group, CV ≈ 1.0); forecast them with a level rather than a calendar profile; in the near-zero group measure inflows in euros, not relative to the typical balance
+- [ ] Calendar profile aligned with the payday (suggestion 7): index the gated profile and the GBM by 'days since the expected payday' (business days to month end for month-end accounts) instead of the calendar day; keep the current profile for accounts without a payday; expected: sharper profile and more days passing the sign gate (today 11–30%)
+- [ ] Recurring debits (suggestion 6): 161 accounts / 241 series of equal-to-the-cent outflows on the same day (±3) in ≥ 6 months; project them into January 2023 as a fixed component or as GBM features (only detectable on days when they are the only movement)
+- [ ] Spending speed between paydays (suggestion 4): per account, the median curve of the share of the inflow already spent k days after the payday (days to spend half: ≤3 → 38 accounts, 4–7 → 172, 8–14 → 151, 15–21 → 30); forecast = balance before payday + expected inflow × (1 − share spent); give speed and curve to the GBM
+- [ ] Immediate outflows after the payday (suggestion 5), inside the spending curve: share leaving in days 0–3 (median 12%; 15 accounts ≥ 40%), check whether it is a fixed amount (link to recurring debits)
+- [ ] Tune the CV threshold of the segmentation between 0.3 and 0.75 on the validation folds with the decision rule (suggestion 8)
+- [ ] For all payday-based features: learn them only from the data before each cut-off (no leakage into the folds), and report a sensitivity table for every new threshold (20% of the typical balance, 60% of months, ±1 day, 1.5× extra months, 70% for irregular income)
 - [ ] asinh transformation of the balance (D19) for ARIMA/ETS and the GBM on volatile accounts, with back-transformation bias correction
 - [ ] Inflow of the 8th: July/December as special months; January 2023 inflow on Monday 9 with an ordinary amount (D3)
 - [ ] COVID interruption: test an interruption flag or down-weighting (Mar–May 2020, Jan–Feb 2021) for models that use the whole history (§13)
@@ -157,12 +171,14 @@ To do:
   - [ ] Movements on weekends or holidays, when the bank does not process (§7: activity on business days only)
   - [ ] Fabricated amounts: Benford, round amounts and repeated exact amounts per account (extends D1)
   - [ ] Change of pattern: loss of the monthly cycle or of the salary, abrupt change of profile (D7, D16)
+- [ ] Propensity for large purchases (suggestion 9): outflows above each account's 99th percentile, outside paydays and recurring debits, per year; describes customers and lists candidates for the anomaly scan
 - [ ] Suspicion score per account combining the indicators above; inspect the top accounts by hand and report them as suspicious patterns (no ground truth to confirm fraud)
 - [ ] Use the flags in the forecasts: exclude or replace flagged days (pass-through spikes, one-off inflows) before computing levels and profiles; forecast pass-through accounts at their base level; restart drained accounts from their new level
 - [ ] Anomaly cleaning of the training data: a simple rule for isolated jumps that revert within a few days (the robust STL of §9 flags too many days to be used as a filter)
 - [ ] Near-zero group: a better way to find the accounts that a simple level forecasts well (more than two inner windows, or account features instead of recent errors only)
 - [ ] Optimize the best model(s): hyperparameters, features, per-segment treatment of accounts, ensembles
 - [ ] Re-evaluate the impact of the optimizations on MAPE
+- [ ] Presentation visuals (suggestions document): pension month ratios exact date vs window; payday types with the chance control and example heatmaps; public-sector vs pension extra months; spending curves by speed group; recurring debits by day of month; calendar vs payday-aligned profile; segmentation threshold histograms; synthesis scatter (days to spend half vs share leaving in 3 days, coloured by payday type)
 
 ### Final Submission (due 2026-12-17)
 - [ ] Final 30-day forecasts for all accounts

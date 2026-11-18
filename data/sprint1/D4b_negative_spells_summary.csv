@@ -1,0 +1,9 @@
+,0
+total negative spells detected,8575.0
+median spell duration (days),8.0
+mean spell duration (days),14.0
+25th percentile (days),3.0
+75th percentile (days),17.5
+90th percentile (days),26.0
+share of spells lasting <= 15 days,0.715
+share of spells lasting <= 30 days,0.945

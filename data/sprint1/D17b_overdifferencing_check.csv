@@ -1,0 +1,6 @@
+,0
+accounts checked,500.0
+median Var(first differences),80944.78353690356
+median Var(seasonal + first differences),141592.695741752
+"median variance ratio Var(d=1, D=1) / Var(d=1)",1.8858306024870441
+% accounts where seasonal differencing INCREASES variance,100.0

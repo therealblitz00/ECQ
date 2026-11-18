@@ -9,9 +9,9 @@ Forecast each client's daily account balance for the **next 30 days**, evaluated
 | `data/raw/medium-dataset.csv` | 500 accounts × 1095 days |
 
 - *Wide* format: one row per `ACCOUNT_ID`, one column per day (raw labels 2020-01-02 → 2022-12-31). The data is fictitious.
-- The **final evaluation uses a large dataset** (not yet available; the professor said it is about 20 times the medium one, i.e. roughly 10 000 accounts). The small/medium datasets are for development; all code must scale to the large one (vectorised, memory-aware) and run on the group's Lenovo ThinkStation PGX (ARM64 Linux).
+- The **final evaluation uses a large dataset** (not yet available; about 20 times the medium one, i.e. roughly 10 000 accounts). The small/medium datasets are for development; all code must scale to the large one (vectorised, memory-aware) and run on the group's Lenovo ThinkStation PGX (ARM64 Linux).
 - The final forecasts are for the 30 days following the end of the data, for the same accounts.
-- How MAPE treats zero/negative balances is not specified by the organisers. Following the professor's indication we add €1 to the absolute balance in the denominator: APE = |A − F| / (|A| + €1). The professor's reference value of 224 matches the naive forecast for the last month under this rule (~238% on medium, Dec 2022).
+- How MAPE treats zero/negative balances is not specified by the organisers. We add €1 to the absolute balance in the denominator: APE = |A − F| / (|A| + €1). The reference value of 224 we were given matches the naive forecast for the last month under this rule (~238% on medium, Dec 2022).
 
 ### Key findings so far (Sprint 1, medium dataset)
 - **Date convention changes in Aug 2022:** until label 2022-08-06 a label *D* holds the closing balance of *D − 1*; from 2022-08-07 it is the same-day close. Fixed by realigning the calendar (prepared data: 2020-01-01 → 2022-12-31, 1096 days).
@@ -40,7 +40,7 @@ Forecast each client's daily account balance for the **next 30 days**, evaluated
 All Sprint 1 results are saved as CSV in `data/sprint1/` (start with `00_index.csv` and `00_account_features.csv`).
 
 ## Deliverables & Tooling
-- Each sprint is delivered as a self-contained Jupyter notebook (`.ipynb`) that runs with only the professor's CSV.
+- Each sprint is delivered as a self-contained Jupyter notebook (`.ipynb`) that runs with only the CSV of balances.
 - Language: Python 3.13.
 
 ## Repository Structure
@@ -105,7 +105,7 @@ Done:
 - [x] Small dataset check: key facts for the first 50 accounts vs all accounts (§19)
 - [x] Why the 18 D14 features, and the alternatives tried (D14b): each feature group justified by an earlier section; one-change-at-a-time comparison of feature sets (drop each group, only distance-from-zero, tsfresh with 744 automatic features), scalings (rank-normal, standardised, robust) and algorithms (k-means, Ward, Gaussian mixture), judged by silhouette, Calinski–Harabasz, Davies–Bouldin, subsample stability and the share of forecast difficulty explained. Distance from zero drives the map (eta² 0.34 → 0.18 without it); robust scaling wins on silhouette but explains nothing (0.02); Ward is unstable (0.44); tsfresh loses on every measure; the rule-based segments explain the most difficulty (0.51)
 - [x] D14 clusters on the principal components keeping 80% of the variance (5 components: persistence, monthly cycle, inactivity near zero, two short-term dynamics); D14b compares no PCA / 70% / 90% (same groups, ARI 0.97–0.98, same explained difficulty) and tsfresh with PCA (still 0.21)
-- [x] MAPE switched to the professor's rule (|A| + €1 in the denominator) in Sprint 1 (§5, D9, D10 oracle) and Sprint 2 (metric, MAPE-optimal weighted median, GBM weights); Sprint 1 re-run
+- [x] MAPE switched to |A| + €1 in the denominator in Sprint 1 (§5, D9, D10 oracle) and Sprint 2 (metric, MAPE-optimal weighted median, GBM weights); Sprint 1 re-run
 - [x] Why four segments when the data show two clusters (D14b): near-zero and stable segments sit on opposite sides of the k = 2 border (178/195 and 125/138), volatile accounts straddle it (79/87); forcing k = 3 or 4 does not recover the segments (ARI 0.20–0.23) nor explain more difficulty (≈0.35 vs 0.51); border accounts (calm small balances clustered with stable ones) have the near-zero error level, so the rules classify better for forecasting. Clusters renamed by behaviour: "persistent, calm" vs "erratic, crossing zero"
 
 To do:
@@ -131,8 +131,8 @@ To do:
 - [x] ETS (additive, weekly season) and AutoARIMA (weekly season) per account with statsforecast, in parallel, on the last 365 days (§11): on stable accounts ARIMA beats the last value (official 16.3% vs 17.0% without the largest contributor, typical 7.2% vs 7.7%) and is adopted; ETS ≈ last value; on volatile accounts ARIMA beats the last value but not the GBM (296%/64% vs 98%/55%)
 - [x] More comparisons in `02_modelling.py` (not yet re-run): warning-flag threshold sensitivity (5–50%, §9), LightGBM loss and tree-size variants (unweighted L1, L2, 7/31 leaves, §10), ETS/ARIMA with and without the weekly season (§11), an optional tsfresh-features GBM (`RUN_TSFRESH_GBM = False` by default; on medium it was rejected: 99.3% vs 97.7% official with zeroing, worse WAPE, ~10 min extra), and a decision log of every choice with the alternatives compared (§14)
 - [ ] Re-run `02_modelling` (jupytext + nbconvert, ~12–14 min) — needed for the new MAPE (|A| + €1) too — and update the numbers quoted in the §7–§13 text from the new tables
-- [x] Ask the professor how the MAPE treats zeros: add €1 to |actual| in the denominator (adopted in both notebooks)
-- [ ] Confirm with the professor that the reference value of 224 is the naive forecast under the |A| + €1 rule (we get ~238% on medium for Dec 2022)
+- [x] Decide how the MAPE treats zeros: add €1 to |actual| in the denominator (adopted in both notebooks)
+- [ ] Confirm that the reference value of 224 is the naive forecast under the |A| + €1 rule (we get ~238% on medium for Dec 2022)
 - [x] Metric sensitivity to the zero offset on the baselines (€0.01 to €10, Sprint 1 D9b)
 - [ ] Metric sensitivity, rest: sMAPE and MASE as references, and the offset sensitivity applied to the Sprint 2 pipeline — does the ranking of models depend on the metric?
 - [ ] Level from the current regime only: compute levels (last value, medians, weighted medians, profiles) on the history since the last change point (D7, D16) instead of fixed 30/90/365-day windows; compare with the decision rule

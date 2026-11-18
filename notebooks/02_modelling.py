@@ -27,7 +27,7 @@
 # second opinion: first classify the sign of the balance and then predict its size with a robust loss. We test both
 # against the baselines of Sprint 1 with the same validation folds and the same decision rule.
 #
-# The notebook only needs the CSV file provided by the professor, set in `DATA_PATH` below.
+# The notebook only needs the CSV file of balances, set in `DATA_PATH` below.
 
 # %% [markdown]
 # ## 0. Setup
@@ -128,8 +128,8 @@ print(f"{bal.shape[0]} accounts, {bal.shape[1]} days, {bal.columns.min().date()}
 # %% [markdown]
 # ## 2. How we keep score
 #
-# We keep the rules of Sprint 1. The official MAPE adds €1 to the absolute balance in the denominator, as the professor
-# suggested, so that every day counts and a zero balance does not divide by zero: each day contributes
+# We keep the rules of Sprint 1. The official MAPE adds €1 to the absolute balance in the denominator, so that every
+# day counts and a zero balance does not divide by zero: each day contributes
 # |actual − forecast| / (|actual| + €1). Next to it we
 # report the median MAPE across accounts and the MAPE on balances of at least €100. A model is accepted only if it
 # improves the official MAPE without getting worse on the other two measures. The folds are the same: January 2022 and
@@ -141,7 +141,7 @@ print(f"{bal.shape[0]} accounts, {bal.shape[1]} days, {bal.columns.min().date()}
 # need it in section 7, when a forecast of zero turns out to be hard to beat on every percentage measure.
 
 # %%
-MAPE_OFFSET = 1.0          # EUR added to |actual| in the MAPE denominator (professor's rule for zeros)
+MAPE_OFFSET = 1.0          # EUR added to |actual| in the MAPE denominator, so that zero balances are defined
 
 
 def ape(actual, forecast):

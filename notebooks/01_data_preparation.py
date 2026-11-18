@@ -33,9 +33,9 @@
 # start. Accounts behave independently. Day to day a balance looks like a random walk, but over a month most of its
 # movement cancels out around a level that jumps from time to time. The hard part is the metric: one balance in six is within €100 of zero, and an oracle experiment shows that
 # most of the official error comes from choosing the wrong level for those accounts, even with the €1 that we add to
-# each balance in the denominator of the MAPE, as the professor suggested. That is where Sprint 2 will win or lose.
+# each balance in the denominator of the MAPE. That is where Sprint 2 will win or lose.
 #
-# The notebook only needs the CSV file provided by the professor, set in `DATA_PATH` below.
+# The notebook only needs the CSV file of balances, set in `DATA_PATH` below.
 
 # %% [markdown]
 # ## 0. Setup
@@ -402,8 +402,8 @@ save_result(per_account.describe(percentiles=[0.05, 0.25, 0.5, 0.75, 0.95]).T, "
 #
 # The evaluation metric divides each error by the true balance. That is harmless for a balance of €5 000, but it is
 # undefined when the balance is exactly zero and explodes when it is close to zero. The organisers did not say how they
-# handle those cases; the professor suggested adding €1 to the balance in the denominator, which is the rule we adopt
-# from D9 on. Either way, we need to know how often such balances occur.
+# handle those cases; from D9 on we add €1 to the balance in the denominator, so that a zero does not divide by zero.
+# Either way, we need to know how often such balances occur.
 
 # %%
 obs = B[~np.isnan(B)]
@@ -2048,8 +2048,8 @@ save_result(paths, "D8_january_paths", "Median relative balance path after Dec 3
 #
 # Before asking how good a forecast can be, we fix the scoring rules used from now on. The decision metric is the
 # official MAPE, computed over all accounts and days. A plain MAPE divides by the true balance, so it is undefined on the
-# few exact zeros and explodes on balances of a few cents. Following the professor's indication, we add €1 to the
-# absolute balance in the denominator: each day contributes |actual − forecast| / (|actual| + €1). This keeps every day in
+# few exact zeros and explodes on balances of a few cents. We therefore add €1 to the absolute balance in the
+# denominator: each day contributes |actual − forecast| / (|actual| + €1). This keeps every day in
 # the score, removes the division by zero, and changes almost nothing for balances of more than a few euros. It does
 # not remove the difficulty of balances between €1 and €100, which still weigh heavily, as section 5 showed. Next to it
 # we report the median MAPE across accounts and the MAPE on balances of at least €100, so that we can always tell
@@ -2057,7 +2057,7 @@ save_result(paths, "D8_january_paths", "Median relative balance path after Dec 3
 # here: four recent 30-day windows at the end of 2022 and January 2022, each forecast using only the data before it.
 
 # %%
-MAPE_OFFSET = 1.0          # EUR added to |actual| in the MAPE denominator (professor's rule for zeros)
+MAPE_OFFSET = 1.0          # EUR added to |actual| in the MAPE denominator, so that zero balances are defined
 
 
 def ape(actual, forecast):
@@ -2107,7 +2107,7 @@ def split(data, origin):
 #
 # The brief specifies the evaluation metric as MAPE without explicitly detailing how division by zero is handled in the
 # final blind test. Section 5 showed that exact zeros do occur and near-zero balances are frequent. We adopted the
-# convention of adding €1 to the denominator ($|A_t| + 1.0$), reflecting the professor's rule.
+# convention of adding €1 to the denominator ($|A_t| + 1.0$).
 #
 # Before committing to model rankings in Sprint 2, we test whether that choice distorts the relative performance of the
 # baselines. We evaluate the naive forecast (last value) and the 30-day median across six possible offset values

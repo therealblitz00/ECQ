@@ -43,6 +43,9 @@ import seaborn as sns
 import lightgbm as lgb
 from statsforecast import StatsForecast
 from statsforecast.models import AutoARIMA, AutoETS, Naive
+from tsfresh import extract_features
+from tsfresh.feature_extraction import EfficientFCParameters, settings as tsf_settings
+from tsfresh.feature_selection.relevance import calculate_relevance_table
 from IPython.display import display
 
 warnings.filterwarnings("ignore")
@@ -62,6 +65,7 @@ SHRINK = [1.0, 0.75, 0.5, 0.35, 0.25, 0.1, 0.0]   # shrinkage factors towards ze
 LAMBDAS = [0.0, 0.25, 0.5, 0.75]      # minimum weight kept by the sign-uncertainty shrinkage
 FIT_DAYS = 365              # history used to fit the classical models (ETS, ARIMA) of each account
 N_JOBS = -1                 # parallel workers for the per-account classical models (-1 = all cores)
+RUN_TSFRESH_GBM = False     # True runs the tsfresh-features experiment of section 10 (about 10 more minutes on medium)
 rng = np.random.default_rng(RANDOM_STATE)
 
 PROJECT_ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
@@ -708,8 +712,9 @@ display(pd.DataFrame({str((o + pd.Timedelta(days=1)).date()): pd.Series(s).value
 WEIGHT_CAP = 10.0
 
 
-def gbm_features(e, ids_mask, M=365, tol=2):
-    """Rows (one per account in mask and horizon day) for cut-off `e`: scaled recent-level features, calendar and profile."""
+def gbm_features(e, ids_mask, M=365, tol=2, extra=None):
+    """Rows (one per account in mask and horizon day) for cut-off `e`: scaled recent-level features, calendar and profile.
+    `extra(e)`, if given, returns more per-account features (a frame indexed by account position) joined to every row."""
     T = B[:, :e]
     typical = np.maximum(np.nanmedian(np.abs(T[:, -90:]), 1), EPS)
     ref = fill(np.nanmedian(T[:, -30:], 1), T[:, -1])
@@ -731,19 +736,22 @@ def gbm_features(e, ids_mask, M=365, tol=2):
         d["agree"] = C[ids, h]
         d["acct"] = ids
         rows.append(d)
-    return pd.concat(rows, ignore_index=True), ref, typical
+    X = pd.concat(rows, ignore_index=True)
+    if extra is not None:
+        X = X.join(extra(e), on="acct")
+    return X, ref, typical
 
 
 GBM_PARAMS = dict(objective="l1", n_estimators=300, learning_rate=0.05, num_leaves=15, min_child_samples=50,
                   subsample=0.8, subsample_freq=1, colsample_bytree=0.8, random_state=RANDOM_STATE, verbose=-1)
 
 
-def gbm_forecast(e, train_mask, predict_mask, step=15, weighted=True, **overrides):
+def gbm_forecast(e, train_mask, predict_mask, step=15, weighted=True, extra=None, **overrides):
     """Fit on past cut-offs of the accounts in train_mask, predict the HORIZON days after column e for predict_mask.
     `weighted` uses the MAPE weights; `overrides` change the LightGBM parameters (used in the comparison below)."""
     Xs, ys, ws = [], [], []
     for j in range(365, e - HORIZON + 1, step):
-        X, ref, typical = gbm_features(j, train_mask)
+        X, ref, typical = gbm_features(j, train_mask, extra=extra)
         A = B[X["acct"].to_numpy(), j + X["horizon"].to_numpy() - 1]
         ok = np.isfinite(A) & np.isfinite(X["last"])
         y = (A - ref[X["acct"]]) / typical[X["acct"]]
@@ -753,7 +761,7 @@ def gbm_forecast(e, train_mask, predict_mask, step=15, weighted=True, **override
     feats = [c for c in X.columns if c != "acct"]
     model = lgb.LGBMRegressor(**{**GBM_PARAMS, **overrides})
     model.fit(X[feats], y, sample_weight=w if weighted else None)
-    Xp, ref, typical = gbm_features(e, predict_mask)
+    Xp, ref, typical = gbm_features(e, predict_mask, extra=extra)
     pred = model.predict(Xp[feats]) * typical[Xp["acct"]] + ref[Xp["acct"]]
     out = np.full((B.shape[0], HORIZON), np.nan)
     out[Xp["acct"].to_numpy(), Xp["horizon"].to_numpy() - 1] = pred
@@ -844,6 +852,96 @@ save_result(gbm_var, "02_gbm_variants", "Volatile accounts: GBM loss and tree-si
 # larger trees land close to the chosen configuration, the model is not sensitive to it and there is no reason to tune
 # it further on folds this few. The last column applies our decision rule to each variant against the chosen one; a
 # variant that passed it would replace the configuration used in the rest of the notebook in the next iteration.
+
+# %% [markdown]
+# A last variant asks whether automatic features would help the tree model, as they are often said to. We use the
+# `tsfresh` package: for every account and cut-off it computes several hundred statistics of the last 90 days of the
+# balance, scaled like the target. We keep the 30 most relevant, chosen by the relevance test of `tsfresh` (with a 5%
+# false discovery rate) on cut-offs whose 30-day target ends before the first fold, so that no test window is used, and
+# we add them to the features of the model. The rest is unchanged, including the zeroing of small forecasts.
+#
+# The experiment adds about ten minutes on the medium dataset, and much more on the large one, so it only runs when
+# `RUN_TSFRESH_GBM` is set to True in the first cell. When we ran it on the medium dataset, the automatic features took
+# 44% of the splits of the trees but did not improve the forecasts: 107.2% official, 50.4% typical account and 49.4% on
+# balances of at least €100 against 107.5%, 50.3% and 49.8% without them, and 99.3% against 97.7% official once small
+# forecasts are set to zero, with a worse WAPE in both cases. The decision rule rejected them in both versions, so the
+# model keeps its hand-made features, which also keeps the run short.
+
+# %%
+TSF_WIN, TSF_TOP_K = 90, 30
+
+
+def tsf_window_long(j, ids):
+    """Long frame of the last TSF_WIN days before column j, scaled like the GBM target."""
+    T = pd.DataFrame(B[ids, j - TSF_WIN:j]).ffill(axis=1).to_numpy()
+    typical = np.maximum(np.nanmedian(np.abs(B[ids, j - 90:j]), 1), EPS)
+    ref = fill(np.nanmedian(B[ids, j - 30:j], 1), B[ids, j - 1])
+    Z = (T - ref[:, None]) / typical[:, None]
+    return pd.DataFrame({"id": np.repeat(ids, TSF_WIN), "t": np.tile(np.arange(TSF_WIN), len(ids)),
+                         "y": Z.ravel()}).dropna()
+
+
+def tsf_extract(j, ids, **kw):
+    X = extract_features(tsf_window_long(j, ids), column_id="id", column_sort="t", column_value="y",
+                         n_jobs=4, disable_progressbar=True, **kw)
+    X.index = X.index.astype(int)
+    return X.replace([np.inf, -np.inf], np.nan)
+
+
+if RUN_TSFRESH_GBM:
+    vol_any = np.logical_or.reduce([seg2_by_fold[o] == "volatile positive" for o in origins])
+    tsf_ids = np.where(vol_any)[0]
+    # selection on cut-offs whose target ends before the first fold
+    sel_X, sel_y = [], []
+    for j in range(365, min(cut.values()) - HORIZON + 1, 15):
+        X = tsf_extract(j, tsf_ids, default_fc_parameters=EfficientFCParameters())
+        typical = np.maximum(np.nanmedian(np.abs(B[:, j - 90:j]), 1), EPS)
+        ref = fill(np.nanmedian(B[:, j - 30:j], 1), B[:, j - 1])
+        y = (np.nanmedian(B[:, j:j + HORIZON], 1) - ref) / typical
+        sel_X.append(X); sel_y.append(pd.Series(y[X.index], index=X.index))
+    X = pd.concat(sel_X, ignore_index=True); y = pd.concat(sel_y, ignore_index=True)
+    X = X.loc[:, (X.notna().mean() > 0.9) & (X.nunique() > 1)]
+    X = X.fillna(X.median())
+    rel = calculate_relevance_table(X[y.notna()], y[y.notna()], ml_task="regression")
+    tsf_chosen = list(rel[rel.relevant].sort_values("p_value").feature[:TSF_TOP_K])
+    print(f"{X.shape[1]} usable tsfresh features, {int(rel.relevant.sum())} relevant, {len(tsf_chosen)} kept")
+    tsf_kind = tsf_settings.from_columns(tsf_chosen)
+    tsf_cache = {}
+
+    def tsf_extra(j):
+        """Selected tsfresh features at cut-off j, with names LightGBM accepts."""
+        if j not in tsf_cache:
+            F = tsf_extract(j, tsf_ids, kind_to_fc_parameters=tsf_kind).reindex(columns=tsf_chosen)
+            tsf_cache[j] = F.set_axis([f"tsf_{i:02d}" for i in range(F.shape[1])], axis=1)
+        return tsf_cache[j]
+
+    tsf_rows = []
+    for o in origins:
+        e = cut[o]
+        T = B[:, :e]; A = B[:, e:e + HORIZON]
+        m = seg2_by_fold[o] == "volatile positive"
+        fold = str((o + pd.Timedelta(days=1)).date())
+        F_in = gbm_forecast(e - HORIZON, m, m, extra=tsf_extra)
+        A_in = B[:, e - HORIZON:e]
+        scored = {c: evaluate(A_in[m], zero_small(F_in, B[:, :e - HORIZON], c)[m]) for c in ZERO_GRID}
+        allowed = [c for c in ZERO_GRID
+                   if scored[c]["median per-account MAPE"] <= 1.10 * scored[0.0]["median per-account MAPE"]]
+        c_best = min(allowed, key=lambda c: scored[c]["MAPE (official)"])
+        F = gbm_forecast(e, m, m, extra=tsf_extra)
+        tsf_rows.append({"fold": fold, "method": "GBM + tsfresh features", **evaluate(A[m], F[m])})
+        tsf_rows.append({"fold": fold, "method": "GBM + tsfresh features, small forecasts zeroed",
+                         **evaluate(A[m], zero_small(F, T, c_best)[m])})
+    tsf_cmp = pd.concat([pd.DataFrame(tsf_rows).groupby("method")[METRICS].mean(),
+                         gbm_var.loc[["MAPE-weighted L1, 15 leaves (chosen)"], METRICS],
+                         vol_summary.loc[["global GBM, small forecasts zeroed (threshold tuned)"], METRICS]])
+    tsf_cmp["accepted vs the same model without tsfresh"] = [
+        passes_decision_rule(tsf_cmp.iloc[0], tsf_cmp.iloc[2]), passes_decision_rule(tsf_cmp.iloc[1], tsf_cmp.iloc[3]),
+        np.nan, np.nan]
+    display(tsf_cmp.round(1))
+    save_result(tsf_cmp, "02_gbm_tsfresh", "Volatile accounts: GBM with and without tsfresh features (mean over folds)")
+else:
+    tsf_cmp = None
+    print("tsfresh experiment skipped (RUN_TSFRESH_GBM = False); the results of our last run are described above")
 
 # %% [markdown]
 # ## 11. Do the classical models do better?
@@ -1210,6 +1308,12 @@ decision_log = pd.DataFrame([
      "judged by": "decision rule against the chosen configuration (raw forecasts)",
      "result": f"best official MAPE: {gbm_best} ({fmt(gbm_var.loc[gbm_best])})",
      "decision": "keep the MAPE-weighted L1 with 15 leaves unless a variant passes the rule"},
+    {"section": "10", "question": "Do automatic tsfresh features help the LightGBM?",
+     "alternatives": "the 30 most relevant of several hundred tsfresh features of the last 90 days, added to the hand-made ones",
+     "judged by": "decision rule against the same model without them, raw and with small forecasts zeroed",
+     "result": ("this run: " + ", ".join(f"{k} {v:.1f}%" for k, v in tsf_cmp["MAPE (official)"].items()))
+               if tsf_cmp is not None else "not run here (RUN_TSFRESH_GBM = False); on medium: 99.3% vs 97.7% official with zeroing",
+     "decision": "rejected: no gain on any MAPE measure, worse WAPE, about ten more minutes per run"},
     {"section": "10", "question": "When should small GBM forecasts be set to zero?",
      "alternatives": f"{len(ZERO_GRID)} thresholds ({', '.join(map(str, ZERO_GRID))} x typical size), tuned on the window before each cut-off",
      "judged by": "official MAPE, with the typical-account MAPE allowed to worsen by at most 10%",

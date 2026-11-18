@@ -1,20 +1,23 @@
 file,description,rows,columns
-02_level_experiment_by_fold.csv,"Constant-level candidates by fold and segment, all metrics",100,7
+02_level_experiment_by_fold.csv,"Constant-level candidates by fold and segment, all metrics",100,8
 02_tuned_parameters.csv,Parameters chosen on the inner windows for each fold,5,3
-02_level_experiment_summary_near_zero.csv,Mean over folds of each metric for the near-zero / overdraft segment,12,3
-02_level_experiment_summary_stable.csv,Mean over folds of each metric for the stable positive segment,8,3
+02_level_experiment_summary_near_zero.csv,Mean over folds of each metric for the near-zero / overdraft segment,12,4
+02_level_experiment_summary_stable.csv,Mean over folds of each metric for the stable positive segment,8,4
 02_decision_rule_near_zero.csv,Decision-rule verdict of every near-zero candidate against the two baselines,12,3
-02_calendar_profile_by_fold.csv,Near-zero accounts: calendar-profile forecasts by fold,30,5
-02_calendar_profile_summary.csv,"Near-zero accounts: calendar-profile forecasts, mean over folds",6,3
+02_calendar_profile_by_fold.csv,Near-zero accounts: calendar-profile forecasts by fold,30,6
+02_calendar_profile_summary.csv,"Near-zero accounts: calendar-profile forecasts, mean over folds",6,4
 02_calendar_profile_tuned_parameters.csv,Gate threshold and profile factor chosen on the inner windows,5,3
 02_calendar_profile_decision_rule.csv,Decision-rule verdict against the zero forecast,5,1
 02_calendar_profile_coverage.csv,Share (%) of near-zero account-days where the gated profile is used instead of zero,5,2
 02_stable_accounts_ending_near_zero.csv,Stable positive accounts: warning features and error contribution per fold,689,10
-02_stable_warning_flag.csv,"Stable positive accounts split by a warning flag (lowest balance below 20% of the median), last-value forecast",3,5
-02_volatile_positive_by_fold.csv,Volatile positive accounts: all candidates by fold,60,6
-02_volatile_positive_summary.csv,Volatile positive accounts: mean over folds,12,3
+02_stable_warning_flag.csv,"Stable positive accounts split by a warning flag (lowest balance below 20% of the median), last-value forecast",3,6
+02_volatile_positive_by_fold.csv,Volatile positive accounts: all candidates by fold,60,7
+02_volatile_positive_summary.csv,Volatile positive accounts: mean over folds,12,4
 02_volatile_positive_decision_rule.csv,Decision-rule verdict for the volatile positive candidates,12,2
-02_stable_revised_summary.csv,"Stable positive accounts (revised rule): level candidates, mean over folds",8,3
-02_pipeline_by_fold.csv,"Segment pipeline vs baselines on all accounts, by fold, with and without the largest contributor",50,6
-02_pipeline_by_segment.csv,"Segment pipeline vs last value, by segment (mean over folds)",9,3
-02_pipeline_decision_rule.csv,Decision-rule verdict of the segment pipeline (rows: all accounts / without the largest contributor),2,3
+02_classical_by_fold.csv,"ETS and ARIMA vs baselines (and the GBM for volatile accounts), by fold",90,8
+02_classical_summary.csv,"ETS and ARIMA vs baselines, by segment, mean over folds",18,4
+02_classical_decision_rule.csv,"Decision-rule verdict of ETS and ARIMA, by segment, with and without the largest contributor",8,3
+02_pipeline_by_fold.csv,"Segment pipeline vs baselines on all accounts, by fold, with and without the largest contributor",60,7
+02_pipeline_by_segment.csv,"Segment pipeline vs last value, by segment (mean over folds)",12,4
+02_near_zero_choice_counts.csv,Near-zero accounts per fold by the option chosen on the inner windows,5,3
+02_pipeline_decision_rule.csv,"Decision-rule verdict of the segment pipeline, with and without the per-account choice",4,3

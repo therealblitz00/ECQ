@@ -41,6 +41,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import lightgbm as lgb
+from statsforecast import StatsForecast
+from statsforecast.models import AutoARIMA, AutoETS, Naive
 from IPython.display import display
 
 warnings.filterwarnings("ignore")
@@ -58,6 +60,8 @@ RANDOM_STATE = 42
 WINDOWS = [30, 60, 90, 180, 365]      # look-back windows (days) tried for the level
 SHRINK = [1.0, 0.75, 0.5, 0.35, 0.25, 0.1, 0.0]   # shrinkage factors towards zero tried for the level
 LAMBDAS = [0.0, 0.25, 0.5, 0.75]      # minimum weight kept by the sign-uncertainty shrinkage
+FIT_DAYS = 365              # history used to fit the classical models (ETS, ARIMA) of each account
+N_JOBS = -1                 # parallel workers for the per-account classical models (-1 = all cores)
 rng = np.random.default_rng(RANDOM_STATE)
 
 PROJECT_ROOT = Path.cwd().parent if Path.cwd().name == "notebooks" else Path.cwd()
@@ -124,6 +128,11 @@ print(f"{bal.shape[0]} accounts, {bal.shape[1]} days, {bal.columns.min().date()}
 # report the median MAPE across accounts and the MAPE on balances of at least €100. A model is accepted only if it
 # improves the official MAPE without getting worse on the other two measures. The folds are the same: January 2022 and
 # the four last 30-day windows of 2022, each forecast with the data before it only.
+#
+# We add one measure that is not a percentage, the weighted absolute percentage error (WAPE): the total absolute error
+# in euros divided by the total absolute balance. It does not enter the decision rule, because the competition is
+# scored by the MAPE, but it answers a question the MAPE cannot: is the forecast close to the balance in euros? We will
+# need it in section 7, when a forecast of zero turns out to be hard to beat on every percentage measure.
 
 # %%
 def mape_official(actual, forecast):
@@ -139,17 +148,19 @@ def mape_per_account(actual, forecast):
     return 100 * np.nanmean(ape, axis=1)
 
 
-METRICS = ["MAPE (official)", "median per-account MAPE", f"MAPE |actual|>={NEAR_ZERO:.0f}"]
+METRICS = ["MAPE (official)", "median per-account MAPE", f"MAPE |actual|>={NEAR_ZERO:.0f}", "WAPE"]
 
 
 def evaluate(actual, forecast):
     a, f = np.asarray(actual, float), np.asarray(forecast, float)
     f = np.broadcast_to(f, a.shape)
     ok = np.isfinite(a) & np.isfinite(f) & (np.abs(a) >= NEAR_ZERO)
+    fin = np.isfinite(a) & np.isfinite(f)
     return {
         "MAPE (official)": mape_official(a, f),
         "median per-account MAPE": np.nanmedian(mape_per_account(a, f)),
         f"MAPE |actual|>={NEAR_ZERO:.0f}": 100 * np.mean(np.abs((a[ok] - f[ok]) / a[ok])),
+        "WAPE": 100 * np.sum(np.abs(a[fin] - f[fin])) / np.sum(np.abs(a[fin])),
     }
 
 
@@ -390,7 +401,7 @@ verdict = pd.DataFrame({
 display(verdict)
 save_result(verdict, "02_decision_rule_near_zero", "Decision-rule verdict of every near-zero candidate against the two baselines")
 
-fig, axes = plt.subplots(1, 3, figsize=(17, 5), sharey=True)
+fig, axes = plt.subplots(1, 3, figsize=(17, 5), sharey=True)      # the three measures of the decision rule
 order = near.sort_values("MAPE (official)").index
 for ax, m in zip(axes, METRICS):
     ax.barh(order, near.loc[order, m], color="tab:blue"); ax.set_title(m); ax.set_xscale("log")
@@ -409,6 +420,15 @@ axes[0].invert_yaxis(); plt.tight_layout(); plt.show()
 # 100%. The weighted medians do a little better than zero only on the balances of at least €100 (90 to 96% against
 # 100%) and they do it by being right about sign and size on the days when the balance is not tiny, at the price of
 # a higher official score.
+#
+# The WAPE shows how strange this floor is. A forecast of zero also has a WAPE of exactly 100%: it misses every euro of
+# every balance. The last balance and the median of the last 30 days miss about 70% of the euros, and the weighted
+# median of the last 30 days 64%, even though their percentage errors are far worse; the tuned shrinkage, which is
+# almost zero, misses 99%. The zero floor is therefore a property of the MAPE, which caps the cost of
+# under-forecasting at 100% and leaves the cost of over-forecasting unbounded, and not a sign that zero is a good
+# forecast of the balance. Since the organisers did not say how the MAPE treats balances close to zero, we keep the
+# official MAPE as the score that ranks models, as decided in Sprint 1, but we read every result that relies on
+# forecasting zero together with its WAPE, and we will raise the point with the professor before the final submission.
 #
 # The third result concerns the two-step idea. With the size predicted by a mean absolute error the official MAPE is
 # about 610%, because that loss ignores how costly it is to over-forecast a small balance. With a size chosen for the
@@ -528,7 +548,6 @@ coverage = pd.DataFrame(cover).T
 display(coverage.round(1).rename(columns=lambda c: f"% of days with a non-zero forecast, {c}"))
 save_result(coverage, "02_calendar_profile_coverage", "Share (%) of near-zero account-days where the gated profile is used instead of zero")
 
-# %% [markdown]
 # %% [markdown]
 # The calendar helps, but only when we are careful with it. The profile on its own is worse than zero on the official
 # score (129%), and even halved it stays above 100%, because on the days when the account is not where its history says
@@ -759,31 +778,148 @@ display(vol_verdict)
 save_result(vol_verdict, "02_volatile_positive_decision_rule", "Decision-rule verdict for the volatile positive candidates")
 
 # %% [markdown]
-# ## 11. Putting the strategies together
+# ## 11. Do the classical models do better?
 #
-# We now have a strategy for each group. Accounts in the near-zero group, which now includes the flagged ones, get the
-# gated calendar profile of section 8, with its gate tuned on the two windows before each cut-off. Stable accounts get
-# the best simple level, which we pick below. Volatile accounts get the global model with small forecasts set to zero.
-# Dormant accounts, which do not appear in the medium dataset, get the last balance. We score the whole pipeline on all
-# accounts, next to the baselines of Sprint 1 and the zero forecast, and we also report the scores without the single
-# account that contributes most to the error in each fold, since section 9 showed that one account can decide a fold.
+# So far the stable accounts have been forecast with the last balance and the volatile ones with a global tree model.
+# Neither is a time series model in the sense of the course, and Sprint 1 gave us reasons to expect that one could
+# help: the daily changes are stationary (d = 1), the balance reverts towards a level over a month, and activity follows
+# the week, since balances only move on business days. We therefore fit to every stable and volatile account an
+# exponential smoothing model and an ARIMA model, each chosen automatically per account by information criterion, with
+# a weekly season of 7 days. The ETS has additive errors and an additive weekly season, with the trend (none, additive
+# or damped) chosen by AICc, because balances can be negative and a multiplicative model needs them positive. The ARIMA
+# chooses its orders, the differencing and the seasonal part by the KPSS and seasonal tests and AICc. Both are fitted on
+# the last year before each cut-off, so that a level shift of two years ago does not pull the forecast, and run in
+# parallel over accounts, which is what makes them affordable on the large dataset.
+#
+# The monthly cycle of salaries and pensions is not in these models: a season of 30 days on daily data would make
+# the seasonal ARIMA very expensive and the month does not have a fixed length. The calendar is what the gated profile
+# and the tree model use instead, so this section tells us how far the classical models get without it.
 
 # %%
-stable_rows = []
+CLASSICAL = {"ets": "ETS (additive, weekly season)", "arima": "ARIMA (auto, weekly season)"}
+
+
+def classical_forecasts(e, mask):
+    """AutoETS and AutoARIMA fitted per account (accounts in mask) on the FIT_DAYS days before column e."""
+    out = {name: np.full((B.shape[0], HORIZON), np.nan) for name in CLASSICAL.values()}
+    ids = np.where(mask)[0]
+    if len(ids) > 0:
+        W = pd.DataFrame(B[ids, e - FIT_DAYS:e]).ffill(axis=1).to_numpy()
+        long = pd.DataFrame({"unique_id": np.repeat(ids, FIT_DAYS), "ds": np.tile(bal.columns[e - FIT_DAYS:e], len(ids)),
+                             "y": W.ravel()}).dropna()
+        sf = StatsForecast(models=[AutoETS(season_length=7, model="AZA", alias="ets"),
+                                   AutoARIMA(season_length=7, alias="arima")],
+                           freq="D", n_jobs=N_JOBS, fallback_model=Naive())
+        fc = sf.forecast(h=HORIZON, df=long)
+        fc = fc.reset_index() if "unique_id" not in fc.columns else fc
+        for alias, name in CLASSICAL.items():
+            M = fc.pivot(index="unique_id", columns="ds", values=alias)
+            out[name][M.index.to_numpy().astype(int)] = M.to_numpy()
+    last = B[:, e - 1]
+    # accounts without enough history keep their last balance
+    return {k: np.where(np.isfinite(v), v, last[:, None]) for k, v in out.items()}
+
+
+def metrics_without_top(A, F):
+    """Scores after removing the account with the largest total percentage error."""
+    ape = np.abs(A - F) / np.where(A == 0, np.nan, np.abs(A))
+    keep = np.arange(len(A)) != np.nanargmax(np.nansum(ape, 1))
+    return evaluate(A[keep], F[keep])
+
+
+cls_fc, cls_rows = {}, []
 for o in origins:
     e = cut[o]
     T = B[:, :e]; A = B[:, e:e + HORIZON]
-    m = seg2_by_fold[o] == "stable positive"
-    for name, lvl in level_candidates(T).items():
-        stable_rows.append({"fold": str((o + pd.Timedelta(days=1)).date()), "method": name,
-                            **evaluate(A[m], np.broadcast_to(lvl[m, None], A[m].shape))})
-stable2 = pd.DataFrame(stable_rows).groupby("method")[METRICS].mean().sort_values("median per-account MAPE")
-display(stable2.round(1))
-save_result(stable2, "02_stable_revised_summary", "Stable positive accounts (revised rule): level candidates, mean over folds")
+    seg = seg2_by_fold[o]
+    fit_mask = np.isin(seg, ["stable positive", "volatile positive"])
+    cls_fc[o] = classical_forecasts(e, fit_mask)
+    for sname in ("stable positive", "volatile positive"):
+        m = seg == sname
+        cands = {"naive (last value)": np.repeat(T[:, -1:], HORIZON, 1),
+                 "median of last 30 days": np.repeat(fill(np.nanmedian(T[:, -30:], 1), T[:, -1])[:, None], HORIZON, 1),
+                 **cls_fc[o]}
+        if sname == "volatile positive":
+            cands["global GBM, small forecasts zeroed (threshold tuned)"] = vol_fc[o]
+        for name, f in cands.items():
+            fold = str((o + pd.Timedelta(days=1)).date())
+            cls_rows.append({"fold": fold, "segment": sname, "method": name, "version": "all accounts",
+                             **evaluate(A[m], f[m])})
+            cls_rows.append({"fold": fold, "segment": sname, "method": name, "version": "without the largest contributor",
+                             **metrics_without_top(A[m], f[m])})
+cls = pd.DataFrame(cls_rows)
+cls_summary = cls.groupby(["version", "segment", "method"])[METRICS].mean()
+display(cls_summary.round(1))
+save_result(cls, "02_classical_by_fold", "ETS and ARIMA vs baselines (and the GBM for volatile accounts), by fold", index=False)
+save_result(cls_summary, "02_classical_summary", "ETS and ARIMA vs baselines, by segment, mean over folds")
+
+# %%
+refs = {"stable positive": ["naive (last value)", "median of last 30 days"],
+        "volatile positive": ["naive (last value)", "median of last 30 days",
+                              "global GBM, small forecasts zeroed (threshold tuned)"]}
+cls_verdict = {}
+for version in ("all accounts", "without the largest contributor"):
+    for sname, rlist in refs.items():
+        tab = cls_summary.loc[(version, sname)]
+        cls_verdict[(version, sname)] = pd.DataFrame(
+            {f"accepted vs {r}": {m: passes_decision_rule(tab.loc[m], tab.loc[r]) for m in CLASSICAL.values()}
+             for r in rlist})
+cls_verdict_df = pd.concat(cls_verdict, names=["version", "segment", "method"])
+display(cls_verdict_df)
+save_result(cls_verdict_df, "02_classical_decision_rule",
+            "Decision-rule verdict of ETS and ARIMA, by segment, with and without the largest contributor")
+
+# A model is adopted when it passes the rule against every reference once the largest contributor of each fold is left
+# out: section 9 showed that this account is unpredictable for any method and decides the official score on its own.
+DECIDING_VERSION = "without the largest contributor"
+
+
+def chosen_model(sname, incumbent):
+    """The classical model with the lowest official MAPE among those accepted against every reference, else incumbent."""
+    v = cls_verdict[(DECIDING_VERSION, sname)]
+    ok = [m for m in CLASSICAL.values() if v.loc[m].all()]
+    return min(ok, key=lambda m: cls_summary.loc[(DECIDING_VERSION, sname, m), "MAPE (official)"]) if ok else incumbent
+
+
+STABLE_MODEL = chosen_model("stable positive", "naive (last value)")
+VOLATILE_MODEL = chosen_model("volatile positive", "global GBM, small forecasts zeroed (threshold tuned)")
+print("stable accounts ->", STABLE_MODEL, "| volatile accounts ->", VOLATILE_MODEL)
 
 # %% [markdown]
-# For the revised stable group the last balance is the best simple level on the typical account, so we keep it. The
-# weighted medians that helped near zero would only add error here.
+# On the stable accounts the ARIMA is the best model we have tried, but only by a little. Its typical-account error is
+# 7.2% against 7.7% for the last balance, and its error on balances of at least €100 is 20.9% against 21.9%. On all
+# accounts it is rejected, because its official MAPE is 2 479% against 2 437%, and that score is decided by the one
+# account of section 9 that falls from €134 000 to a few euros. Once the largest contributor of each fold is left out
+# the picture is clear: 16.3% against 17.0% official, and the ARIMA passes the rule against both baselines. Since that
+# single account is unpredictable for any method, we adopt the ARIMA for the stable accounts and keep reporting both
+# versions. The ETS ends up almost identical to the last balance, which is what simple exponential smoothing becomes
+# when its smoothing weight is close to one, and it is what Sprint 1 led us to expect from balances that behave like a
+# random walk from one day to the next.
+#
+# On the volatile accounts the classical models help less than the tree model by a wide margin. The ARIMA improves on
+# the last balance (official 296% against 299%, typical account 64% against 67%) and passes the rule against it, but
+# the global model of section 10 reaches 98% and 55%. The difference is the calendar: the tree model knows the day of
+# the month and the calendar profile, while a weekly ARIMA does not see the salary and the pension coming. So the
+# volatile accounts stay with the tree model, and the course models earn their place where the balance is far from zero
+# and the problem is a matter of small corrections to the level.
+
+# %% [markdown]
+# ## 12. Putting the strategies together
+#
+# We now have a strategy for each group. Accounts in the near-zero group, which now includes the flagged ones, get the
+# gated calendar profile of section 8, with its gate tuned on the two windows before each cut-off. Stable and volatile
+# accounts get the model chosen in section 11. Dormant accounts, which do not appear in the medium dataset, get the
+# last balance. We score the whole pipeline on all accounts, next to the baselines of Sprint 1 and the zero forecast,
+# and we also report the scores without the single account that contributes most to the error in each fold, since
+# section 9 showed that one account can decide a fold.
+#
+# The first version of this pipeline, which we ran before writing this section, had a clear weakness: inside the
+# near-zero group some accounts are perfectly predictable with their last balance, and forcing the gated profile (or
+# zero) on them cost about 100% each, which made the typical account worse than with the last balance. So the pipeline
+# now makes one more choice, per account and without looking at the test window: for every near-zero account it
+# compares the last balance, the guarded profile and zero on the two 30-day windows before the cut-off, and keeps the
+# one with the lowest MAPE for that account. We report the pipeline with and without this choice, so that its effect
+# can be read directly.
 
 # %%
 def tune_gate(e, m):
@@ -808,105 +944,144 @@ def level_shift_guard(G, T, low=0.2, high=5.0):
     return np.where(((ratio < low) | (ratio > high))[:, None], 0.0, G)
 
 
-def pipeline_forecast(o, guard=True):
+NEAR_OPTIONS = ["guarded profile", "zero", "last value"]      # order also breaks ties: the profile first
+
+
+def near_options(e, q, sh, guard=True):
+    """The three near-zero forecasts for the HORIZON days after column e, stacked as (accounts, HORIZON, 3)."""
+    T = B[:, :e]
+    P, C = profile_parts(e)
+    G = gated(P, C, q, sh)
+    G = level_shift_guard(recent_range_guard(G, T), T) if guard else G
+    return np.stack([G, np.zeros_like(G), np.repeat(T[:, -1:], HORIZON, 1)], axis=2)
+
+
+def near_choice(e, q, sh):
+    """Per account: index of the near-zero option with the lowest MAPE summed over the two windows before e."""
+    score = np.zeros((B.shape[0], len(NEAR_OPTIONS)))
+    for ie in (e - 60, e - 30):
+        opts = near_options(ie, q, sh)
+        Ain = B[:, ie:ie + HORIZON]
+        for k in range(len(NEAR_OPTIONS)):
+            score[:, k] += np.nan_to_num(mape_per_account(Ain, opts[:, :, k]), nan=0.0)
+    return score.argmin(1)
+
+
+def pipeline_forecast(o, guard=True, choice=True):
     e = cut[o]
     T = B[:, :e]
     seg = seg2_by_fold[o]
-    F = np.repeat(T[:, -1:], HORIZON, 1).astype(float)                 # stable and dormant: last balance
+    F = np.repeat(T[:, -1:], HORIZON, 1).astype(float)                 # dormant: last balance
     near = seg == "near-zero / overdraft"
     q, sh = tune_gate(e, near)
-    P, C = profile_parts(e)
-    G = gated(P, C, q, sh)
-    F[near] = (level_shift_guard(recent_range_guard(G, T), T) if guard else G)[near]
-    vol_m = seg == "volatile positive"
-    F[vol_m] = vol_fc[o][vol_m]
-    return F
+    opts = near_options(e, q, sh, guard)
+    pick = near_choice(e, q, sh) if choice else np.zeros(B.shape[0], dtype=int)
+    F_near = np.take_along_axis(opts, pick[:, None, None].repeat(HORIZON, 1), axis=2)[:, :, 0]
+    F[near] = F_near[near]
+    model_fc = {"naive (last value)": np.repeat(T[:, -1:], HORIZON, 1),
+                "global GBM, small forecasts zeroed (threshold tuned)": vol_fc[o], **cls_fc[o]}
+    for sname, model in (("stable positive", STABLE_MODEL), ("volatile positive", VOLATILE_MODEL)):
+        m = seg == sname
+        F[m] = model_fc[model][m]
+    return F, np.where(near, pick, -1)
 
 
-def metrics_without_top(A, F):
-    """Scores after removing the account with the largest total percentage error."""
-    ape = np.abs(A - F) / np.where(A == 0, np.nan, np.abs(A))
-    keep = np.arange(len(A)) != np.nanargmax(np.nansum(ape, 1))
-    return evaluate(A[keep], F[keep])
-
-
-all_rows, seg_rows = [], []
+PIPE ="segment pipeline, per-account choice"
+PIPE_V1 = "segment pipeline, no per-account choice"
+PIPE_NOGUARD = "segment pipeline, no choice and no guards"
+all_rows, seg_rows, pick_rows = [], [], []
 for o in origins:
     e = cut[o]
     T = B[:, :e]; A = B[:, e:e + HORIZON]
     fold = str((o + pd.Timedelta(days=1)).date())
-    F_pipe = pipeline_forecast(o)
+    F_pipe, pick = pipeline_forecast(o)
+    pick_rows.append({"fold": fold, **{opt: int((pick == k).sum()) for k, opt in enumerate(NEAR_OPTIONS)}})
     systems = {"zero (forecast 0)": np.zeros_like(A),
                "naive (last value)": np.repeat(T[:, -1:], HORIZON, 1),
                "median of last 30 days": np.repeat(fill(np.nanmedian(T[:, -30:], 1), T[:, -1])[:, None], HORIZON, 1),
-               "segment pipeline": F_pipe,
-               "segment pipeline, no recent-range guard": pipeline_forecast(o, guard=False)}
+               PIPE: F_pipe,
+               PIPE_V1: pipeline_forecast(o, choice=False)[0],
+               PIPE_NOGUARD: pipeline_forecast(o, guard=False, choice=False)[0]}
     for name, F in systems.items():
         all_rows.append({"fold": fold, "system": name, "version": "all accounts", **evaluate(A, F)})
         all_rows.append({"fold": fold, "system": name, "version": "without the largest contributor", **metrics_without_top(A, F)})
     for sname in ("near-zero / overdraft", "stable positive", "volatile positive"):
         mm = seg2_by_fold[o] == sname
-        for name in ("naive (last value)", "segment pipeline", "segment pipeline, no recent-range guard"):
+        for name in ("naive (last value)", PIPE, PIPE_V1, PIPE_NOGUARD):
             seg_rows.append({"fold": fold, "segment": sname, "system": name, **evaluate(A[mm], systems[name][mm])})
 overall = pd.DataFrame(all_rows)
 by_segment = pd.DataFrame(seg_rows).groupby(["segment", "system"])[METRICS].mean()
+picks = pd.DataFrame(pick_rows).set_index("fold")
+print("near-zero accounts by chosen option:")
+display(picks)
 for v in ("all accounts", "without the largest contributor"):
     print(f"\n=== {v} ===")
     display(overall[overall.version == v].groupby("system")[METRICS].mean().sort_values("MAPE (official)").round(1))
 print("\n=== by segment ===")
 display(by_segment.round(1))
-display(overall[overall.version == "all accounts"].pivot(index="fold", columns="system", values="MAPE (official)").round(1))
+for m in ("MAPE (official)", "median per-account MAPE"):
+    print(f"\n=== {m} by fold, all accounts ===")
+    display(overall[overall.version == "all accounts"].pivot(index="fold", columns="system", values=m).round(1))
 save_result(overall, "02_pipeline_by_fold", "Segment pipeline vs baselines on all accounts, by fold, with and without the largest contributor", index=False)
 save_result(by_segment, "02_pipeline_by_segment", "Segment pipeline vs last value, by segment (mean over folds)")
+save_result(picks, "02_near_zero_choice_counts", "Near-zero accounts per fold by the option chosen on the inner windows")
 
 # %%
 verdicts = {}
 for v in ("all accounts", "without the largest contributor"):
     sm = overall[overall.version == v].groupby("system")[METRICS].mean()
-    verdicts[v] = {f"vs {ref}": passes_decision_rule(sm.loc["segment pipeline"], sm.loc[ref])
-                   for ref in ("naive (last value)", "median of last 30 days", "zero (forecast 0)")}
+    for sysname in (PIPE, PIPE_V1):
+        verdicts[(v, sysname)] = {f"vs {ref}": passes_decision_rule(sm.loc[sysname], sm.loc[ref])
+                                  for ref in ("naive (last value)", "median of last 30 days", "zero (forecast 0)")}
 pipe_verdict = pd.DataFrame(verdicts).T
+pipe_verdict.index.names = ["version", "system"]
 display(pipe_verdict)
-save_result(pipe_verdict, "02_pipeline_decision_rule", "Decision-rule verdict of the segment pipeline (rows: all accounts / without the largest contributor)")
+save_result(pipe_verdict, "02_pipeline_decision_rule", "Decision-rule verdict of the segment pipeline, with and without the per-account choice")
 
 # %% [markdown]
-# ## 12. What the segment pipeline tells us
+# ## 13. What the segment pipeline tells us
 #
-# The pipeline is a clear improvement in some places and not in others, and the overall numbers hide this.
+# Segment by segment, the pipeline does what we built it to do. The stable accounts get the ARIMA (7.2% on the typical
+# account) and the volatile ones the tree model (55% against 67% for the last balance, 53% against 86% on balances of
+# at least €100). On the near-zero group, which now includes the flagged accounts, the gated profile brings the official
+# MAPE from about 1 450% with the last balance to 100%, the typical account from 154% to 100% and the large balances
+# from 142% to 88%. The guards still matter: without them the official MAPE over all accounts is about 1 320%, because
+# in the December fold an account that had just lost its whole balance kept a forecast of about €62 000.
 #
-# On the volatile positive accounts the global model is the best candidate by a wide margin. With small forecasts set to
-# zero it brings the official MAPE to 98%, below the zero forecast, and it cuts the typical-account error from 67% (last
-# balance) to 55% and the error on balances of at least €100 from 86% to 53%. Without the zeroing the typical error is
-# 50%, so the zeroing buys the official score at the price of some accuracy, and the threshold we tune keeps that price
-# under 10% on the inner window. It is accepted against both baselines. This is where the ML model earns its place:
-# the weighted medians and the calendar profile alone reached only 63 to 75% on the typical account.
+# Over all accounts the official MAPE of the pipeline is about 640%, against 1 303% for the last balance, and once more
+# it is decided by the single account of section 9. Without the largest contributor of each fold it is 72.5%, below
+# the 100% of the zero forecast, which is the only reference the pipeline beats under our decision rule. It is not
+# accepted against the last balance or the median of the last 30 days, because the median error across all accounts is
+# 74.5% against 68.8% for the last balance.
 #
-# On the stable positive accounts nothing beats the last balance (7.7% on the typical account), so we keep it.
+# This last number looks like a contradiction, since the pipeline improves the typical account inside every segment.
+# The explanation is that medians do not add up. The median over all accounts sits around 70%, and a near-zero account
+# that the last balance forecast with an error of 30% or 50% now gets a forecast close to zero and an error close to
+# 100%, so it crosses the median and moves it up. The accounts that improve the most, from several hundred percent to
+# 100%, were already above the median and do not move it at all.
 #
-# On the near-zero group, which now includes the flagged accounts, the pipeline gets a typical error of 100% and 88%
-# on balances of at least €100, against 154% and 142% for the last balance, and an official score equal to zero. The
-# recent-range and level-shift guards matter here. Without them, an account that had just lost its whole balance kept
-# a forecast of €62 000 and produced an error of more than 500 000 percentage points on its own.
+# The per-account choice of section 12 was our attempt to protect exactly those accounts. It works on the typical
+# account: about 45 near-zero accounts per fold are given back their last balance, the median over all accounts falls
+# from 74.5% to 70.4% and the WAPE improves slightly. But it costs official MAPE (664% against 637%, and 81.5% against
+# 72.5% without the largest contributor), because two windows of history are not enough to tell a reliably flat account
+# from one that happened to be flat for two months, and one wrong choice of the last balance in the September fold
+# more than doubles that fold's score. By our rule the choice is not accepted, so the pipeline we carry forward is the
+# version without it, and the choice stays as a measured trade-off rather than a decision.
 #
-# Over all accounts the official MAPE of the pipeline is 628%, against 1 303% for the last balance, and it is dominated by
-# the single account of section 9 that falls from €134 000 to €2 in one fold: the pipeline scores between 76% and 88% in
-# the four other folds. Without the largest contributor of each fold the official MAPE is 73%, and the zero forecast
-# scores 100%. By the decision rule the pipeline is accepted against the zero forecast only when the largest contributor
-# is left out, and it is not accepted against the last balance or the median of the last 30 days in either version. The reason is the typical account: the pipeline's median error of 75% is worse
-# than the 69% of the last balance, because near-zero accounts that the last balance forecast well are now forecast with
-# zero or a gated profile, which costs them about 100%. The official and the large-balance measures improve a lot, but a
-# typical-account guard says that we have traded some accounts that were fine for others that were not.
+# The WAPE adds a caution of its own. The pipeline misses about 17% of the euros, against 12% for the last balance,
+# and almost all of the difference comes from the near-zero group, where forecasting zero is cheap in percentage terms
+# and expensive in euros. This is the price of optimising the MAPE, and it is the reason to ask the organisers how
+# balances close to zero are treated in the final score.
 #
-# That is a useful result and it points to the next step. The segment is too coarse for the near-zero group: inside it,
-# some accounts are predictable with a simple level and others are not. A per-account choice between the last balance
-# and the zero or profile forecast, made on the inner windows, is the natural refinement, and we leave it for the
-# next iteration together with a proper model for the stable accounts (ETS or ARIMA) that can be compared with the last
-# balance on the same footing. Dormant accounts could not be tested because the medium dataset has none, and they stay
-# on the last balance. We also note that the official MAPE of the whole dataset can be moved by one account in one
-# fold, so every future comparison reports it with and without the largest contributor.
+# What we take to Sprint 3 is therefore a working pipeline and a precise list of open problems. The near-zero group
+# needs a better way to find the accounts that are predictable with a simple level, using more than two windows or
+# features of the account rather than its recent errors alone. The stable accounts are close to what a level forecast
+# can do, so their remaining error is in sudden drops such as the one of section 9, which is a question for the anomaly
+# work of Sprint 3. Dormant accounts could not be tested because the medium dataset has none, and they stay on the last
+# balance. Every comparison will keep reporting the official MAPE with and without the largest contributor.
 
 # %% [markdown]
-# ## 12. Index of saved results
+# ## 14. Index of saved results
 
 # %%
 index = pd.DataFrame(saved_files)

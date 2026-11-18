@@ -1,0 +1,19 @@
+version,segment,method,MAPE (official),median per-account MAPE,MAPE |actual|>=100,WAPE
+all accounts,stable positive,"ARIMA (auto, weekly season)",2479.271935373229,7.245302602799254,20.883927828342326,5.7041173783433
+all accounts,stable positive,"ETS (additive, weekly season)",2470.9086021781495,7.761168551396618,21.872157771829144,5.7422236195500265
+all accounts,stable positive,median of last 30 days,2446.675305996559,9.224945905297549,22.938269516004247,8.450437521550763
+all accounts,stable positive,naive (last value),2437.472941515279,7.66245220955903,21.924594390238386,5.729977528594434
+all accounts,volatile positive,"ARIMA (auto, weekly season)",295.90857054732726,63.82082435250165,83.52939114552,21.452604164753158
+all accounts,volatile positive,"ETS (additive, weekly season)",306.5779070808182,67.68405336047552,87.34452465406393,21.982912259734285
+all accounts,volatile positive,"global GBM, small forecasts zeroed (threshold tuned)",97.68175135155312,55.17752128516247,52.96812945026973,26.610028892718162
+all accounts,volatile positive,median of last 30 days,255.16405485522887,65.08214551239749,70.57095972280356,25.7364222426853
+all accounts,volatile positive,naive (last value),298.58277328030334,67.00307228644047,86.0053362320366,21.641114150851667
+without the largest contributor,stable positive,"ARIMA (auto, weekly season)",16.31470073695893,7.151523938409042,15.200019597641642,4.3617886542552595
+without the largest contributor,stable positive,"ETS (additive, weekly season)",16.954052179476648,7.607198869946058,16.352237059516106,4.437241595164123
+without the largest contributor,stable positive,median of last 30 days,18.718825163430306,9.134291221807992,17.437424366029767,7.199546761086049
+without the largest contributor,stable positive,naive (last value),16.988240135564187,7.531456849020143,16.3956643067173,4.429579067827184
+without the largest contributor,volatile positive,"ARIMA (auto, weekly season)",236.18328745764217,62.96555741299335,82.85372146937023,21.273761949951847
+without the largest contributor,volatile positive,"ETS (additive, weekly season)",240.48387368909508,66.60304559694842,86.59838894367432,21.806094371166548
+without the largest contributor,volatile positive,"global GBM, small forecasts zeroed (threshold tuned)",75.3689325693214,55.06057984368577,52.51104847757978,26.567379214250543
+without the largest contributor,volatile positive,median of last 30 days,212.01409569000103,64.83131985532538,70.16522815538931,25.70959226071294
+without the largest contributor,volatile positive,naive (last value),232.0922333248124,66.07345364455588,85.2638376512586,21.47630014656717

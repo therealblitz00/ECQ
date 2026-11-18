@@ -34,7 +34,7 @@ Forecast each client's daily account balance for the **next 30 days**, evaluated
 - **Baselines (mean of 5 folds):** the ranking depends on the metric. Official MAPE: last value wins (1 303% vs 3 033% for the 30-day median). Median per-account MAPE: 30-day median wins (66.5% vs 68.8%). MAPE on |actual| ≥ €100: 30-day median wins (71.5% vs 88.7%). The official MAPE is dominated by near-zero actuals.
 - **Decision (model selection):** the official MAPE (leaving out only exact zeros) ranks models, but a model is accepted only if it does not get worse than the reference on the median per-account MAPE and on the MAPE for |actual| ≥ €100 (`passes_decision_rule`, notebook §17).
 - **Decision (segmentation):** the four rule-based segments of §15 (near-zero/overdraft, stable positive, volatile positive, dormant). The two-cluster map of D14 (~270 near-zero, ~230 stable positive) is a consistency check, not the segmentation.
-- **Zero floor (Sprint 2):** forecasting exactly 0 gives a MAPE of exactly 100% on every account, so for near-zero accounts every model must beat 100%; no constant level does (weighted median ≈ 100–120% official).
+- **Zero floor (Sprint 2):** forecasting exactly 0 gives a MAPE of exactly 100% on every account, so for near-zero accounts every model must beat 100%; no constant level does (weighted median ≈ 100–120% official). The gated calendar profile gets to ~96%; ARIMA is the best model for stable accounts and LightGBM for volatile ones; the full pipeline reaches 72.5% official without the largest contributor (637% with it).
 - **EDA statistics for time series:** levels are random-walk-like, so §4 describes levels only by median, min, max and share negative, and reports mean, std, skewness and kurtosis on the daily changes. Jarque–Bera was removed (changes are autocorrelated and ARCH); normality is tested on model residuals in Sprint 2. §7 reports effect sizes (eta squared on per-date cross-account aggregates) instead of Kruskal–Wallis p-values.
 
 All Sprint 1 results are saved as CSV in `data/sprint1/` (start with `00_index.csv` and `00_account_features.csv`).
@@ -116,14 +116,16 @@ To do:
 - [x] Stable accounts ending near zero: one unpredictable account (€134k → €2) produces ~all of one fold's segment error; a warning flag (min of last year < 20% of median) isolates accounts that are not really stable (typical error 26% vs 8%)
 - [x] Revised segment rule (stable accounts must keep their lowest balance of the last year above 20% of the median; flagged accounts go to the near-zero group) and results reported with and without the largest contributor
 - [x] Volatile positive accounts: global LightGBM (scaled deviations from the 30-day median, MAPE-weighted L1 loss, calendar-profile feature, small forecasts zeroed with a tuned threshold) → official 97.7%, typical 55.2%, |A|≥100 53.0%; accepted vs last value and 30-day median. Dormant accounts: none in the medium dataset, strategy = last value (untested)
-- [x] Segment pipeline (gated calendar profile + guards for near-zero, last value for stable, GBM for volatile): 628% official on all accounts (one account at €134k → €2 decides a fold) / 73% without the largest contributor; not accepted vs last value on the typical-account guard (75% vs 69%)
-- [ ] Per-account choice between last value and zero/profile in the near-zero group (inner windows), so accounts that the last value already forecasts well are not made worse
-- [ ] ETS/ARIMA for stable accounts, compared with the last value
-- [ ] Statistical models: ETS, ARIMA/SARIMA
+- [x] Segment pipeline (gated calendar profile + guards for near-zero, ARIMA for stable, GBM for volatile): 637% official on all accounts (one account at €134k → €2 decides a fold) / 72.5% without the largest contributor; accepted only vs the zero forecast — not vs last value, because the median per-account MAPE is 74.5% vs 68.8% (medians do not add up: near-zero accounts the last value forecast at 30–50% move to ~100%, even though every segment's median improves)
+- [x] WAPE added as a reported (not deciding) measure: the pipeline misses ~17% of the euros vs ~12% for the last value; forecasting zero is cheap in MAPE and expensive in euros (§2, §7, §13)
+- [x] Per-account choice (last value / guarded profile / zero) in the near-zero group on the two inner windows (§12): ~45 accounts per fold get their last value back, median per-account MAPE 74.5% → 70.4%, but official MAPE 637% → 664% (72.5% → 81.5% without the largest contributor) — not accepted; kept as a measured trade-off
+- [x] ETS (additive, weekly season) and AutoARIMA (weekly season) per account with statsforecast, in parallel, on the last 365 days (§11): on stable accounts ARIMA beats the last value (official 16.3% vs 17.0% without the largest contributor, typical 7.2% vs 7.7%) and is adopted; ETS ≈ last value; on volatile accounts ARIMA beats the last value but not the GBM (296%/64% vs 98%/55%)
+- [ ] Ask the professor how the MAPE treats near-zero balances, and what the reference value of 224 refers to (euros? sklearn fraction?)
 - [ ] Inflow of the 8th: July/December as special months; January 2023 inflow on Monday 9 with an ordinary amount (D3)
 - [ ] COVID interruption: test an interruption flag or down-weighting (Mar–May 2020, Jan–Feb 2021) for models that use the whole history (§13)
-- [ ] ML / global models (e.g. LightGBM with lags and calendar features)
-- [ ] Compare models by MAPE under the defined validation scheme, using the decision rule (official MAPE ranks, no worsening on the two companion measures)
+- [x] ML / global models: LightGBM for volatile accounts (§10)
+- [ ] tsfresh features for the volatile-account GBM (quick test: 743 features for 500 accounts in 21 s; as a clustering input it does not beat the hand-made D14 features — ARI 0.29, PC1 dominated by scale)
+- [x] Compare models by MAPE under the defined validation scheme, using the decision rule (official MAPE ranks, no worsening on the two companion measures), with and without the largest contributor
 - [ ] Test normality (Jarque–Bera / Q–Q) on the residuals of the ARIMA models
 
 ### Sprint 3 — Anomalies + Optimizations (due 2026-12-03)

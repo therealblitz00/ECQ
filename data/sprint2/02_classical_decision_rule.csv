@@ -1,0 +1,9 @@
+version,segment,method,accepted vs naive (last value),accepted vs median of last 30 days,"accepted vs global GBM, small forecasts zeroed (threshold tuned)"
+all accounts,stable positive,"ETS (additive, weekly season)",False,False,
+all accounts,stable positive,"ARIMA (auto, weekly season)",False,False,
+all accounts,volatile positive,"ETS (additive, weekly season)",False,False,False
+all accounts,volatile positive,"ARIMA (auto, weekly season)",True,False,False
+without the largest contributor,stable positive,"ETS (additive, weekly season)",False,True,
+without the largest contributor,stable positive,"ARIMA (auto, weekly season)",True,True,
+without the largest contributor,volatile positive,"ETS (additive, weekly season)",False,False,False
+without the largest contributor,volatile positive,"ARIMA (auto, weekly season)",False,False,False

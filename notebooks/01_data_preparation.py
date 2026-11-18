@@ -21,19 +21,19 @@
 # judged by the Mean Absolute Percentage Error, so what matters is how far our forecast is from the real balance,
 # relative to that balance.
 #
-# Before choosing any model we need to understand what we were given. This notebook is the story of that first
-# encounter with the data. We start with the basics (what the file contains, what is missing), run into a surprise in
-# the calendar that changes how every later result should be read, and then follow the balances through their weekly
+# Before choosing any model we need to understand what we were given. This notebook describes our first look at the
+# data. We start with the basics (what the file contains, what is missing), find a problem in the calendar that
+# changes how every later result should be read, and then follow the balances through their weekly
 # and monthly rhythm, their relationship with each other and the details hidden in the individual transactions. We end
 # with the decisions this evidence supports and with the benchmark that the models of Sprint 2 will have to beat.
 #
-# **The short version.** The file looked clean but was not: until August 2022 every column held the previous day's
+# In summary, the file looked clean but was not: until August 2022 every column held the previous day's
 # balance, and one day in August 2022 holds the sum of two balances. Once both are corrected, the balances follow a
 # business-day week and a saw-tooth month, with salaries at the end of the month, pensions on the 8th and debits at the
 # start. Accounts behave independently. Day to day a balance looks like a random walk, but over a month most of its
 # movement cancels out around a level that jumps from time to time. The hard part is the metric: one balance in six is within €100 of zero, and an oracle experiment shows that
 # most of the official error comes from choosing the wrong level for those accounts, even with the €1 that we add to
-# each balance in the denominator of the MAPE. That is where Sprint 2 will win or lose.
+# each balance in the denominator of the MAPE. Sprint 2 therefore has to focus on those accounts.
 #
 # The notebook only needs the CSV file of balances, set in `DATA_PATH` below.
 
@@ -386,8 +386,7 @@ save_result(per_account.describe(percentiles=[0.05, 0.25, 0.5, 0.75, 0.95]).T, "
 # %% [markdown]
 # The accounts span several orders of magnitude: some typical balances are a few euros, others hundreds of thousands.
 # Any model that learns from many accounts at once will therefore have to work on a scaled version of the balance. The
-# daily changes are strongly skewed with very heavy tails. That is not surprising once we remember what a daily change
-# is: on most days nothing happens and the change is exactly zero, and on a few days a salary or a large transfer
+# daily changes are strongly skewed with very heavy tails, which follows from what a daily change is: on most days nothing happens and the change is exactly zero, and on a few days a salary or a large transfer
 # produces a big jump. Balances are piecewise constant, which already suggests that simply carrying the recent level
 # forward will be a strong benchmark.
 #
@@ -614,7 +613,7 @@ save_result(holiday_effect, "07_holiday_effect", "Activity on Portuguese public 
 # %% [markdown]
 # ### 7b. The saw-tooth profile: calendar days and business days to month end
 #
-# To see the monthly rhythm as a customer experiences it, we trace how a typical balance changes across the month.
+# To see the monthly rhythm, we trace how a typical balance changes across the month.
 # We look at this in two complementary ways: aligned by the day of the month (1 to 31) and aligned by business days
 # counting down to the end of the month (-5 to 0), which captures the fact that Portuguese employers typically pay
 # salaries on the last business day of the month rather than on a fixed calendar date. We normalise each account by its
@@ -955,7 +954,7 @@ plt.ylabel("EUR"); plt.tight_layout(); plt.show()
 # the autocorrelation, trend and seasonality have already been removed, such as the residuals of a satisfactory
 # ARIMA model. Section 11 showed that the daily changes still carry some autocorrelation, so part of what the test
 # sees as clustering may be ordinary linear dependence. We keep the raw result above for comparison and repeat the test
-# the way the literature asks.
+# on the residuals of an autoregressive model.
 #
 # To prewhiten each account we fit an autoregressive model AR(p) to its daily changes, with the order p chosen by AIC
 # up to 10 lags, and check with the Ljung–Box test that the residuals are close to white noise. A full SARIMA for every
@@ -1008,8 +1007,8 @@ save_result(arch_compare, "12_arch_raw_vs_prewhitened", "ARCH-LM: share of accou
 #
 # The practical conclusion does not change. Clustering of this size matters for the width of prediction intervals and
 # is one more argument to give recent data more weight, but it does not justify volatility models such as GARCH for a
-# point forecast scored by MAPE. Following the literature, the prewhitened result is the one to cite; the raw one is
-# kept above only for comparison.
+# point forecast scored by MAPE. We report the prewhitened result, because it separates volatility clustering from
+# linear dependence; the raw one is kept above only for comparison.
 
 # %% [markdown]
 # ## 13. Three years in comparison
@@ -1382,11 +1381,10 @@ plt.tight_layout(); plt.show()
 # # Part D · Looking closer
 #
 # What we have so far describes the balances. In this part we dig into the details, looking for structure a forecast
-# could exploit and for an honest idea of how much room for improvement there is. We take apart the daily movements
+# could exploit and for an estimate of how much room for improvement there is. We take apart the daily movements
 # into the transactions behind them, look for recurring payments, paydays, credit limits and links between accounts,
 # measure the exact cycles, find when each account last changed behaviour, study January (the month we will forecast)
-# and ask how good a forecast could possibly be. We then borrow the tools that time-series specialists use to find
-# patterns: a feature map of all accounts, the demand classification of Syntetos and Boylan, unit-root tests with
+# and ask how good a forecast could possibly be. We then apply further time-series tools to look for patterns: a feature map of all accounts, the demand classification of Syntetos and Boylan, unit-root tests with
 # breaks, seasonal differencing rules, variance ratios, variance-stabilising transformations, a test for non-linear
 # structure, seasonal subseries plots and the matrix profile.
 #
@@ -1397,8 +1395,7 @@ plt.tight_layout(); plt.show()
 # ## D1. The transactions behind the balances
 #
 # When a balance changes, the size of the change is the net amount of that day's transactions. Looking at those amounts
-# tells us something about how the data was produced. A classic tool from auditing and fraud detection is Benford's
-# law: in naturally occurring amounts the first digit is 1 about 30% of the time and 9 less than 5% of the time. We also
+# tells us something about how the data was produced. A first check is Benford's law: in naturally occurring amounts the first digit is 1 about 30% of the time and 9 less than 5% of the time. We also
 # look at the cents and at round amounts, since cash withdrawals of €20 or €50 would show up as round numbers.
 
 # %%
@@ -2144,7 +2141,7 @@ save_result(offset_sens, "D9b_mape_offset_sensitivity", "Sensitivity of baseline
 # %% [markdown]
 # ## D10. How good could a forecast be?
 #
-# An oracle is a forecast that is allowed to peek at the future. It is not a model, only a yardstick: it tells us how
+# An oracle is a forecast that is allowed to see the future. It is not a model but a reference: it tells us how
 # much of the error could disappear in the best case. We use the simplest oracle, one constant value per account for the
 # whole window, chosen to minimise MAPE. That value is a weighted median of the true balances in which each balance
 # counts in inverse proportion to its size. Comparing it with our simple forecasts shows how much of the error comes
@@ -2184,11 +2181,11 @@ save_result(oracle_summary, "D10_oracle_summary", "Baselines vs oracle constant 
 
 # %% [markdown]
 # The gap is enormous. A constant at the right level reaches an official MAPE of about 43%, some seventeen times lower
-# than the last balance (about 740%). In other words, most of the official error is not about the daily ups and downs: it is about
+# than the last balance (about 740%). Most of the official error is not about the daily ups and downs: it is about
 # choosing the wrong level for the accounts that sit near zero. The oracle constant also beats the true average of the
 # window by far, which confirms the asymmetry we found in section 5: MAPE rewards forecasts that lean towards zero.
 #
-# This is the most important lesson for Sprint 2. The largest gains will come from getting the level right for the
+# For Sprint 2 this means that the largest gains will come from getting the level right for the
 # near-zero and sign-changing accounts, and from pulling forecasts towards zero when we are unsure, more than from
 # modelling the within-month movement in great detail.
 
@@ -2221,7 +2218,7 @@ save_result(driver_corr, "D11_error_drivers", "Spearman correlation of account c
 
 # %% [markdown]
 # The error follows closely how near zero an account lives and how much it varies relative to its level. Whether its
-# daily changes look like noise matters much less. The groups from section 15 tell the same story: stable positive
+# daily changes look like noise matters much less. The groups from section 15 agree: stable positive
 # accounts are easy, while accounts that live near zero, the dormant ones included, carry the highest errors.
 
 # %% [markdown]
@@ -2284,17 +2281,16 @@ save_result(hurst, "D13_hurst_per_account", "Per account: Hurst exponent (R/S) o
 #
 # We read the values below 0.5 with caution. In the course references the Hurst exponent appears as a tool to detect
 # long memory, with H between 0.5 and 1 (Cowpertwait and Metcalfe, 2009, chapter 8); the reading of H below 0.5 as
-# anti-persistence is common in the wider literature but is not covered there, and the R/S estimator is known to be
-# biased in samples of this length. The safe conclusion is the one that matters for modelling: there is no evidence of
-# long memory. That movements tend to reverse is a possible interpretation, consistent with section 11 and D18, not a
+# anti-persistence is not covered there, and the R/S estimator is known to be
+# biased in samples of this length. For modelling, what matters is that there is no evidence of long memory. That movements tend to reverse is a possible interpretation, consistent with section 11 and D18, not a
 # result established by this statistic alone.
 
 # %% [markdown]
 # ## D14. A map of all the accounts
 #
-# So far we have described the accounts one property at a time. Forecasting researchers often go one step further:
-# they compute a set of features for every series (how persistent it is, how strong its cycles are, how often it
-# crosses zero, how lumpy its variance is) and then place all series on a single map. Accounts that sit close together
+# So far we have described the accounts one property at a time. We now describe each account by a set of features (how
+# persistent it is, how strong its cycles are, how often it crosses zero, how lumpy its variance is) and place all the
+# accounts on a single map. Accounts that sit close together
 # on the map behave alike and will probably need the same kind of model. We compute eighteen such features and convert
 # them to comparable scores. Several features measure related things, so a principal component analysis keeps the
 # few combinations that carry 80% of the variance; a clustering algorithm then tells us, in that reduced space, how many
@@ -2387,9 +2383,8 @@ save_result(cluster_profile, "D14_cluster_profiles", "Median features, size and 
 # times a year and carry a median error almost nine times higher. We name the groups by how they move rather than by where
 # they sit, because, as D14b shows, a few calm accounts with small balances fall in the first group. The near-zero and
 # stable segments of section 15 fall mostly on one side or the other, while the volatile accounts straddle the border.
-# For Sprint 2 this is a clear instruction: the main dividing line between accounts is their distance from zero, and it
-# deserves its own
-# model strategy.
+# For Sprint 2 this means that the main dividing line between accounts is their distance from zero, and that it deserves
+# its own model strategy.
 
 # %% [markdown]
 # ### D14b. Why these eighteen features, and what else we tried
@@ -2572,7 +2567,7 @@ save_result(cluster_cmp, "D14b_clustering_alternatives",
 #
 # The scale matters more than we expected. The robust scaling gives the best silhouette of all (0.60), but it does so by
 # isolating about 11% of accounts with extreme values, and its groups explain almost nothing of the forecast difficulty
-# (0.02). That is a warning against choosing a clustering by its silhouette alone. Plain standardisation is unstable
+# (0.02). The silhouette alone is therefore not a good criterion for choosing a clustering. Plain standardisation is unstable
 # (0.71), splits off a group of only 9% of the accounts and explains less difficulty than the rank-based scores, which
 # is why D14 uses ranks.
 #
@@ -2587,11 +2582,11 @@ save_result(cluster_cmp, "D14b_clustering_alternatives",
 # hand-made features tied to what we already know about the data are both more useful and easier to explain.
 #
 # The last row is the most important for Sprint 2. The four rule-based segments of section 15 explain 0.52 of the
-# forecast difficulty, more than any clustering we tried, and they are defined by thresholds anyone can check. So the
-# map and its alternatives play the role of a consistency check: they confirm that distance from zero is the main
+# forecast difficulty, more than any clustering we tried, and they are defined by thresholds that are easy to check. So the
+# map and its alternatives serve as a consistency check: they confirm that distance from zero is the main
 # dividing line, and the rules turn that line into the segments that Sprint 2 models one by one.
 #
-# That raises an obvious question. If the data show two natural groups, why do we model four? We answer it in three
+# If the data show two natural groups, why do we model four? We answer it in three
 # steps: how the segments sit inside the two clusters, whether a clustering forced to three or four groups would find
 # the segments by itself, and which accounts the two classifications disagree on.
 
@@ -2669,9 +2664,8 @@ save_result(border_profile, "D14b_border_accounts", "Median profile of near-zero
 # %% [markdown]
 # ## D15. How often does money move?
 #
-# Demand forecasters classify series by two numbers: how many periods pass, on average, between two non-zero values
-# (ADI) and how variable those non-zero values are (CV²). Syntetos and Boylan drew a grid with these two numbers that
-# separates smooth series from erratic, intermittent and lumpy ones, and each quadrant has its preferred methods. We
+# The Syntetos–Boylan classification describes a series by two numbers: how many periods pass, on average, between two non-zero values
+# (ADI) and how variable those non-zero values are (CV²). A grid on these two numbers separates smooth series from erratic, intermittent and lumpy ones, and each quadrant has its preferred methods. We
 # apply it to each account's inflows and outflows separately, on business days.
 
 # %%
@@ -2755,7 +2749,7 @@ save_result(za_summary, "D16_zivot_andrews_summary", "% of accounts rejecting a 
 # The suspicion is confirmed. Among the accounts on which ADF and KPSS disagreed, almost nine in ten reject the unit
 # root once one break is allowed, and even among the accounts both tests had called non-stationary, six in ten do. The
 # breaks are spread evenly over the three years rather than concentrated on a common date, which fits the picture of
-# independent accounts each living its own story.
+# independent accounts.
 #
 # The balances are therefore better described as stable around a level that occasionally jumps than as random walks.
 # This favours models that estimate a local level from recent data and can reset it after a break, alongside the
@@ -2816,7 +2810,7 @@ save_result(overdiff, "D17b_overdifferencing_check", "Check for over-differencin
 
 # %% [markdown]
 # The check confirms D17 without exception: adding a seasonal difference of 30 days on top of the first difference
-# increases the variance in every account, by a median factor of 1.9. That is the textbook sign of over-differencing,
+# increases the variance in every account, by a median factor of 1.9. That is the usual sign of over-differencing,
 # so the monthly cycle should enter the models as calendar regressors or Fourier terms and not through a seasonal
 # difference.
 
@@ -2988,7 +2982,7 @@ save_result(wk, "D21_subseries_activity_by_weekday_year", "Share of accounts cha
 # The weekday bars show the date-convention change from another angle: after realignment the three years agree, with
 # activity on business days only.
 #
-# The lag plots tell the same story as the variance ratios. Today's balance sits on a straight line against
+# The lag plots agree with the variance ratios. Today's balance sits on a straight line against
 # yesterday's, while today's change shows no visible relation with the change one, five or twenty-one business days
 # earlier.
 
@@ -3046,7 +3040,7 @@ save_result(mp, "D22_matrix_profile_per_account", "Per account (sample): motif a
 # %% [markdown]
 # ## D23. What the closer look taught us
 #
-# The deeper analyses did not overturn the picture from Parts A to C; they sharpened it. The data looks like real money
+# The deeper analyses confirmed the picture from Parts A to C and made it more precise. The data looks like real money
 # (D1) and the accounts are independent of each other (D5), so we model them as separate series that share a calendar.
 # That calendar is more precise than we thought: inflows come at the end of the month and on the 8th, moved to the next
 # business day at weekends, and the inflows of the 8th behave like pensions, doubled in July and December (D3), the monthly cycle needs several harmonics to be drawn (D6), it is stable from year to
@@ -3054,13 +3048,13 @@ save_result(mp, "D22_matrix_profile_per_account", "Per account (sample): motif a
 # be projected (D2), while there are no credit limits to respect (D4), overdrafts are short (D4b), and there are no
 # savings or abandoned accounts in the book (D3).
 #
-# The specialist tools changed how we see the dynamics. Day to day the balance looks like a random walk, but over a
+# These tools changed how we see the dynamics. Day to day the balance looks like a random walk, but over a
 # month most of the movement cancels out (D18), and the apparent wandering is largely a stable level that jumps from
 # time to time (D7, D16). Flows are lumpy (D15), so forecasting the level is wiser than forecasting each movement. A
 # logarithm-like transformation such as asinh makes the accounts comparable (D19), and some non-linear structure is left
 # for machine-learning models (D20).
 #
-# Above all, two findings will shape Sprint 2. The accounts split along one main line, their distance from zero (D14),
+# Two findings will shape Sprint 2 most. The accounts split along one main line, their distance from zero (D14),
 # a result that survives every alternative feature set, scale and algorithm we tried (D14b),
 # and the oracle showed that most of the official error comes from choosing the wrong level for the accounts that live
 # near zero (D10 to D12). Getting those accounts right is worth more than any refinement of the daily dynamics.
@@ -3228,7 +3222,7 @@ save_result(h_df, "17b_mape_by_horizon", "Official MAPE per forecast horizon ste
 # each other. All of this points towards models fitted to the recent history of each account, or global models with
 # good calendar information, evaluated on folds that include January.
 #
-# The real difficulty, however, lies in the metric. A large share of balances lives near zero, and the oracle showed
+# The main difficulty is the metric. A large share of balances lives near zero, and the oracle showed
 # that most of the official error comes from choosing the wrong level for those accounts. Because of this, models will
 # be chosen by the official MAPE but only accepted if they do not worsen the typical-account MAPE or the MAPE on
 # balances of at least €100 (section 17).
@@ -3273,7 +3267,7 @@ save_result(h_df, "17b_mape_by_horizon", "Official MAPE per forecast horizon ste
 # volatile accounts is itself something Sprint 2 should choose by the forecasts.
 
 # %% [markdown]
-# ## 19. Does the small dataset tell the same story?
+# ## 19. Does the small dataset show the same picture?
 #
 # We were asked to start from the small dataset, and every result above was computed on the larger file. In the
 # development data the small file is exactly the first 50 accounts of the medium one, so we can check here, without
@@ -3331,7 +3325,7 @@ display(small_check)
 save_result(small_check, "19_small_vs_all_accounts", "Key facts of the notebook: all accounts vs the first 50 (= the small dataset)")
 
 # %% [markdown]
-# The small dataset tells the same story where the story is about structure. Its accounts change sign as often, live
+# The small dataset shows the same structure. Its accounts change sign as often, live
 # near zero as often, never move at weekends, are busiest on Mondays and split into the same kinds of accounts in
 # similar proportions. Had we started from it, we would have found the same calendar, the same zero problem and the
 # same groups.

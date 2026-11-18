@@ -23,8 +23,7 @@
 #
 # Two ideas compete. The first comes from the MAPE itself: because over-forecasting a small balance is punished much
 # more than under-forecasting it, the best constant is a weighted median in which small balances count more, and we
-# can lean the forecast towards zero when the sign is uncertain. The second is a two-step approach suggested in a
-# second opinion: first classify the sign of the balance and then predict its size with a robust loss. We test both
+# can lean the forecast towards zero when the sign is uncertain. The second is a two-step approach: first classify the sign of the balance and then predict its size with a robust loss. We test both
 # against the baselines of Sprint 1 with the same validation folds and the same decision rule.
 #
 # The notebook only needs the CSV file of balances, set in `DATA_PATH` below.
@@ -303,7 +302,7 @@ def apply_tuned(T, params):
 # %% [markdown]
 # ## 5. The two-step alternative
 #
-# The second opinion suggests splitting the problem. A classifier decides whether the balance of the next month will be
+# The alternative splits the problem. A classifier decides whether the balance of the next month will be
 # positive or negative, and a second step predicts its size with a robust loss such as the mean absolute error. We
 # implement it in a simple, fair way. The classifier is a gradient-boosted tree trained on the near-zero accounts, with
 # features that describe the recent sign pattern of an account (share of positive days in the last 30, 90 and 180 days,
@@ -403,8 +402,8 @@ for s, tab in summary.items():
 #
 # We apply the decision rule against three references: the last balance, the median of the last 30 days and, new in
 # this notebook, a forecast of exactly zero. A zero forecast has an error of |actual| / (|actual| + €1) on every day,
-# just under 100% whatever the balance is (99% for a balance of €100, 50% for €1). It is not a model, but it is a
-# ruthless benchmark, because the percentage error of any forecast that leans too high is unbounded while the one of a
+# just under 100% whatever the balance is (99% for a balance of €100, 50% for €1). It is not a model but a
+# demanding benchmark, because the percentage error of any forecast that leans too high is unbounded while the one of a
 # zero forecast is capped below 100%.
 
 # %%
@@ -571,7 +570,7 @@ save_result(coverage, "02_calendar_profile_coverage", "Share (%) of near-zero ac
 # gate (q = 1) in every fold and beat zero on the official score in all five folds. The fixed gate of 0.9 does so in
 # three folds, and its better score on the larger balances comes at the cost of being sometimes worse than zero.
 #
-# We should be honest about how small this gain is and where it comes from. The gate lets the profile through on only
+# The gain is small, and it comes from few days. The gate lets the profile through on only
 # 11% to 16% of the near-zero account-days (26% to 30% for q = 0.9), and on the rest the forecast is still zero. A
 # gain of four points on a base of 100 is real in the sense that it is consistent across folds and passes our decision
 # rule against the zero forecast, but it is modest, and the median MAPE of the typical account does not improve beyond
@@ -1344,7 +1343,7 @@ display(decision_log)
 save_result(decision_log, "02_decision_log", "Every modelling choice of the notebook: alternatives compared, criterion, result and decision")
 
 # %% [markdown]
-# Read from top to bottom, the log tells the story of this sprint in one page. We started with constant levels and
+# Read from top to bottom, the log summarises the sprint. We started with constant levels and
 # found the zero floor, tried a two-step model and rejected it, beat the floor with the calendar, repaired the
 # segmentation with a warning flag whose threshold we checked, and gave each segment the model that won its own
 # comparison: the calendar for the accounts near zero, a time series model for the stable accounts and a global tree

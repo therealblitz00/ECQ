@@ -97,7 +97,8 @@ Done:
 
 To do:
 - [ ] **Re-run the notebook** (~12–14 min) with the €1 offset and the new comparisons, then update the numbers quoted in §7–§13
-- [ ] Confirm that the reference value of 224 is the naive forecast under the €1 rule (~238% on medium for Dec 2022)
+- [ ] Clarify the €224 reference (an error in euros reached by a group last year): mean or median absolute error, same data or not? On medium the naive MAE is €1 832 (oracle €954, so a mean of €224 is out of reach on these data) and the naive median absolute error is €331 (oracle €141)
+- [ ] Report errors in euros (MAE, median absolute error, median per-account MAE) next to the MAPE measures; the MAPE-oriented pipeline is worse than the last value in euros (WAPE 17% vs 12%)
 - [ ] sMAPE and MASE as reference metrics; offset sensitivity on the pipeline
 - [ ] Payday of each account: anchor day, weekend rule, extra months, with a chance control (includes pension, month-end, public-sector-like and irregular-income profiles)
 - [ ] Calendar profile and GBM features aligned with each account's payday instead of the calendar day

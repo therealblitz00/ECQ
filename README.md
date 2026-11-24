@@ -31,10 +31,10 @@ Forecast each client's daily account balance for the **next 30 days**, evaluated
 - **Clustering (check only):** 18 hand-made features, PCA to 80% of the variance (5 components), k-means → k = 2 ("persistent, calm" vs "erratic, crossing zero"). Robust to feature sets, scalings, algorithms and tsfresh; the rule-based segments explain more forecast difficulty (0.52 vs 0.34).
 - **Benchmark (MAPE with €1):** naive 736%, 30-day median 2 075%; oracle best constant 43%. Most of the error is choosing the wrong level for near-zero accounts.
 
-### Sprint 2 (medium dataset, computed before the €1 offset — to be refreshed on re-run)
-- Forecasting zero scores just under 100% on every MAPE and no constant level beats it on near-zero accounts; a calendar profile gated by sign agreement gets below it.
-- Stable accounts: ARIMA (weekly season) beats the last value once the largest contributor is left out. Volatile accounts: a global LightGBM with a MAPE-weighted loss beats every classical model. tsfresh features did not help.
-- Segment pipeline: accepted against the zero forecast, not against the last value on the typical-account measure; the per-account choice in the near-zero group was measured and rejected.
+### Sprint 2 (medium dataset, MAPE with |A| + €1)
+- Forecasting zero scores just under 100% on every MAPE (97% official on near-zero accounts); the best constant level beats it by less than one point (96.5%); a calendar profile gated by sign agreement gets to 93–94%, below zero in all five folds.
+- Stable accounts: ARIMA without season beats the last value once the largest contributor is left out (15.9% vs 16.9% official, 7.1% vs 7.7% typical); the weekly season does not help. Volatile accounts: a global LightGBM with a MAPE-weighted loss beats every classical model (89% vs 243% official for the last value). tsfresh features did not help (measured before the €1 offset).
+- Segment pipeline: 464% official vs 736% for the last value (68.6% without the largest contributor); accepted against the zero forecast, not against the last value on the typical-account measure (72.4% vs 68.1%); the per-account choice in the near-zero group (69.0% typical, worse official) was measured and rejected.
 
 All results are saved as CSV in `data/sprint1/` and `data/sprint2/` (start with `00_index.csv`).
 
@@ -94,9 +94,9 @@ Done:
 - [x] Global LightGBM for volatile accounts (with loss and tree-size variants, optional tsfresh features)
 - [x] ETS and ARIMA per account (with and without weekly season), in parallel
 - [x] Segment pipeline with guards and per-account choice; WAPE; decision log (§14)
+- [x] Notebook re-run with the €1 offset and the new comparisons (~15 min); numbers and conclusions in §4–§13 updated
 
 To do:
-- [ ] **Re-run the notebook** (~12–14 min) with the €1 offset and the new comparisons, then update the numbers quoted in §7–§13
 - [ ] Clarify the €224 reference (an error in euros reached by a group last year): mean or median absolute error, same data or not? On medium the naive MAE is €1 832 (oracle €954, so a mean of €224 is out of reach on these data) and the naive median absolute error is €331 (oracle €141)
 - [ ] Report errors in euros (MAE, median absolute error, median per-account MAE) next to the MAPE measures; the MAPE-oriented pipeline is worse than the last value in euros (WAPE 17% vs 12%)
 - [ ] sMAPE and MASE as reference metrics; offset sensitivity on the pipeline

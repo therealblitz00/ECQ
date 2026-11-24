@@ -228,7 +228,7 @@ display(pd.DataFrame({str((o + pd.Timedelta(days=1)).date()): pd.Series(s).value
 #
 # Every candidate in this section is one level per account, held constant for the 30 days. That is deliberate. In
 # Sprint 1 we saw that a balance oscillates around a level, and that the oracle constant already reaches an official
-# MAPE of about 44%. Before adding any dynamics we want to know how close a constant chosen without peeking can get.
+# MAPE of about 43%. Before adding any dynamics we want to know how close a constant chosen without peeking can get.
 #
 # The first family are the weighted medians of the last N days, in which a balance counts in inverse proportion to its
 # size. For a given set of balances this is exactly the constant that minimises the MAPE, so it is the natural
@@ -422,51 +422,53 @@ axes[0].invert_yaxis(); plt.tight_layout(); plt.show()
 
 # %% [markdown]
 # The first result is the size of the gain. In the near-zero segment the last balance has an official MAPE of about
-# 1 600% and the median of the last 30 days about 800%, while the weighted medians of the last 90 to 365 days are
-# around 120%. That confirms the main lesson of Sprint 1: the level matters more than anything else for these
-# accounts, and choosing it with the MAPE in mind removes more than 90% of the official error.
+# 660% and the median of the last 30 days about 440%, while the weighted medians of the last 90 to 365 days are
+# around 100%. That confirms the main lesson of Sprint 1: the level matters more than anything else for these
+# accounts, and choosing it with the MAPE in mind removes about 85% of the official error.
 #
-# The second result is a warning. The zero forecast scores just under 100% on the three measures, and the tuned
-# shrinkage ends up choosing factors between 0 and 0.1, which is a forecast of almost zero (100.7% official). The
-# search was free to keep the level and it chose to give it up. For accounts that cross zero all the time, no constant
-# level is reliably within a factor of two of the true balance, so the best constant is the one that costs just under
-# 100%. The weighted medians do a little better than zero only on the balances of at least €100 (90 to 96% against
-# 100%) and they do it by being right about sign and size on the days when the balance is not tiny, at the price of
-# a higher official score.
+# The second result is a warning. The zero forecast scores just under 100% on the three measures (97% official), and
+# only one constant level gets below it: the weighted median of the last 180 to 365 days with the sign-uncertainty
+# shrinkage, at 96.5% official, which passes the decision rule against zero by less than one point. The plain tuned
+# shrinkage, whose factor ranges from 0 to 0.75 depending on the fold, stays just above zero (97.4%). For accounts
+# that cross zero all the time, no constant level is reliably within a factor of two of the true balance, so the best
+# constant costs almost as much as forecasting zero. The weighted medians do clearly better than zero only on the
+# balances of at least €100 (90 to 96% against almost 100%) and they do it by being right about sign and size on the
+# days when the balance is not tiny, at the price of a higher official score.
 #
 # The WAPE shows how strange this floor is. A forecast of zero also has a WAPE of exactly 100%: it misses every euro of
 # every balance. The last balance and the median of the last 30 days miss about 70% of the euros, and the weighted
-# median of the last 30 days 64%, even though their percentage errors are far worse; the tuned shrinkage, which is
-# almost zero, misses 99%. The zero floor is therefore a property of the MAPE, which caps the cost of
+# median of the last 30 days 64%, even though their percentage errors are far worse; the tuned shrinkage, which stays
+# close to zero, misses 97%. The zero floor is therefore a property of the MAPE, which caps the cost of
 # under-forecasting at 100% and leaves the cost of over-forecasting unbounded, and not a sign that zero is a good
 # forecast of the balance. The €1 added to the denominator does not change this: it removes the division by zero but
 # leaves balances of a few euros with huge percentage errors. We keep the official MAPE as the score that ranks models,
 # as decided in Sprint 1, but we read every result that relies on forecasting zero together with its WAPE.
 #
 # The third result concerns the two-step idea. With the size predicted by a mean absolute error the official MAPE is
-# about 610%, because that loss ignores how costly it is to over-forecast a small balance. With a size chosen for the
-# MAPE it falls to about 160%, but that is still worse than the plain weighted median of the last 90 days (about 123%),
+# about 290%, because that loss ignores how costly it is to over-forecast a small balance. With a size chosen for the
+# MAPE it falls to about 113%, but that is still worse than the plain weighted median of the last 90 days (about 104%),
 # so the sign classifier did not add information beyond what the share of positive days already says. This does not
 # mean that sign prediction is useless in general. It means that a classifier built only on the recent sign pattern
 # of the account has nothing to learn from, and that any future version needs features that carry new information,
 # such as the calendar (the 8th, the end of the month) and the amounts of recurring payments.
 #
 # The fourth result is about the other segment. On stable positive accounts the weighted median is worse than the
-# last balance or the median of 30 days on the typical account (13 to 25% against 9 to 11%), so leaning towards zero
+# last balance or the median of 30 days on the typical account (11 to 25% against 9 to 11%), so leaning towards zero
 # should be reserved for the accounts that need it, which supports the segmented strategy decided in Sprint 1. The
 # official MAPE of that segment is large for every candidate except zero, because a few accounts classified as stable
 # in the past fall close to zero in the test window.
 #
 # What we take forward is a floor and a question. The floor is that every model for near-zero accounts must beat a
-# 100% MAPE, so the zero forecast becomes a reference of our decision rule. The question is how to do better than the
-# floor, which a constant level cannot. That needs the within-month movement: the day of the month, the end-of-month
+# 100% MAPE, so the zero forecast becomes a reference of our decision rule. The question is how to do clearly better
+# than the floor, which a constant level can only just reach. That needs the within-month movement: the day of the month, the end-of-month
 # salary and the 8th, so that the forecast moves with the calendar instead of staying flat. Section 8 tests exactly
 # that, and section 9 returns to the stable accounts whose official score looked so odd.
 
 # %% [markdown]
 # ## 8. Can the calendar beat the zero floor?
 #
-# A constant level cannot go below 100% for accounts that cross zero all the time. But balances do not move at random:
+# A constant level barely gets below the zero forecast for accounts that cross zero all the time. But balances do not
+# move at random:
 # salaries, pensions and debits come on fixed days of the month, so an account may be reliably positive on some days of
 # the month and reliably negative on others. We build a calendar profile for each account: for every day we want to
 # forecast, we take the balances the account had on the same day of the month (give or take two days) during the last
@@ -563,25 +565,27 @@ save_result(coverage, "02_calendar_profile_coverage", "Share (%) of near-zero ac
 
 # %% [markdown]
 # The calendar helps, but only when we are careful with it. The profile on its own is worse than zero on the official
-# score (129%), and even halved it stays above 100%, because on the days when the account is not where its history says
-# it should be, the percentage error is large. The gate changes that. Letting the profile through only when the past
-# balances of that day of the month agree on the sign brings the official MAPE to 96% to 97%, below the zero floor, and
-# lowers the MAPE on balances of at least €100 to 89% to 94%. The version tuned on the inner windows chose the strictest
-# gate (q = 1) in every fold and beat zero on the official score in all five folds. The fixed gate of 0.9 does so in
-# three folds, and its better score on the larger balances comes at the cost of being sometimes worse than zero.
+# score (101% against 97%) and beats it in only one fold of five, because on the days when the account is not where its
+# history says it should be, the percentage error is large. Halving it brings it to 96%, below zero in four folds. The
+# gate does better still. Letting the profile through only when the past balances of that day of the month agree on the
+# sign brings the official MAPE to 93% to 94%, below the zero floor in all five folds, and lowers the MAPE on balances
+# of at least €100 to 88% to 93%. The version tuned on the inner windows chose the strictest gate (q = 1) in four folds
+# and q = 0.9 in December. The fixed gate of 0.9 is now slightly better than the tuned one on every measure (92.9%
+# against 93.7% official, 88% against 93% on the larger balances).
 #
-# The gain is small, and it comes from few days. The gate lets the profile through on only
-# 11% to 16% of the near-zero account-days (26% to 30% for q = 0.9), and on the rest the forecast is still zero. A
-# gain of four points on a base of 100 is real in the sense that it is consistent across folds and passes our decision
-# rule against the zero forecast, but it is modest, and the median MAPE of the typical account does not improve beyond
-# the floor (100% for the tuned version). In practice the calendar tells us on which days it is safe to forecast a
+# The gain is small, and it comes from few days. The tuned gate lets the profile through on only 11% to 15% of the
+# near-zero account-days (31% in December, where it chose q = 0.9), and the fixed gate of 0.9 on 27% to 31%; on the
+# rest the forecast is still zero. A gain of three to four points on a base of about 97 is real in the sense that it is
+# consistent across folds and passes our decision rule against the zero forecast, but it is modest, and the median MAPE
+# of the typical account improves only a little (96% for the tuned version and 95% for the fixed gate, against 99% for
+# zero). In practice the calendar tells us on which days it is safe to forecast a
 # value and on which days we should not. It does not make these accounts predictable.
 
 # %% [markdown]
 # ## 9. Stable accounts that end near zero
 #
-# In section 6 the stable positive accounts had an official MAPE of around 2 000% for every candidate, while the typical
-# account was at 9 to 25%. Something must dominate the pooled score. We look at which accounts, and at whether they
+# In section 6 the stable positive accounts had an official MAPE well above 1 000% for every candidate except zero,
+# while the typical account was at 9 to 25%. Something must dominate the pooled score. We look at which accounts, and at whether they
 # could have been seen coming. For every fold we list the stable accounts whose balance gets within €100 of zero
 # during the test window, and the share of the segment's total percentage error that each account produces with the
 # last-balance forecast.
@@ -861,6 +865,10 @@ save_result(gbm_var, "02_gbm_variants", "Volatile accounts: GBM loss and tree-si
 # larger trees land close to the chosen configuration, the model is not sensitive to it and there is no reason to tune
 # it further on folds this few. The last column applies our decision rule to each variant against the chosen one; a
 # variant that passed it would replace the configuration used in the rest of the notebook in the next iteration.
+#
+# Both expectations hold. Without the MAPE weights the official score gets much worse (173% for the unweighted absolute
+# loss and 115% for the squared loss, against 93% for the chosen model), and trees of 7 or 31 leaves land close to the
+# chosen 15 (95% and 94%). No variant passes the rule, so the configuration stays as it is.
 
 # %% [markdown]
 # A last variant asks whether automatic features would help the tree model, as they are often said to. We use the
@@ -873,7 +881,8 @@ save_result(gbm_var, "02_gbm_variants", "Volatile accounts: GBM loss and tree-si
 # `RUN_TSFRESH_GBM` is set to True in the first cell. When we ran it on the medium dataset, the automatic features took
 # 44% of the splits of the trees but did not improve the forecasts: 107.2% official, 50.4% typical account and 49.4% on
 # balances of at least €100 against 107.5%, 50.3% and 49.8% without them, and 99.3% against 97.7% official once small
-# forecasts are set to zero, with a worse WAPE in both cases. The decision rule rejected them in both versions, so the
+# forecasts are set to zero, with a worse WAPE in both cases. These numbers were measured before the €1 was added to the
+# MAPE denominator, and the experiment has not been run again since. The decision rule rejected them in both versions, so the
 # model keeps its hand-made features, which also keeps the run short.
 
 # %%
@@ -1065,19 +1074,21 @@ VOLATILE_MODEL = chosen_model("volatile positive", "global GBM, small forecasts 
 print("stable accounts ->", STABLE_MODEL, "| volatile accounts ->", VOLATILE_MODEL)
 
 # %% [markdown]
-# On the stable accounts the ARIMA is the best model we have tried, but only by a little. Its typical-account error is
-# 7.2% against 7.7% for the last balance, and its error on balances of at least €100 is 20.9% against 21.9%. On all
-# accounts it is rejected, because its official MAPE is 2 479% against 2 437%, and that score is decided by the one
+# On the stable accounts the ARIMA is the best model we have tried, but only by a little, and the weekly season does not
+# pay for itself: the ARIMA without it is slightly better than with it. Its typical-account error is 7.1% (7.2% with the
+# season) against 7.7% for the last balance, and its error on balances of at least €100 is 20.4% against 21.9%. On all
+# accounts it is rejected, because its official MAPE is 1 732% against 1 703%, and that score is decided by the one
 # account of section 9 that falls from €134 000 to a few euros. Once the largest contributor of each fold is left out
-# the picture is clear: 16.3% against 17.0% official, and the ARIMA passes the rule against both baselines. Since that
-# single account is unpredictable for any method, we adopt the ARIMA for the stable accounts and keep reporting both
-# versions. The ETS ends up almost identical to the last balance, which is what simple exponential smoothing becomes
+# the picture is clear: 15.9% against 16.9% official, and the ARIMA passes the rule against both baselines, as the
+# ETS without season also does by a smaller margin (16.8%). Since that single account is unpredictable for any method,
+# we adopt the ARIMA without season for the stable accounts and keep reporting both versions. The ETS ends up almost
+# identical to the last balance (typical account 7.5% to 7.8%), which is what simple exponential smoothing becomes
 # when its smoothing weight is close to one, and it is what Sprint 1 led us to expect from balances that behave like a
 # random walk from one day to the next.
 #
 # On the volatile accounts the classical models help less than the tree model by a wide margin. The ARIMA improves on
-# the last balance (official 296% against 299%, typical account 64% against 67%) and passes the rule against it, but
-# the global model of section 10 reaches 98% and 55%. The difference is the calendar: the tree model knows the day of
+# the last balance (official 238% against 243%, typical account 64% against 67%) and passes the rule against it, but
+# the global model of section 10 reaches 89% and 53%. The difference is the calendar: the tree model knows the day of
 # the month and the calendar profile, while a weekly ARIMA does not see the salary and the pension coming. So the
 # volatile accounts stay with the tree model, and the course models earn their place where the balance is far from zero
 # and the problem is a matter of small corrections to the level.
@@ -1220,18 +1231,19 @@ save_result(pipe_verdict, "02_pipeline_decision_rule", "Decision-rule verdict of
 # %% [markdown]
 # ## 13. What the segment pipeline tells us
 #
-# Segment by segment, the pipeline does what we built it to do. The stable accounts get the ARIMA (7.2% on the typical
-# account) and the volatile ones the tree model (55% against 67% for the last balance, 53% against 86% on balances of
-# at least €100). On the near-zero group, which now includes the flagged accounts, the gated profile brings the official
-# MAPE from about 1 450% with the last balance to 100%, the typical account from 154% to 100% and the large balances
-# from 142% to 88%. The guards still matter: without them the official MAPE over all accounts is about 1 320%, because
-# in the December fold an account that had just lost its whole balance kept a forecast of about €62 000.
+# Segment by segment, the pipeline does what we built it to do. The stable accounts get the ARIMA without season (7.1%
+# on the typical account) and the volatile ones the tree model (53% against 67% for the last balance, 51% against 86%
+# on balances of at least €100). On the near-zero group, which now includes the flagged accounts, the gated profile
+# brings the official MAPE from about 600% with the last balance to 96%, the typical account from 147% to 96% and the
+# large balances from 141% to 87%. The guards still matter: without them the official MAPE over all accounts is about
+# 940%, because in the December fold an account that had just lost its whole balance kept a forecast of tens of
+# thousands of euros (that fold scores 2 458% without the guards and 76% with them).
 #
-# Over all accounts the official MAPE of the pipeline is about 640%, against 1 303% for the last balance, and once more
-# it is decided by the single account of section 9. Without the largest contributor of each fold it is 72.5%, below
-# the 100% of the zero forecast, which is the only reference the pipeline beats under our decision rule. It is not
+# Over all accounts the official MAPE of the pipeline is about 464%, against 736% for the last balance, and once more
+# it is decided by the single account of section 9. Without the largest contributor of each fold it is 68.6%, below
+# the 99% of the zero forecast, which is the only reference the pipeline beats under our decision rule. It is not
 # accepted against the last balance or the median of the last 30 days, because the median error across all accounts is
-# 74.5% against 68.8% for the last balance.
+# 72.4% against 68.1% for the last balance.
 #
 # This last number looks like a contradiction, since the pipeline improves the typical account inside every segment.
 # The explanation is that medians do not add up. The median over all accounts sits around 70%, and a near-zero account
@@ -1241,10 +1253,10 @@ save_result(pipe_verdict, "02_pipeline_decision_rule", "Decision-rule verdict of
 #
 # The per-account choice of section 12 was our attempt to protect exactly those accounts. It works on the typical
 # account: about 45 near-zero accounts per fold are given back their last balance, the median over all accounts falls
-# from 74.5% to 70.4% and the WAPE improves slightly. But it costs official MAPE (664% against 637%, and 81.5% against
-# 72.5% without the largest contributor), because two windows of history are not enough to tell a reliably flat account
-# from one that happened to be flat for two months, and one wrong choice of the last balance in the September fold
-# more than doubles that fold's score. By our rule the choice is not accepted, so the pipeline we carry forward is the
+# from 72.4% to 69.0%, within one point of the last balance (68.1%), and the WAPE improves slightly. But it costs
+# official MAPE (472% against 464%, and 77.2% against 68.6% without the largest contributor), because two windows of
+# history are not enough to tell a reliably flat account from one that happened to be flat for two months: the
+# official score is worse in every fold, by up to 14 points in September. By our rule the choice is not accepted, so the pipeline we carry forward is the
 # version without it, and the choice stays as a measured trade-off rather than a decision.
 #
 # The WAPE adds a caution of its own. The pipeline misses about 17% of the euros, against 12% for the last balance,
@@ -1288,7 +1300,7 @@ decision_log = pd.DataFrame([
                      f"({len(LAMBDAS)} x {len(WINDOWS)}) tuned on inner windows, two-step models, zero",
      "judged by": "decision rule against last value, 30-day median and zero",
      "result": f"best: {near.index[0]} ({fmt(near.iloc[0])}); last value {fmt(near.loc['naive (last value)'])}",
-     "decision": "no constant level beats zero; look for the calendar (section 8)"},
+     "decision": "no constant level beats zero by more than one point; look for the calendar (section 8)"},
     {"section": "5", "question": "Does a sign classifier plus a size model help?",
      "alternatives": "size by absolute error (MAE) vs size by MAPE, both after a LightGBM sign classifier",
      "judged by": "decision rule against the plain weighted median",
@@ -1321,7 +1333,7 @@ decision_log = pd.DataFrame([
      "alternatives": "the 30 most relevant of several hundred tsfresh features of the last 90 days, added to the hand-made ones",
      "judged by": "decision rule against the same model without them, raw and with small forecasts zeroed",
      "result": ("this run: " + ", ".join(f"{k} {v:.1f}%" for k, v in tsf_cmp["MAPE (official)"].items()))
-               if tsf_cmp is not None else "not run here (RUN_TSFRESH_GBM = False); on medium: 99.3% vs 97.7% official with zeroing",
+               if tsf_cmp is not None else "not run here (RUN_TSFRESH_GBM = False); on medium, before the EUR 1 offset: 99.3% vs 97.7% official with zeroing",
      "decision": "rejected: no gain on any MAPE measure, worse WAPE, about ten more minutes per run"},
     {"section": "10", "question": "When should small GBM forecasts be set to zero?",
      "alternatives": f"{len(ZERO_GRID)} thresholds ({', '.join(map(str, ZERO_GRID))} x typical size), tuned on the window before each cut-off",

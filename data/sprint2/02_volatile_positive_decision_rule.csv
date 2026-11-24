@@ -1,13 +1,13 @@
 ,accepted vs naive (last value),accepted vs median of last 30 days
 "global GBM, small forecasts zeroed (threshold tuned)",True,True
-zero (forecast 0),False,False
 "global GBM (MAPE-weighted L1, scaled deviations)",True,True
+zero (forecast 0),False,False
 "gated calendar profile, q=0.9",False,False
 calendar profile,False,False
 "weighted median, N=365",False,False
 "weighted median, N=180",False,False
 "weighted median, N=60",False,False
-"weighted median, N=30",True,True
 "weighted median, N=90",False,False
+"weighted median, N=30",True,True
 median of last 30 days,True,
 naive (last value),,False

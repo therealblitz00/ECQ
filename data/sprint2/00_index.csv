@@ -11,13 +11,16 @@ file,description,rows,columns
 02_calendar_profile_coverage.csv,Share (%) of near-zero account-days where the gated profile is used instead of zero,5,2
 02_stable_accounts_ending_near_zero.csv,Stable positive accounts: warning features and error contribution per fold,689,10
 02_stable_warning_flag.csv,"Stable positive accounts split by a warning flag (lowest balance below 20% of the median), last-value forecast",3,6
+02_stable_flag_threshold_sensitivity.csv,"Warning-flag threshold: accounts flagged, near-zero endings caught, typical error of kept and flagged accounts",5,4
 02_volatile_positive_by_fold.csv,Volatile positive accounts: all candidates by fold,60,7
 02_volatile_positive_summary.csv,Volatile positive accounts: mean over folds,12,4
 02_volatile_positive_decision_rule.csv,Decision-rule verdict for the volatile positive candidates,12,2
-02_classical_by_fold.csv,"ETS and ARIMA vs baselines (and the GBM for volatile accounts), by fold",90,8
-02_classical_summary.csv,"ETS and ARIMA vs baselines, by segment, mean over folds",18,4
-02_classical_decision_rule.csv,"Decision-rule verdict of ETS and ARIMA, by segment, with and without the largest contributor",8,3
+02_gbm_variants.csv,"Volatile accounts: GBM loss and tree-size variants (raw forecasts, mean over folds)",5,5
+02_classical_by_fold.csv,"ETS and ARIMA vs baselines (and the GBM for volatile accounts), by fold",130,8
+02_classical_summary.csv,"ETS and ARIMA vs baselines, by segment, mean over folds",26,4
+02_classical_decision_rule.csv,"Decision-rule verdict of ETS and ARIMA, by segment, with and without the largest contributor",16,3
 02_pipeline_by_fold.csv,"Segment pipeline vs baselines on all accounts, by fold, with and without the largest contributor",60,7
 02_pipeline_by_segment.csv,"Segment pipeline vs last value, by segment (mean over folds)",12,4
 02_near_zero_choice_counts.csv,Near-zero accounts per fold by the option chosen on the inner windows,5,3
 02_pipeline_decision_rule.csv,"Decision-rule verdict of the segment pipeline, with and without the per-account choice",4,3
+02_decision_log.csv,"Every modelling choice of the notebook: alternatives compared, criterion, result and decision",11,5

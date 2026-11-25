@@ -50,6 +50,7 @@ data/sprintN/      analysis results saved as CSV by each sprint notebook (00_ind
 notebooks/         one self-contained notebook per sprint (the deliverables), developed
                    as percent-format .py scripts and converted with jupytext
 reports/figures/   exported figures
+reports/           presentation notes (e.g. sprint2_sections_12_13_briefing.md)
 ```
 
 ## Setup
@@ -95,6 +96,7 @@ Done:
 - [x] ETS and ARIMA per account (with and without weekly season), in parallel
 - [x] Segment pipeline with guards and per-account choice; WAPE; decision log (§14)
 - [x] Notebook re-run with the €1 offset and the new comparisons (~15 min); numbers and conclusions in §4–§13 updated
+- [x] Presentation briefing for §12–§13 (`reports/sprint2_sections_12_13_briefing.md`)
 
 To do:
 - [ ] Clarify the €224 reference (an error in euros reached by a group last year): mean or median absolute error, same data or not? On medium the naive MAE is €1 832 (oracle €954, so a mean of €224 is out of reach on these data) and the naive median absolute error is €331 (oracle €141)
